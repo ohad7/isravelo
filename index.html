@@ -337,12 +337,49 @@
                   weight: this.originalStyle.weight + 1
                 });
                 
-                // Focus map on the end of the segment
+                // Smart focusing based on route direction
                 const segmentCoords = this.getLatLngs();
-                if (segmentCoords.length > 0) {
-                  const endPoint = segmentCoords[segmentCoords.length - 1];
-                  map.setView(endPoint, Math.max(map.getZoom(), 15));
+                if (segmentCoords.length > 0 && selectedSegments.length > 1) {
+                  // Find the previously selected segment
+                  const previousSegmentName = selectedSegments[selectedSegments.length - 2];
+                  const previousPolyline = routePolylines.find(p => p.segmentName === previousSegmentName);
+                  
+                  if (previousPolyline) {
+                    const prevCoords = previousPolyline.getLatLngs();
+                    const prevStart = prevCoords[0];
+                    const prevEnd = prevCoords[prevCoords.length - 1];
+                    
+                    const currentStart = segmentCoords[0];
+                    const currentEnd = segmentCoords[segmentCoords.length - 1];
+                    
+                    // Calculate distances between endpoints
+                    const prevEndToCurrentStart = map.distance(prevEnd, currentStart);
+                    const prevEndToCurrentEnd = map.distance(prevEnd, currentEnd);
+                    const prevStartToCurrentStart = map.distance(prevStart, currentStart);
+                    const prevStartToCurrentEnd = map.distance(prevStart, currentEnd);
+                    
+                    // Find the minimum distance to determine connection
+                    const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
+                    
+                    let focusPoint;
+                    if (minDistance === prevEndToCurrentStart) {
+                      // Previous end connects to current start, focus on current end
+                      focusPoint = currentEnd;
+                    } else if (minDistance === prevEndToCurrentEnd) {
+                      // Previous end connects to current end, focus on current start
+                      focusPoint = currentStart;
+                    } else if (minDistance === prevStartToCurrentStart) {
+                      // Previous start connects to current start, focus on current end
+                      focusPoint = currentEnd;
+                    } else {
+                      // Previous start connects to current end, focus on current start
+                      focusPoint = currentStart;
+                    }
+                    
+                    map.setView(focusPoint, Math.max(map.getZoom(), 15));
+                  }
                 }
+                // Don't focus for the first segment since we don't know the direction yet
               } else {
                 // Remove segment from selection
                 const index = selectedSegments.indexOf(name);
