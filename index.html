@@ -5,14 +5,32 @@
   <title>Bike Route Planner</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .map-container {
+      flex: 2;
+    }
+    .sidebar {
+      flex: 1;
+      min-width: 300px;
+    }
     #map {
       height: 500px;
       width: 100%;
+      border: 1px solid #ccc;
     }
     #route-list {
       margin-top: 10px;
       border: 1px solid #ccc;
       padding: 10px;
+      background-color: #f9f9f9;
     }
     #error-message {
       color: red;
@@ -22,12 +40,41 @@
     .route-segment {
       cursor: pointer;
     }
-    .route-segment:hover {
-      stroke-width: 4;
+    .segment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid #ddd;
     }
-    .selected-segment {
-      stroke: #00ff00 !important;
-      stroke-width: 4 !important;
+    .remove-btn {
+      background-color: #ff4444;
+      color: white;
+      border: none;
+      padding: 2px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .remove-btn:hover {
+      background-color: #cc0000;
+    }
+    #download-gpx {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+    }
+    #download-gpx:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #download-gpx:hover:not(:disabled) {
+      background-color: #45a049;
     }
   </style>
 </head>
@@ -40,15 +87,23 @@
   <input type="file" id="kml-file" accept=".kml">
   <p style="color: #666; font-size: 14px;">Please upload a KML file to see the available route segments on the map.</p>
 
-  <div id="map"></div>
+  <div class="container">
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+    
+    <div class="sidebar">
+      <h3>Selected Route Segments</h3>
+      <div id="route-list">
+        <p style="color: #666; font-style: italic;">No segments selected. Click on route segments on the map to add them to your route.</p>
+      </div>
 
-  <h2>Selected Route Segments</h2>
-  <ul id="route-list"></ul>
+      <h3>Route Description</h3>
+      <div id="route-description">Click on map segments to build your route.</div>
 
-  <h2>Route Description</h2>
-  <div id="route-description"></div>
-
-  <button id="download-gpx" disabled>Download GPX</button>
+      <button id="download-gpx" disabled>Download GPX Route</button>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
@@ -149,7 +204,6 @@
                   color: '#00ff00',
                   weight: 4
                 });
-                this.addClassName('selected-segment');
                 updateRouteListAndDescription();
               }
             });
@@ -177,20 +231,31 @@
       const routeDescription = document.getElementById('route-description');
       const downloadButton = document.getElementById('download-gpx');
 
+      if (selectedSegments.length === 0) {
+        routeList.innerHTML = '<p style="color: #666; font-style: italic;">No segments selected. Click on route segments on the map to add them to your route.</p>';
+        routeDescription.textContent = 'Click on map segments to build your route.';
+        downloadButton.disabled = true;
+        return;
+      }
+
       routeList.innerHTML = '';
       selectedSegments.forEach((segmentName, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `${index + 1}. ${segmentName} <button onclick="removeSegment('${segmentName}')" style="margin-left: 10px; color: red;">Remove</button>`;
-        routeList.appendChild(li);
+        const segmentDiv = document.createElement('div');
+        segmentDiv.className = 'segment-item';
+        segmentDiv.innerHTML = `
+          <span><strong>${index + 1}.</strong> ${segmentName}</span>
+          <button class="remove-btn" onclick="removeSegment('${segmentName}')">Remove</button>
+        `;
+        routeList.appendChild(segmentDiv);
       });
 
-      if (selectedSegments.length > 0) {
-        routeDescription.textContent = `Your route consists of ${selectedSegments.length} segments: ` + selectedSegments.join(' → ');
-      } else {
-        routeDescription.textContent = 'No segments selected. Click on route segments on the map to add them to your route.';
-      }
+      routeDescription.innerHTML = `
+        <strong>Route Summary:</strong><br>
+        ${selectedSegments.length} segment${selectedSegments.length > 1 ? 's' : ''} selected<br>
+        <small style="color: #666;">${selectedSegments.join(' → ')}</small>
+      `;
       
-      downloadButton.disabled = selectedSegments.length === 0;
+      downloadButton.disabled = false;
     }
 
     function removeSegment(segmentName) {
