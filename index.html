@@ -336,6 +336,13 @@
                   color: '#00ff00',
                   weight: this.originalStyle.weight + 1
                 });
+                
+                // Focus map on the end of the segment
+                const segmentCoords = this.getLatLngs();
+                if (segmentCoords.length > 0) {
+                  const endPoint = segmentCoords[segmentCoords.length - 1];
+                  map.setView(endPoint, Math.max(map.getZoom(), 15));
+                }
               } else {
                 // Remove segment from selection
                 const index = selectedSegments.indexOf(name);
