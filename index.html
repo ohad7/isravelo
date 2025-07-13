@@ -324,13 +324,19 @@
             // Add click event listener
             polyline.on('click', function() {
               if (!selectedSegments.includes(name)) {
+                // Add segment to selection
                 selectedSegments.push(name);
                 this.setStyle({
                   color: '#00ff00',
                   weight: this.originalStyle.weight + 1
                 });
-                updateRouteListAndDescription();
+              } else {
+                // Remove segment from selection
+                const index = selectedSegments.indexOf(name);
+                selectedSegments.splice(index, 1);
+                this.setStyle(this.originalStyle);
               }
+              updateRouteListAndDescription();
             });
           }
 
