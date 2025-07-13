@@ -1,7 +1,9 @@
+
 <!DOCTYPE html>
 <html>
 <head>
   <title>Bike Route Planner</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     #map {
       height: 500px;
@@ -12,13 +14,31 @@
       border: 1px solid #ccc;
       padding: 10px;
     }
+    #error-message {
+      color: red;
+      margin: 10px 0;
+      display: none;
+    }
+    .route-segment {
+      cursor: pointer;
+    }
+    .route-segment:hover {
+      stroke-width: 4;
+    }
+    .selected-segment {
+      stroke: #00ff00 !important;
+      stroke-width: 4 !important;
+    }
   </style>
 </head>
 <body>
 
   <h1>Bike Route Planner</h1>
 
+  <div id="error-message"></div>
+  
   <input type="file" id="kml-file" accept=".kml">
+  <p style="color: #666; font-size: 14px;">Please upload a KML file to see the available route segments on the map.</p>
 
   <div id="map"></div>
 
@@ -30,52 +50,122 @@
 
   <button id="download-gpx" disabled>Download GPX</button>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     let map;
     let selectedSegments = [];
+    let routePolylines = [];
 
     function initMap() {
-      map = new google.maps.Map(document.getElementById('map'), {
-        center: {lat: -19.257753, lng: 146.823688},
-        zoom: 2,
-        mapTypeId: 'terrain'
-      });
+      try {
+        // Initialize Leaflet map with OpenStreetMap tiles
+        map = L.map('map').setView([-19.257753, 146.823688], 2);
+
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add initial popup message
+        const popup = L.popup()
+          .setLatLng([-19.257753, 146.823688])
+          .setContent('Upload a KML file to see route segments and start planning your bike route.')
+          .openOn(map);
+        
+        // Store reference to close popup later
+        window.initialPopup = popup;
+        
+      } catch (error) {
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('error-message').textContent = 'Error loading map: ' + error.message;
+      }
     }
 
     document.getElementById('kml-file').addEventListener('change', (event) => {
       const file = event.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
 
       reader.onload = (e) => {
-        const kmlData = e.target.result;
-        const parser = new DOMParser();
-        const kml = parser.parseFromString(kmlData, 'application/xml');
-        const placemarks = kml.getElementsByTagName('Placemark');
+        try {
+          const kmlData = e.target.result;
+          const parser = new DOMParser();
+          const kml = parser.parseFromString(kmlData, 'application/xml');
+          const placemarks = kml.getElementsByTagName('Placemark');
 
-        for (const placemark of placemarks) {
-          const name = placemark.getElementsByTagName('name')[0].textContent;
-          const coordinatesStr = placemark.getElementsByTagName('coordinates')[0].textContent.trim();
-          const coordinates = coordinatesStr.split(/\s+/).map(coordStr => {
-            const [lng, lat] = coordStr.split(',').map(parseFloat);
-            return {lat, lng};
-          });
+          if (placemarks.length === 0) {
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('error-message').textContent = 'No route segments found in the KML file. Please check if the file contains Placemark elements with coordinates.';
+            return;
+          }
 
-          const path = new google.maps.Polyline({
-            path: coordinates,
-            geodesic: true,
-            strokeColor: '#FF0000',
-            strokeOpacity: 1.0,
-            strokeWeight: 2
-          });
+          // Close the initial popup when KML is successfully loaded
+          if (window.initialPopup) {
+            map.closePopup(window.initialPopup);
+          }
+          
+          document.getElementById('error-message').style.display = 'none';
 
-          path.setMap(map);
+          // Clear existing polylines
+          routePolylines.forEach(polyline => map.removeLayer(polyline));
+          routePolylines = [];
 
-          google.maps.event.addListener(path, 'click', () => {
-            if (!selectedSegments.includes(name)) {
-              selectedSegments.push(name);
-              updateRouteListAndDescription();
-            }
-          });
+          let bounds = L.latLngBounds();
+
+          for (const placemark of placemarks) {
+            const nameElement = placemark.getElementsByTagName('name')[0];
+            const coordinatesElement = placemark.getElementsByTagName('coordinates')[0];
+            
+            if (!nameElement || !coordinatesElement) continue;
+
+            const name = nameElement.textContent;
+            const coordinatesStr = coordinatesElement.textContent.trim();
+            const coordinates = coordinatesStr.split(/\s+/).map(coordStr => {
+              const [lng, lat] = coordStr.split(',').map(parseFloat);
+              return [lat, lng]; // Leaflet uses [lat, lng] format
+            });
+
+            // Create polyline for the route segment
+            const polyline = L.polyline(coordinates, {
+              color: '#FF0000',
+              weight: 3,
+              opacity: 0.8,
+              className: 'route-segment'
+            }).addTo(map);
+
+            // Store segment name for reference
+            polyline.segmentName = name;
+            routePolylines.push(polyline);
+
+            // Add coordinates to bounds for auto-fitting
+            coordinates.forEach(coord => bounds.extend(coord));
+
+            // Add click event listener
+            polyline.on('click', function() {
+              if (!selectedSegments.includes(name)) {
+                selectedSegments.push(name);
+                this.setStyle({
+                  color: '#00ff00',
+                  weight: 4
+                });
+                this.addClassName('selected-segment');
+                updateRouteListAndDescription();
+              }
+            });
+
+            // Add popup with segment name
+            polyline.bindPopup(`<b>${name}</b><br>Click to add to your route`);
+          }
+
+          // Fit map to show all route segments
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [20, 20] });
+          }
+
+        } catch (error) {
+          document.getElementById('error-message').style.display = 'block';
+          document.getElementById('error-message').textContent = 'Error parsing KML file: ' + error.message;
         }
       };
 
@@ -88,18 +178,43 @@
       const downloadButton = document.getElementById('download-gpx');
 
       routeList.innerHTML = '';
-      selectedSegments.forEach(segmentName => {
+      selectedSegments.forEach((segmentName, index) => {
         const li = document.createElement('li');
-        li.textContent = segmentName;
+        li.innerHTML = `${index + 1}. ${segmentName} <button onclick="removeSegment('${segmentName}')" style="margin-left: 10px; color: red;">Remove</button>`;
         routeList.appendChild(li);
       });
 
-      routeDescription.textContent = "Your route consists of the following segments: " + selectedSegments.join(', ');
+      if (selectedSegments.length > 0) {
+        routeDescription.textContent = `Your route consists of ${selectedSegments.length} segments: ` + selectedSegments.join(' → ');
+      } else {
+        routeDescription.textContent = 'No segments selected. Click on route segments on the map to add them to your route.';
+      }
+      
       downloadButton.disabled = selectedSegments.length === 0;
+    }
+
+    function removeSegment(segmentName) {
+      const index = selectedSegments.indexOf(segmentName);
+      if (index > -1) {
+        selectedSegments.splice(index, 1);
+        
+        // Reset polyline style
+        const polyline = routePolylines.find(p => p.segmentName === segmentName);
+        if (polyline) {
+          polyline.setStyle({
+            color: '#FF0000',
+            weight: 3
+          });
+        }
+        
+        updateRouteListAndDescription();
+      }
     }
 
     document.getElementById('download-gpx').addEventListener('click', () => {
       const kmlFile = document.getElementById('kml-file').files[0];
+      if (!kmlFile) return;
+
       const reader = new FileReader();
 
       reader.onload = (e) => {
@@ -116,14 +231,18 @@
 
         selectedSegments.forEach(segmentName => {
           for (const placemark of placemarks) {
-            if (placemark.getElementsByTagName('name')[0].textContent === segmentName) {
-              const coordinatesStr = placemark.getElementsByTagName('coordinates')[0].textContent.trim();
-              const coordinates = coordinatesStr.split(/\s+/);
-              coordinates.forEach(coordStr => {
-                const [lng, lat] = coordStr.split(',');
-                gpx += `
+            const nameElement = placemark.getElementsByTagName('name')[0];
+            if (nameElement && nameElement.textContent === segmentName) {
+              const coordinatesElement = placemark.getElementsByTagName('coordinates')[0];
+              if (coordinatesElement) {
+                const coordinatesStr = coordinatesElement.textContent.trim();
+                const coordinates = coordinatesStr.split(/\s+/);
+                coordinates.forEach(coordStr => {
+                  const [lng, lat] = coordStr.split(',');
+                  gpx += `
       <trkpt lat="${lat}" lon="${lng}"></trkpt>`;
-              });
+                });
+              }
             }
           }
         });
@@ -144,8 +263,9 @@
 
       reader.readAsText(kmlFile);
     });
-  </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap">
+
+    // Initialize the map when page loads
+    initMap();
   </script>
 </body>
 </html>
