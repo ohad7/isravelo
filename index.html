@@ -85,6 +85,30 @@
       font-size: 12px;
       font-weight: bold;
     }
+    .search-container {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+    #location-search {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    #search-btn {
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #search-btn:hover {
+      background-color: #1976D2;
+    }
   </style>
 </head>
 <body>
@@ -102,6 +126,13 @@
     </div>
     
     <div class="sidebar">
+      <h3>Search Location</h3>
+      <div class="search-container">
+        <input type="text" id="location-search" placeholder="Enter a place name..." />
+        <button id="search-btn">Search</button>
+      </div>
+      <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none;"></div>
+      
       <h3>Selected Route Segments</h3>
       <div id="route-list">
         <p style="color: #666; font-style: italic;">No segments selected. Click on route segments on the map to add them to your route.</p>
@@ -415,6 +446,64 @@
       };
 
       reader.readAsText(kmlFile);
+    });
+
+    // Search functionality
+    function searchLocation() {
+      const searchInput = document.getElementById('location-search');
+      const searchError = document.getElementById('search-error');
+      const query = searchInput.value.trim();
+      
+      if (!query) {
+        searchError.textContent = 'Please enter a location to search';
+        searchError.style.display = 'block';
+        return;
+      }
+      
+      searchError.style.display = 'none';
+      
+      // Use Nominatim (OpenStreetMap) geocoding service
+      const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+      
+      fetch(geocodeUrl)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            const result = data[0];
+            const lat = parseFloat(result.lat);
+            const lon = parseFloat(result.lon);
+            
+            // Center map on the found location
+            map.setView([lat, lon], 13);
+            
+            // Add a temporary marker to show the searched location
+            const marker = L.marker([lat, lon]).addTo(map);
+            marker.bindPopup(`<strong>${result.display_name}</strong>`).openPopup();
+            
+            // Remove the marker after 5 seconds
+            setTimeout(() => {
+              map.removeLayer(marker);
+            }, 5000);
+            
+            searchInput.value = '';
+          } else {
+            searchError.textContent = 'Location not found. Please try a different search term.';
+            searchError.style.display = 'block';
+          }
+        })
+        .catch(error => {
+          console.error('Search error:', error);
+          searchError.textContent = 'Error searching for location. Please try again.';
+          searchError.style.display = 'block';
+        });
+    }
+    
+    // Add event listeners for search
+    document.getElementById('search-btn').addEventListener('click', searchLocation);
+    document.getElementById('location-search').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchLocation();
+      }
     });
 
     // Initialize the map when page loads
