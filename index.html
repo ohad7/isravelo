@@ -76,6 +76,15 @@
     #download-gpx:hover:not(:disabled) {
       background-color: #45a049;
     }
+    .segment-tooltip {
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -181,20 +190,105 @@
               return [lat, lng]; // Leaflet uses [lat, lng] format
             });
 
-            // Create polyline for the route segment
+            // Extract original style from KML
+            let originalColor = '#FF0000';
+            let originalWeight = 3;
+            let originalOpacity = 0.8;
+
+            // Check for LineStyle in the placemark
+            const lineStyle = placemark.getElementsByTagName('LineStyle')[0];
+            if (lineStyle) {
+              const colorElement = lineStyle.getElementsByTagName('color')[0];
+              const widthElement = lineStyle.getElementsByTagName('width')[0];
+              
+              if (colorElement) {
+                // KML color format is aabbggrr, convert to #rrggbb
+                const kmlColor = colorElement.textContent;
+                if (kmlColor.length === 8) {
+                  const r = kmlColor.substring(6, 8);
+                  const g = kmlColor.substring(4, 6);
+                  const b = kmlColor.substring(2, 4);
+                  originalColor = `#${r}${g}${b}`;
+                }
+              }
+              
+              if (widthElement) {
+                originalWeight = parseFloat(widthElement.textContent) || 3;
+              }
+            }
+
+            // Check for Style element with id reference
+            const styleUrl = placemark.getElementsByTagName('styleUrl')[0];
+            if (styleUrl) {
+              const styleId = styleUrl.textContent.replace('#', '');
+              const style = kml.querySelector(`Style[id="${styleId}"]`);
+              if (style) {
+                const lineStyle = style.getElementsByTagName('LineStyle')[0];
+                if (lineStyle) {
+                  const colorElement = lineStyle.getElementsByTagName('color')[0];
+                  const widthElement = lineStyle.getElementsByTagName('width')[0];
+                  
+                  if (colorElement) {
+                    const kmlColor = colorElement.textContent;
+                    if (kmlColor.length === 8) {
+                      const r = kmlColor.substring(6, 8);
+                      const g = kmlColor.substring(4, 6);
+                      const b = kmlColor.substring(2, 4);
+                      originalColor = `#${r}${g}${b}`;
+                    }
+                  }
+                  
+                  if (widthElement) {
+                    originalWeight = parseFloat(widthElement.textContent) || 3;
+                  }
+                }
+              }
+            }
+
+            // Create polyline for the route segment with original styling
             const polyline = L.polyline(coordinates, {
-              color: '#FF0000',
-              weight: 3,
-              opacity: 0.8,
+              color: originalColor,
+              weight: originalWeight,
+              opacity: originalOpacity,
               className: 'route-segment'
             }).addTo(map);
 
-            // Store segment name for reference
+            // Store segment name and original style for reference
             polyline.segmentName = name;
+            polyline.originalStyle = {
+              color: originalColor,
+              weight: originalWeight,
+              opacity: originalOpacity
+            };
             routePolylines.push(polyline);
 
             // Add coordinates to bounds for auto-fitting
             coordinates.forEach(coord => bounds.extend(coord));
+
+            // Add hover effects
+            polyline.on('mouseover', function() {
+              this.setStyle({
+                weight: this.originalStyle.weight + 2,
+                opacity: 1
+              });
+              
+              // Create temporary tooltip
+              this.bindTooltip(name, {
+                permanent: false,
+                direction: 'top',
+                className: 'segment-tooltip'
+              }).openTooltip();
+            });
+
+            polyline.on('mouseout', function() {
+              if (!selectedSegments.includes(name)) {
+                this.setStyle({
+                  weight: this.originalStyle.weight,
+                  opacity: this.originalStyle.opacity
+                });
+              }
+              this.closeTooltip();
+            });
 
             // Add click event listener
             polyline.on('click', function() {
@@ -202,7 +296,7 @@
                 selectedSegments.push(name);
                 this.setStyle({
                   color: '#00ff00',
-                  weight: 4
+                  weight: this.originalStyle.weight + 1
                 });
                 updateRouteListAndDescription();
               }
@@ -260,13 +354,10 @@
       if (index > -1) {
         selectedSegments.splice(index, 1);
         
-        // Reset polyline style
+        // Reset polyline to original style
         const polyline = routePolylines.find(p => p.segmentName === segmentName);
         if (polyline) {
-          polyline.setStyle({
-            color: '#FF0000',
-            weight: 3
-          });
+          polyline.setStyle(polyline.originalStyle);
         }
         
         updateRouteListAndDescription();
