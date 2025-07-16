@@ -370,10 +370,12 @@
         
         document.getElementById('error-message').style.display = 'none';
 
-        // Clear existing layers
+        // Clear existing layers and sources
         routePolylines.forEach(polylineData => {
           if (map.getLayer(polylineData.layerId)) {
             map.removeLayer(polylineData.layerId);
+          }
+          if (map.getSource(polylineData.layerId)) {
             map.removeSource(polylineData.layerId);
           }
         });
@@ -398,7 +400,7 @@
           let originalWeight = feature.properties['stroke-width'] || 3;
           let originalOpacity = feature.properties['stroke-opacity'] || 0.8;
 
-          const layerId = `route-${name.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
+          const layerId = `route-${name.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           
           // Add source and layer to map
           map.addSource(layerId, {
