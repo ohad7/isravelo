@@ -1,20 +1,21 @@
 
 <!DOCTYPE html>
-<html>
+<html dir="rtl" lang="he">
 <head>
-  <title>Bike Route Planner</title>
+  <title>מתכנן מסלולי רכיבה</title>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
     }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Arial', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 20px;
       background: linear-gradient(135deg, #8B7355 0%, #A0845C 100%);
       min-height: 100vh;
       color: #333;
+      direction: rtl;
     }
     .container {
       display: flex;
@@ -60,7 +61,7 @@
     .segment-name-display {
       position: absolute;
       top: 25px;
-      right: 25px;
+      left: 25px;
       background: rgba(139, 115, 85, 0.9);
       color: white;
       padding: 10px 15px;
@@ -303,25 +304,25 @@
     </div>
     
     <div class="sidebar">
-      <h3>Search Location</h3>
+      <h3>חיפוש מיקום</h3>
       <div class="search-container">
-        <input type="text" id="location-search" placeholder="Enter a place name..." />
-        <button id="search-btn">Search</button>
+        <input type="text" id="location-search" placeholder="הכנס שם מקום..." />
+        <button id="search-btn">חיפוש</button>
       </div>
       <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none;"></div>
       
-      <h3>Selected Route Segments</h3>
+      <h3>קטעי מסלול נבחרים</h3>
       <div id="route-list">
-        <p style="color: #666; font-style: italic;">No segments selected. Click on route segments on the map to add them to your route.</p>
+        <p style="color: #666; font-style: italic;">לא נבחרו קטעים. לחץ על קטעי מסלול במפה כדי להוסיף אותם למסלול שלך.</p>
       </div>
 
-      <h3>Route Description</h3>
-      <div id="route-description">Click on map segments to build your route.</div>
+      <h3>תיאור המסלול</h3>
+      <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
 
       <div class="action-buttons">
-        <button id="undo-btn" class="undo-btn" disabled title="Undo (Ctrl+Z)">↶</button>
-        <button id="redo-btn" class="undo-btn" disabled title="Redo (Ctrl+Shift+Z)">↷</button>
-        <button id="download-gpx" disabled>Download GPX Route</button>
+        <button id="undo-btn" class="undo-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
+        <button id="redo-btn" class="undo-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
+        <button id="download-gpx" disabled>הורדת מסלול GPX</button>
       </div>
     </div>
   </div>

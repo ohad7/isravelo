@@ -59,13 +59,30 @@ function initMap() {
       container: 'map',
       style: 'mapbox://styles/mapbox/outdoors-v12',
       center: [35.6, 33.2], // Centered on the bike routes area
-      zoom: 11,
-      language: 'he' // Set Hebrew language
+      zoom: 11
     });
 
+    // Set Hebrew language after map loads
     map.on('load', () => {
+      map.setLayoutProperty('country-label', 'text-field', [
+        'get',
+        ['literal', 'name_he'],
+        ['literal', 'name']
+      ]);
+      map.setLayoutProperty('state-label', 'text-field', [
+        'get',
+        ['literal', 'name_he'],
+        ['literal', 'name']
+      ]);
+      map.setLayoutProperty('settlement-label', 'text-field', [
+        'get',
+        ['literal', 'name_he'],
+        ['literal', 'name']
+      ]);
       loadKMLFile();
     });
+
+    
 
     // Add global click handler for proximity-based selection
     map.on('click', (e) => {
@@ -266,7 +283,7 @@ function parseGeoJSON(geoJsonData) {
         
         // Update segment name display with details
         const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} km • ⬆️ ${segmentElevationGain} m • ⬇️ ${segmentElevationLoss} m`;
+        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
         segmentDisplay.style.display = 'block';
       });
 
@@ -431,8 +448,8 @@ function updateRouteListAndDescription() {
   const downloadButton = document.getElementById('download-gpx');
 
   if (selectedSegments.length === 0) {
-    routeList.innerHTML = '<p style="color: #666; font-style: italic;">No segments selected. Click on route segments on the map to add them to your route.</p>';
-    routeDescription.innerHTML = 'Click on map segments to build your route.';
+    routeList.innerHTML = '<p style="color: #666; font-style: italic;">לא נבחרו קטעים. לחץ על קטעי מסלול במפה כדי להוסיף אותם למסלול שלך.</p>';
+    routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
     return;
   }
@@ -443,7 +460,7 @@ function updateRouteListAndDescription() {
     segmentDiv.className = 'segment-item';
     segmentDiv.innerHTML = `
       <span><strong>${index + 1}.</strong> ${segmentName}</span>
-      <button class="remove-btn" onclick="removeSegment('${segmentName}')">Remove</button>
+      <button class="remove-btn" onclick="removeSegment('${segmentName}')">הסר</button>
     `;
     
     // Add hover effects for sidebar segments
@@ -464,7 +481,7 @@ function updateRouteListAndDescription() {
         const segmentElevationLoss = Math.round(coordObjects.length * 0.3);
         
         const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} km • ⬆️ ${segmentElevationGain} m • ⬇️ ${segmentElevationLoss} m`;
+        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
         segmentDisplay.style.display = 'block';
       }
     });
@@ -503,9 +520,9 @@ function updateRouteListAndDescription() {
   const elevationProfile = generateElevationProfile();
   
   routeDescription.innerHTML = `
-    <strong>📏 Distance:</strong> ${totalDistanceKm} km<br>
-    <strong>⬆️ Uphill:</strong> ${totalElevationGain} m<br>
-    <strong>⬇️ Downhill:</strong> ${totalElevationLoss} m
+    <strong>📏 מרחק:</strong> ${totalDistanceKm} ק"מ<br>
+    <strong>⬆️ עלייה:</strong> ${totalElevationGain} מ'<br>
+    <strong>⬇️ ירידה:</strong> ${totalElevationLoss} מ'
     ${elevationProfile}
   `;
   
@@ -536,7 +553,7 @@ function searchLocation() {
   const query = searchInput.value.trim();
   
   if (!query) {
-    searchError.textContent = 'Please enter a location to search';
+    searchError.textContent = 'נא להכניס מיקום לחיפוש';
     searchError.style.display = 'block';
     return;
   }
@@ -567,13 +584,13 @@ function searchLocation() {
         
         searchInput.value = '';
       } else {
-        searchError.textContent = 'Location not found. Please try a different search term.';
+        searchError.textContent = 'מיקום לא נמצא. נא לנסות מונח חיפוש אחר.';
         searchError.style.display = 'block';
       }
     })
     .catch(error => {
       console.error('Search error:', error);
-      searchError.textContent = 'Error searching for location. Please try again.';
+      searchError.textContent = 'שגיאה בחיפוש מיקום. נא לנסות שוב.';
       searchError.style.display = 'block';
     });
 }
@@ -592,12 +609,16 @@ document.addEventListener('DOMContentLoaded', function() {
     let gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="BikeRoutePlanner" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
   <trk>
-    <name>Planned Bike Route</name>
+    <name>מסלול רכיבה מתוכנן</name>
     <trkseg>`;
 
     orderedCoords.forEach(coord => {
+      // Simulate elevation based on coordinate variations (replace with real elevation data if available)
+      const elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
       gpx += `
-      <trkpt lat="${coord.lat}" lon="${coord.lng}"></trkpt>`;
+      <trkpt lat="${coord.lat}" lon="${coord.lng}">
+        <ele>${Math.round(elevation)}</ele>
+      </trkpt>`;
     });
 
     gpx += `
