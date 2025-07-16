@@ -5,37 +5,70 @@
   <title>Bike Route Planner</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     .container {
       display: flex;
       gap: 20px;
       align-items: flex-start;
+      max-width: 1400px;
+      margin: 0 auto;
     }
     .map-container {
       flex: 2;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      padding: 15px;
     }
     .sidebar {
       flex: 1;
-      min-width: 300px;
+      min-width: 320px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      padding: 20px;
     }
     #map {
       height: 500px;
       width: 100%;
-      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     }
     #route-list {
-      margin-top: 10px;
-      border: 1px solid #ccc;
-      padding: 10px;
-      background-color: #f9f9f9;
+      margin-top: 15px;
+      border: 1px solid #e0e0e0;
+      padding: 15px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
     }
     #error-message {
-      color: red;
+      color: #e74c3c;
       margin: 10px 0;
       display: none;
+      padding: 10px;
+      background: #fdf2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
     }
     .route-segment {
       cursor: pointer;
@@ -44,37 +77,78 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 5px 0;
+      padding: 8px 0;
       border-bottom: 1px solid #ddd;
+      transition: background-color 0.2s;
+    }
+    .segment-item:hover {
+      background-color: rgba(255,255,255,0.5);
+      border-radius: 4px;
+      padding-left: 4px;
     }
     .remove-btn {
-      background-color: #ff4444;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
       color: white;
       border: none;
-      padding: 2px 8px;
-      border-radius: 3px;
+      padding: 4px 10px;
+      border-radius: 15px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(238,90,82,0.3);
     }
     .remove-btn:hover {
-      background-color: #cc0000;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(238,90,82,0.4);
+    }
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
     }
     #download-gpx {
-      background-color: #4CAF50;
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
       color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
+      padding: 12px 20px;
+      border-radius: 25px;
       cursor: pointer;
-      margin-top: 10px;
-      width: 100%;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(76,175,80,0.3);
+      flex: 1;
     }
     #download-gpx:disabled {
-      background-color: #cccccc;
+      background: #cccccc;
       cursor: not-allowed;
+      box-shadow: none;
     }
     #download-gpx:hover:not(:disabled) {
-      background-color: #45a049;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+    }
+    .undo-btn {
+      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(255,152,0,0.3);
+      min-width: 60px;
+    }
+    .undo-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .undo-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(255,152,0,0.4);
     }
     .segment-tooltip {
       background-color: rgba(0, 0, 0, 0.8);
@@ -87,27 +161,36 @@
     }
     .search-container {
       display: flex;
-      gap: 5px;
-      margin-bottom: 15px;
+      gap: 8px;
+      margin-bottom: 20px;
     }
     #location-search {
       flex: 1;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 25px;
       font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    #location-search:focus {
+      outline: none;
+      border-color: #2196F3;
     }
     #search-btn {
-      background-color: #2196F3;
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
       color: white;
       border: none;
-      padding: 8px 15px;
-      border-radius: 4px;
+      padding: 12px 20px;
+      border-radius: 25px;
       cursor: pointer;
       font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(33,150,243,0.3);
     }
     #search-btn:hover {
-      background-color: #1976D2;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(33,150,243,0.4);
     }
     .leaflet-interactive {
       outline: none !important;
@@ -115,16 +198,53 @@
     .leaflet-interactive:focus {
       outline: none !important;
     }
+    h3 {
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      font-weight: 600;
+    }
+    #route-description {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .file-upload-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    #kml-file {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      width: 100%;
+      cursor: pointer;
+    }
+    #kml-file:hover {
+      border-color: #2196F3;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Bike Route Planner</h1>
+  <h1>🚴‍♂️ Bike Route Planner</h1>
 
   <div id="error-message"></div>
   
-  <input type="file" id="kml-file" accept=".kml">
-  <p style="color: #666; font-size: 14px;">Please upload a KML file to see the available route segments on the map.</p>
+  <div class="file-upload-container">
+    <input type="file" id="kml-file" accept=".kml">
+    <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">Please upload a KML file to see the available route segments on the map.</p>
+  </div>
 
   <div class="container">
     <div class="map-container">
@@ -147,7 +267,11 @@
       <h3>Route Description</h3>
       <div id="route-description">Click on map segments to build your route.</div>
 
-      <button id="download-gpx" disabled>Download GPX Route</button>
+      <div class="action-buttons">
+        <button id="undo-btn" class="undo-btn" disabled title="Undo (Ctrl+Z)">↶</button>
+        <button id="redo-btn" class="undo-btn" disabled title="Redo (Ctrl+Shift+Z)">↷</button>
+        <button id="download-gpx" disabled>Download GPX Route</button>
+      </div>
     </div>
   </div>
 
@@ -156,6 +280,53 @@
     let map;
     let selectedSegments = [];
     let routePolylines = [];
+    let undoStack = [];
+    let redoStack = [];
+    
+    // Save state for undo/redo
+    function saveState() {
+      undoStack.push([...selectedSegments]);
+      redoStack = []; // Clear redo stack when new action is performed
+      updateUndoRedoButtons();
+    }
+    
+    function undo() {
+      if (undoStack.length > 0) {
+        redoStack.push([...selectedSegments]);
+        selectedSegments = undoStack.pop();
+        updateSegmentStyles();
+        updateRouteListAndDescription();
+        updateUndoRedoButtons();
+      }
+    }
+    
+    function redo() {
+      if (redoStack.length > 0) {
+        undoStack.push([...selectedSegments]);
+        selectedSegments = redoStack.pop();
+        updateSegmentStyles();
+        updateRouteListAndDescription();
+        updateUndoRedoButtons();
+      }
+    }
+    
+    function updateUndoRedoButtons() {
+      document.getElementById('undo-btn').disabled = undoStack.length === 0;
+      document.getElementById('redo-btn').disabled = redoStack.length === 0;
+    }
+    
+    function updateSegmentStyles() {
+      routePolylines.forEach(polyline => {
+        if (selectedSegments.includes(polyline.segmentName)) {
+          polyline.setStyle({
+            color: '#00ff00',
+            weight: polyline.originalStyle.weight + 1
+          });
+        } else {
+          polyline.setStyle(polyline.originalStyle);
+        }
+      });
+    }
 
     function initMap() {
       try {
@@ -330,6 +501,8 @@
             // Add click event listener
             polyline.on('click', function() {
               if (!selectedSegments.includes(name)) {
+                // Save state before making changes
+                saveState();
                 // Add segment to selection
                 selectedSegments.push(name);
                 this.setStyle({
@@ -386,6 +559,8 @@
                 }
                 // Don't focus for the first segment since we don't know the direction yet
               } else {
+                // Save state before making changes
+                saveState();
                 // Remove segment from selection
                 const index = selectedSegments.indexOf(name);
                 selectedSegments.splice(index, 1);
@@ -444,6 +619,7 @@
     function removeSegment(segmentName) {
       const index = selectedSegments.indexOf(segmentName);
       if (index > -1) {
+        saveState();
         selectedSegments.splice(index, 1);
         
         // Reset polyline to original style
@@ -534,17 +710,17 @@
             const lat = parseFloat(result.lat);
             const lon = parseFloat(result.lon);
             
-            // Center map on the found location
-            map.setView([lat, lon], 13);
+            // Only pan to the location without showing markers or popups
+            map.panTo([lat, lon], {
+              animate: true,
+              duration: 1.0
+            });
             
-            // Add a temporary marker to show the searched location
-            const marker = L.marker([lat, lon]).addTo(map);
-            marker.bindPopup(`<strong>${result.display_name}</strong>`).openPopup();
-            
-            // Remove the marker after 5 seconds
-            setTimeout(() => {
-              map.removeLayer(marker);
-            }, 5000);
+            // Set appropriate zoom level based on place type
+            const zoomLevel = result.type === 'city' ? 12 : 
+                            result.type === 'town' ? 13 : 
+                            result.type === 'village' ? 14 : 13;
+            map.setZoom(zoomLevel);
             
             searchInput.value = '';
           } else {
@@ -564,6 +740,21 @@
     document.getElementById('location-search').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         searchLocation();
+      }
+    });
+
+    // Add event listeners for undo/redo buttons
+    document.getElementById('undo-btn').addEventListener('click', undo);
+    document.getElementById('redo-btn').addEventListener('click', redo);
+
+    // Add keyboard shortcuts for undo/redo
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (e.ctrlKey && e.shiftKey && e.key === 'Z') {
+        e.preventDefault();
+        redo();
       }
     });
 
