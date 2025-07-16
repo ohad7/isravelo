@@ -294,56 +294,96 @@ function parseGeoJSON(geoJsonData) {
           const orderedCoords = getOrderedCoordinates();
           
           if (orderedCoords.length > 0) {
-            // Find distance from start of route to hover point
-            let distanceFromStart = 0;
-            let minDistanceToRoute = Infinity;
-            let closestIndex = 0;
+            // Find the closest point on this specific segment
+            let minDistanceToSegment = Infinity;
+            let closestPointOnSegment = null;
+            let closestSegmentIndex = 0;
             
-            // Find closest point on the route
-            for (let i = 0; i < orderedCoords.length; i++) {
-              const routePoint = orderedCoords[i];
-              const distance = getDistance(
+            // Find closest point on the current segment
+            for (let i = 0; i < coordObjects.length - 1; i++) {
+              const segmentStart = coordObjects[i];
+              const segmentEnd = coordObjects[i + 1];
+              
+              // Calculate closest point on line segment
+              const closestPoint = getClosestPointOnLineSegment(
                 { lat: hoverPoint.lat, lng: hoverPoint.lng },
-                routePoint
+                segmentStart,
+                segmentEnd
               );
               
-              if (distance < minDistanceToRoute) {
-                minDistanceToRoute = distance;
-                closestIndex = i;
+              const distance = getDistance(
+                { lat: hoverPoint.lat, lng: hoverPoint.lng },
+                closestPoint
+              );
+              
+              if (distance < minDistanceToSegment) {
+                minDistanceToSegment = distance;
+                closestPointOnSegment = closestPoint;
+                closestSegmentIndex = i;
               }
             }
             
-            // Calculate distance from start to closest point
-            for (let i = 0; i < closestIndex; i++) {
-              distanceFromStart += getDistance(orderedCoords[i], orderedCoords[i + 1]);
+            if (closestPointOnSegment && minDistanceToSegment < 100) { // 100 meter threshold
+              // Calculate distance from start of route to this point
+              let distanceFromStart = 0;
+              
+              // Add distance from previous segments
+              for (let i = 0; i < selectedSegments.length; i++) {
+                const segName = selectedSegments[i];
+                if (segName === name) break;
+                
+                const prevPolyline = routePolylines.find(p => p.segmentName === segName);
+                if (prevPolyline) {
+                  for (let j = 0; j < prevPolyline.coordinates.length - 1; j++) {
+                    distanceFromStart += getDistance(prevPolyline.coordinates[j], prevPolyline.coordinates[j + 1]);
+                  }
+                }
+              }
+              
+              // Add distance within current segment up to hover point
+              for (let i = 0; i < closestSegmentIndex; i++) {
+                distanceFromStart += getDistance(coordObjects[i], coordObjects[i + 1]);
+              }
+              
+              // Add partial distance to closest point on segment
+              const segmentStart = coordObjects[closestSegmentIndex];
+              const segmentEnd = coordObjects[closestSegmentIndex + 1];
+              const segmentLength = getDistance(segmentStart, segmentEnd);
+              const distanceToClosest = getDistance(segmentStart, closestPointOnSegment);
+              const ratio = distanceToClosest / segmentLength;
+              
+              if (!isNaN(ratio) && ratio >= 0 && ratio <= 1) {
+                distanceFromStart += distanceToClosest;
+              }
+              
+              const distanceKm = (distanceFromStart / 1000).toFixed(1);
+              
+              // Show distance in top right display
+              const segmentDisplay = document.getElementById('segment-name-display');
+              segmentDisplay.innerHTML = `📍 מרחק מההתחלה: ${distanceKm} ק"מ`;
+              segmentDisplay.style.display = 'block';
+              
+              // Add visible circle marker at closest point
+              if (window.hoverMarker) {
+                window.hoverMarker.remove();
+              }
+              
+              const el = document.createElement('div');
+              el.className = 'hover-circle';
+              el.style.cssText = `
+                width: 12px;
+                height: 12px;
+                background: #ff4444;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                cursor: pointer;
+              `;
+              
+              window.hoverMarker = new mapboxgl.Marker(el)
+                .setLngLat([closestPointOnSegment.lng, closestPointOnSegment.lat])
+                .addTo(map);
             }
-            
-            const distanceKm = (distanceFromStart / 1000).toFixed(1);
-            
-            // Show dot and distance
-            const segmentDisplay = document.getElementById('segment-name-display');
-            segmentDisplay.innerHTML = `📍 מרחק מההתחלה: ${distanceKm} ק"מ`;
-            segmentDisplay.style.display = 'block';
-            
-            // Add temporary dot marker
-            if (window.hoverMarker) {
-              window.hoverMarker.remove();
-            }
-            
-            const el = document.createElement('div');
-            el.className = 'hover-dot';
-            el.style.cssText = `
-              width: 8px;
-              height: 8px;
-              background: #ff4444;
-              border: 2px solid white;
-              border-radius: 50%;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            `;
-            
-            window.hoverMarker = new mapboxgl.Marker(el)
-              .setLngLat([hoverPoint.lng, hoverPoint.lat])
-              .addTo(map);
           }
         }
       });
@@ -421,6 +461,35 @@ function distanceToLineSegment(point, lineStart, lineEnd) {
   }
 
   return getDistance(point, { lat: yy, lng: xx });
+}
+
+// Helper function to find closest point on line segment
+function getClosestPointOnLineSegment(point, lineStart, lineEnd) {
+  const A = point.lng - lineStart.lng;
+  const B = point.lat - lineStart.lat;
+  const C = lineEnd.lng - lineStart.lng;
+  const D = lineEnd.lat - lineStart.lat;
+
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  let param = -1;
+  if (lenSq !== 0) {
+    param = dot / lenSq;
+  }
+
+  let xx, yy;
+  if (param < 0) {
+    xx = lineStart.lng;
+    yy = lineStart.lat;
+  } else if (param > 1) {
+    xx = lineEnd.lng;
+    yy = lineEnd.lat;
+  } else {
+    xx = lineStart.lng + param * C;
+    yy = lineStart.lat + param * D;
+  }
+
+  return { lat: yy, lng: xx };
 }
 
 // Function to order coordinates based on route connectivity
