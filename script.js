@@ -287,6 +287,67 @@ function parseGeoJSON(geoJsonData) {
         segmentDisplay.style.display = 'block';
       });
 
+      // Add hover functionality for selected segments to show distance from start
+      map.on('mousemove', layerId, (e) => {
+        if (selectedSegments.includes(name)) {
+          const hoverPoint = e.lngLat;
+          const orderedCoords = getOrderedCoordinates();
+          
+          if (orderedCoords.length > 0) {
+            // Find distance from start of route to hover point
+            let distanceFromStart = 0;
+            let minDistanceToRoute = Infinity;
+            let closestIndex = 0;
+            
+            // Find closest point on the route
+            for (let i = 0; i < orderedCoords.length; i++) {
+              const routePoint = orderedCoords[i];
+              const distance = getDistance(
+                { lat: hoverPoint.lat, lng: hoverPoint.lng },
+                routePoint
+              );
+              
+              if (distance < minDistanceToRoute) {
+                minDistanceToRoute = distance;
+                closestIndex = i;
+              }
+            }
+            
+            // Calculate distance from start to closest point
+            for (let i = 0; i < closestIndex; i++) {
+              distanceFromStart += getDistance(orderedCoords[i], orderedCoords[i + 1]);
+            }
+            
+            const distanceKm = (distanceFromStart / 1000).toFixed(1);
+            
+            // Show dot and distance
+            const segmentDisplay = document.getElementById('segment-name-display');
+            segmentDisplay.innerHTML = `📍 מרחק מההתחלה: ${distanceKm} ק"מ`;
+            segmentDisplay.style.display = 'block';
+            
+            // Add temporary dot marker
+            if (window.hoverMarker) {
+              window.hoverMarker.remove();
+            }
+            
+            const el = document.createElement('div');
+            el.className = 'hover-dot';
+            el.style.cssText = `
+              width: 8px;
+              height: 8px;
+              background: #ff4444;
+              border: 2px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            `;
+            
+            window.hoverMarker = new mapboxgl.Marker(el)
+              .setLngLat([hoverPoint.lng, hoverPoint.lat])
+              .addTo(map);
+          }
+        }
+      });
+
       map.on('mouseleave', layerId, () => {
         map.getCanvas().style.cursor = '';
         if (!selectedSegments.includes(name)) {
@@ -297,6 +358,12 @@ function parseGeoJSON(geoJsonData) {
         // Hide segment name display
         const segmentDisplay = document.getElementById('segment-name-display');
         segmentDisplay.style.display = 'none';
+        
+        // Remove hover marker
+        if (window.hoverMarker) {
+          window.hoverMarker.remove();
+          window.hoverMarker = null;
+        }
       });
     });
 
@@ -407,30 +474,48 @@ function generateElevationProfile() {
   
   let elevationHtml = '<div class="elevation-profile">';
   elevationHtml += '<h4>גרף גובה (Elevation Profile)</h4>';
-  elevationHtml += '<div class="elevation-chart">';
+  elevationHtml += '<div class="elevation-chart" style="position: relative;">';
   
   const totalDistance = orderedCoords.reduce((total, coord, index) => {
     if (index === 0) return 0;
     return total + getDistance(orderedCoords[index - 1], coord);
   }, 0);
   
-  const segments = Math.min(50, orderedCoords.length); // Max 50 points for visualization
+  if (totalDistance === 0) {
+    elevationHtml += '</div></div>';
+    return elevationHtml;
+  }
+  
+  const segments = Math.min(100, orderedCoords.length);
   const step = Math.max(1, Math.floor(orderedCoords.length / segments));
   
+  let minElevation = Infinity;
+  let maxElevation = -Infinity;
+  let elevationData = [];
+  
+  // Calculate elevations and find min/max
   for (let i = 0; i < orderedCoords.length; i += step) {
     const coord = orderedCoords[i];
-    // Simulate elevation based on coordinate variations (replace with real elevation data if available)
     const elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
-    const distance = i === 0 ? 0 : orderedCoords.slice(0, i).reduce((total, c, idx) => {
+    minElevation = Math.min(minElevation, elevation);
+    maxElevation = Math.max(maxElevation, elevation);
+    
+    const distance = i === 0 ? 0 : orderedCoords.slice(0, i + 1).reduce((total, c, idx) => {
       if (idx === 0) return 0;
       return total + getDistance(orderedCoords[idx - 1], c);
     }, 0);
     
-    const heightPercent = Math.max(5, (elevation - 100) / 300 * 100);
-    const distancePercent = (distance / totalDistance) * 100;
-    
-    elevationHtml += `<div class="elevation-point" style="left: ${distancePercent}%; height: ${heightPercent}%; background: linear-gradient(to top, #8B4513 0%, #CD853F 50%, #F4A460 100%);" title="Distance: ${(distance/1000).toFixed(1)}km, Elevation: ${Math.round(elevation)}m"></div>`;
+    elevationData.push({ elevation, distance });
   }
+  
+  const elevationRange = maxElevation - minElevation || 100;
+  
+  elevationData.forEach((point, index) => {
+    const heightPercent = Math.max(5, ((point.elevation - minElevation) / elevationRange) * 80 + 10);
+    const distancePercent = (point.distance / totalDistance) * 100;
+    
+    elevationHtml += `<div class="elevation-point" style="right: ${100 - distancePercent}%; height: ${heightPercent}%; background: linear-gradient(to top, #8B4513 0%, #CD853F 50%, #F4A460 100%);" title="מרחק: ${(point.distance/1000).toFixed(1)}ק"מ, גובה: ${Math.round(point.elevation)}מ'"></div>`;
+  });
   
   elevationHtml += '</div>';
   elevationHtml += '<div class="elevation-labels">';
