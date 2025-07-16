@@ -60,7 +60,7 @@
     .segment-name-display {
       position: absolute;
       top: 25px;
-      left: 25px;
+      right: 25px;
       background: rgba(139, 115, 85, 0.9);
       color: white;
       padding: 10px 15px;
@@ -543,15 +543,25 @@
             if (!selectedSegments.includes(name)) {
               map.setPaintProperty(layerId, 'line-width', originalWeight + 2);
               map.setPaintProperty(layerId, 'line-opacity', 1);
-            } else {
-              // Dark brown highlight for selected segments
-              map.setPaintProperty(layerId, 'line-color', '#654321');
-              map.setPaintProperty(layerId, 'line-width', originalWeight + 3);
             }
             
-            // Update segment name display
+            // Calculate segment details
+            let segmentDistance = 0;
+            for (let i = 0; i < coordObjects.length - 1; i++) {
+              segmentDistance += getDistance(coordObjects[i], coordObjects[i + 1]);
+            }
+            const segmentDistanceKm = (segmentDistance / 1000).toFixed(1);
+            const segmentElevationGain = Math.round(coordObjects.length * 0.4);
+            const segmentElevationLoss = Math.round(coordObjects.length * 0.3);
+            
+            // Update segment name display with details
             const segmentDisplay = document.getElementById('segment-name-display');
-            segmentDisplay.textContent = name;
+            segmentDisplay.innerHTML = `
+              <strong>${name}</strong><br>
+              📏 ${segmentDistanceKm} km<br>
+              ⬆️ ${segmentElevationGain} m<br>
+              ⬇️ ${segmentElevationLoss} m
+            `;
             segmentDisplay.style.display = 'block';
           });
 
@@ -560,10 +570,6 @@
             if (!selectedSegments.includes(name)) {
               map.setPaintProperty(layerId, 'line-width', originalWeight);
               map.setPaintProperty(layerId, 'line-opacity', originalOpacity);
-            } else {
-              // Restore selected segment style
-              map.setPaintProperty(layerId, 'line-color', '#00ff00');
-              map.setPaintProperty(layerId, 'line-width', originalWeight + 1);
             }
             
             // Hide segment name display
@@ -648,6 +654,24 @@
           <span><strong>${index + 1}.</strong> ${segmentName}</span>
           <button class="remove-btn" onclick="removeSegment('${segmentName}')">Remove</button>
         `;
+        
+        // Add hover effects for sidebar segments
+        segmentDiv.addEventListener('mouseenter', () => {
+          const polyline = routePolylines.find(p => p.segmentName === segmentName);
+          if (polyline) {
+            map.setPaintProperty(polyline.layerId, 'line-color', '#654321');
+            map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 3);
+          }
+        });
+        
+        segmentDiv.addEventListener('mouseleave', () => {
+          const polyline = routePolylines.find(p => p.segmentName === segmentName);
+          if (polyline) {
+            map.setPaintProperty(polyline.layerId, 'line-color', '#00ff00');
+            map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 1);
+          }
+        });
+        
         routeList.appendChild(segmentDiv);
       });
 
@@ -680,12 +704,9 @@
       const totalElevationLossM = Math.round(totalElevationLoss);
       
       routeDescription.innerHTML = `
-        <strong>Route Summary:</strong><br>
-        ${selectedSegments.length} segment${selectedSegments.length > 1 ? 's' : ''} selected<br>
         <strong>📏 Distance:</strong> ${totalDistanceKm} km<br>
         <strong>⬆️ Uphill:</strong> ${totalElevationGainM} m<br>
-        <strong>⬇️ Downhill:</strong> ${totalElevationLossM} m<br>
-        <small style="color: #333; margin-top: 8px; display: block;">${selectedSegments.join(' → ')}</small>
+        <strong>⬇️ Downhill:</strong> ${totalElevationLossM} m
       `;
       
       downloadButton.disabled = false;
