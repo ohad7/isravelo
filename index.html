@@ -349,25 +349,22 @@
 
     async function loadKMLFile() {
       try {
-        const response = await fetch('./bike_roads_v01.kml');
-        const kmlText = await response.text();
-        parseKML(kmlText);
+        const response = await fetch('./bike_roads_v01.geojson');
+        const geoJsonData = await response.json();
+        parseGeoJSON(geoJsonData);
       } catch (error) {
         document.getElementById('error-message').style.display = 'block';
-        document.getElementById('error-message').textContent = 'Error loading KML file: ' + error.message;
+        document.getElementById('error-message').textContent = 'Error loading GeoJSON file: ' + error.message;
       }
     }
 
-    function parseKML(kmlText) {
+    function parseGeoJSON(geoJsonData) {
       try {
-        kmlData = kmlText;
-        const parser = new DOMParser();
-        const kml = parser.parseFromString(kmlText, 'application/xml');
-        const placemarks = kml.getElementsByTagName('Placemark');
-
-        if (placemarks.length === 0) {
+        kmlData = JSON.stringify(geoJsonData);
+        
+        if (!geoJsonData.features || geoJsonData.features.length === 0) {
           document.getElementById('error-message').style.display = 'block';
-          document.getElementById('error-message').textContent = 'No route segments found in the KML file. Please check if the file contains Placemark elements with coordinates.';
+          document.getElementById('error-message').textContent = 'No route segments found in the GeoJSON file.';
           return;
         }
         
@@ -384,213 +381,150 @@
 
         let bounds = new mapboxgl.LngLatBounds();
 
-          for (const placemark of placemarks) {
-            const nameElement = placemark.getElementsByTagName('name')[0];
-            const coordinatesElement = placemark.getElementsByTagName('coordinates')[0];
-            
-            if (!nameElement || !coordinatesElement) continue;
+        geoJsonData.features.forEach(feature => {
+          if (feature.geometry.type !== 'LineString') return;
+          
+          const name = feature.properties.name || 'Unnamed Route';
+          const coordinates = feature.geometry.coordinates;
+          
+          // Convert coordinates from [lng, lat] to {lat, lng} objects for distance calculations
+          const coordObjects = coordinates.map(coord => ({
+            lat: coord[1],
+            lng: coord[0]
+          }));
 
-            const name = nameElement.textContent;
-            const coordinatesStr = coordinatesElement.textContent.trim();
-            const coordinates = coordinatesStr.split(/\s+/).map(coordStr => {
-              const [lng, lat] = coordStr.split(',').map(parseFloat);
-              return [lat, lng]; // Leaflet uses [lat, lng] format
-            });
+          // Extract style information from properties
+          let originalColor = feature.properties.stroke || feature.properties['stroke-color'] || '#0288d1';
+          let originalWeight = feature.properties['stroke-width'] || 3;
+          let originalOpacity = feature.properties['stroke-opacity'] || 0.8;
 
-            // Extract original style from KML
-            let originalColor = '#FF0000';
-            let originalWeight = 3;
-            let originalOpacity = 0.8;
+          const layerId = `route-${name.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
+          
+          // Add source and layer to map
+          map.addSource(layerId, {
+            type: 'geojson',
+            data: feature
+          });
 
-            // Check for LineStyle in the placemark
-            const lineStyle = placemark.getElementsByTagName('LineStyle')[0];
-            if (lineStyle) {
-              const colorElement = lineStyle.getElementsByTagName('color')[0];
-              const widthElement = lineStyle.getElementsByTagName('width')[0];
-              
-              if (colorElement) {
-                // KML color format is aabbggrr, convert to #rrggbb
-                const kmlColor = colorElement.textContent;
-                if (kmlColor.length === 8) {
-                  const r = kmlColor.substring(6, 8);
-                  const g = kmlColor.substring(4, 6);
-                  const b = kmlColor.substring(2, 4);
-                  originalColor = `#${r}${g}${b}`;
-                }
-              }
-              
-              if (widthElement) {
-                originalWeight = parseFloat(widthElement.textContent) || 3;
-              }
+          map.addLayer({
+            id: layerId,
+            type: 'line',
+            source: layerId,
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': originalColor,
+              'line-width': originalWeight,
+              'line-opacity': originalOpacity
             }
+          });
 
-            // Check for Style element with id reference
-            const styleUrl = placemark.getElementsByTagName('styleUrl')[0];
-            if (styleUrl) {
-              const styleId = styleUrl.textContent.replace('#', '');
-              const style = kml.querySelector(`Style[id="${styleId}"]`);
-              if (style) {
-                const lineStyle = style.getElementsByTagName('LineStyle')[0];
-                if (lineStyle) {
-                  const colorElement = lineStyle.getElementsByTagName('color')[0];
-                  const widthElement = lineStyle.getElementsByTagName('width')[0];
-                  
-                  if (colorElement) {
-                    const kmlColor = colorElement.textContent;
-                    if (kmlColor.length === 8) {
-                      const r = kmlColor.substring(6, 8);
-                      const g = kmlColor.substring(4, 6);
-                      const b = kmlColor.substring(2, 4);
-                      originalColor = `#${r}${g}${b}`;
-                    }
-                  }
-                  
-                  if (widthElement) {
-                    originalWeight = parseFloat(widthElement.textContent) || 3;
-                  }
-                }
-              }
+          // Store polyline data
+          const polylineData = {
+            segmentName: name,
+            layerId: layerId,
+            coordinates: coordObjects,
+            originalStyle: {
+              color: originalColor,
+              weight: originalWeight,
+              opacity: originalOpacity
             }
+          };
+          routePolylines.push(polylineData);
 
-            // Create GeoJSON LineString for the route segment
-            const lineString = {
-              type: 'Feature',
-              properties: {
-                name: name
-              },
-              geometry: {
-                type: 'LineString',
-                coordinates: coordinates.map(coord => [coord.lng, coord.lat])
-              }
-            };
+          // Add coordinates to bounds for auto-fitting
+          coordinates.forEach(coord => bounds.extend(coord));
 
-            const layerId = `route-${name.replace(/\s+/g, '-')}`;
-            
-            // Add source and layer to map
-            map.addSource(layerId, {
-              type: 'geojson',
-              data: lineString
-            });
-
-            map.addLayer({
-              id: layerId,
-              type: 'line',
-              source: layerId,
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
-              paint: {
-                'line-color': originalColor,
-                'line-width': originalWeight,
-                'line-opacity': originalOpacity
-              }
-            });
-
-            // Store polyline data
-            const polylineData = {
-              segmentName: name,
-              layerId: layerId,
-              coordinates: coordinates,
-              originalStyle: {
-                color: originalColor,
-                weight: originalWeight,
-                opacity: originalOpacity
-              }
-            };
-            routePolylines.push(polylineData);
-
-            // Add coordinates to bounds for auto-fitting
-            coordinates.forEach(coord => bounds.extend([coord.lng, coord.lat]));
-
-            // Add click event listener
-            map.on('click', layerId, (e) => {
-              if (!selectedSegments.includes(name)) {
-                // Save state before making changes
-                saveState();
-                // Add segment to selection
-                selectedSegments.push(name);
-                map.setPaintProperty(layerId, 'line-color', '#00ff00');
-                map.setPaintProperty(layerId, 'line-width', originalWeight + 1);
+          // Add click event listener
+          map.on('click', layerId, (e) => {
+            if (!selectedSegments.includes(name)) {
+              // Save state before making changes
+              saveState();
+              // Add segment to selection
+              selectedSegments.push(name);
+              map.setPaintProperty(layerId, 'line-color', '#00ff00');
+              map.setPaintProperty(layerId, 'line-width', originalWeight + 1);
+              
+              // Smart focusing based on route direction
+              if (coordObjects.length > 0 && selectedSegments.length > 1) {
+                // Find the previously selected segment
+                const previousSegmentName = selectedSegments[selectedSegments.length - 2];
+                const previousPolyline = routePolylines.find(p => p.segmentName === previousSegmentName);
                 
-                // Smart focusing based on route direction
-                if (coordinates.length > 0 && selectedSegments.length > 1) {
-                  // Find the previously selected segment
-                  const previousSegmentName = selectedSegments[selectedSegments.length - 2];
-                  const previousPolyline = routePolylines.find(p => p.segmentName === previousSegmentName);
+                if (previousPolyline) {
+                  const prevCoords = previousPolyline.coordinates;
+                  const prevStart = prevCoords[0];
+                  const prevEnd = prevCoords[prevCoords.length - 1];
                   
-                  if (previousPolyline) {
-                    const prevCoords = previousPolyline.coordinates;
-                    const prevStart = prevCoords[0];
-                    const prevEnd = prevCoords[prevCoords.length - 1];
-                    
-                    const currentStart = coordinates[0];
-                    const currentEnd = coordinates[coordinates.length - 1];
-                    
-                    // Calculate distances between endpoints
-                    const prevEndToCurrentStart = getDistance(prevEnd, currentStart);
-                    const prevEndToCurrentEnd = getDistance(prevEnd, currentEnd);
-                    const prevStartToCurrentStart = getDistance(prevStart, currentStart);
-                    const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
-                    
-                    // Find the minimum distance to determine connection
-                    const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
-                    
-                    let focusPoint;
-                    if (minDistance === prevEndToCurrentStart) {
-                      focusPoint = [currentEnd.lng, currentEnd.lat];
-                    } else if (minDistance === prevEndToCurrentEnd) {
-                      focusPoint = [currentStart.lng, currentStart.lat];
-                    } else if (minDistance === prevStartToCurrentStart) {
-                      focusPoint = [currentEnd.lng, currentEnd.lat];
-                    } else {
-                      focusPoint = [currentStart.lng, currentStart.lat];
-                    }
-                    
-                    // Use smooth panning
-                    map.panTo(focusPoint, {
-                      duration: 1000
-                    });
+                  const currentStart = coordObjects[0];
+                  const currentEnd = coordObjects[coordObjects.length - 1];
+                  
+                  // Calculate distances between endpoints
+                  const prevEndToCurrentStart = getDistance(prevEnd, currentStart);
+                  const prevEndToCurrentEnd = getDistance(prevEnd, currentEnd);
+                  const prevStartToCurrentStart = getDistance(prevStart, currentStart);
+                  const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
+                  
+                  // Find the minimum distance to determine connection
+                  const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
+                  
+                  let focusPoint;
+                  if (minDistance === prevEndToCurrentStart) {
+                    focusPoint = [currentEnd.lng, currentEnd.lat];
+                  } else if (minDistance === prevEndToCurrentEnd) {
+                    focusPoint = [currentStart.lng, currentStart.lat];
+                  } else if (minDistance === prevStartToCurrentStart) {
+                    focusPoint = [currentEnd.lng, currentEnd.lat];
+                  } else {
+                    focusPoint = [currentStart.lng, currentStart.lat];
                   }
+                  
+                  // Use smooth panning
+                  map.panTo(focusPoint, {
+                    duration: 1000
+                  });
                 }
-              } else {
-                // Save state before making changes
-                saveState();
-                // Remove segment from selection
-                const index = selectedSegments.indexOf(name);
-                selectedSegments.splice(index, 1);
-                map.setPaintProperty(layerId, 'line-color', originalColor);
-                map.setPaintProperty(layerId, 'line-width', originalWeight);
               }
-              updateRouteListAndDescription();
-            });
+            } else {
+              // Save state before making changes
+              saveState();
+              // Remove segment from selection
+              const index = selectedSegments.indexOf(name);
+              selectedSegments.splice(index, 1);
+              map.setPaintProperty(layerId, 'line-color', originalColor);
+              map.setPaintProperty(layerId, 'line-width', originalWeight);
+            }
+            updateRouteListAndDescription();
+          });
 
-            // Add hover effects
-            map.on('mouseenter', layerId, () => {
-              map.getCanvas().style.cursor = 'pointer';
-              if (!selectedSegments.includes(name)) {
-                map.setPaintProperty(layerId, 'line-width', originalWeight + 2);
-                map.setPaintProperty(layerId, 'line-opacity', 1);
-              }
-            });
+          // Add hover effects
+          map.on('mouseenter', layerId, () => {
+            map.getCanvas().style.cursor = 'pointer';
+            if (!selectedSegments.includes(name)) {
+              map.setPaintProperty(layerId, 'line-width', originalWeight + 2);
+              map.setPaintProperty(layerId, 'line-opacity', 1);
+            }
+          });
 
-            map.on('mouseleave', layerId, () => {
-              map.getCanvas().style.cursor = '';
-              if (!selectedSegments.includes(name)) {
-                map.setPaintProperty(layerId, 'line-width', originalWeight);
-                map.setPaintProperty(layerId, 'line-opacity', originalOpacity);
-              }
-            });
-          }
+          map.on('mouseleave', layerId, () => {
+            map.getCanvas().style.cursor = '';
+            if (!selectedSegments.includes(name)) {
+              map.setPaintProperty(layerId, 'line-width', originalWeight);
+              map.setPaintProperty(layerId, 'line-opacity', originalOpacity);
+            }
+          });
+        });
 
-          // Fit map to show all route segments
+        // Fit map to show all route segments
         if (!bounds.isEmpty()) {
           map.fitBounds(bounds, { padding: 20 });
         }
 
       } catch (error) {
         document.getElementById('error-message').style.display = 'block';
-        document.getElementById('error-message').textContent = 'Error parsing KML file: ' + error.message;
+        document.getElementById('error-message').textContent = 'Error parsing GeoJSON file: ' + error.message;
       }
     }
 
@@ -660,46 +594,41 @@
 
     document.getElementById('download-gpx').addEventListener('click', () => {
       if (!kmlData) return;
-        const parser = new DOMParser();
-        const kml = parser.parseFromString(kmlData, 'application/xml');
-        const placemarks = kml.getElementsByTagName('Placemark');
+      
+      const geoJsonData = JSON.parse(kmlData);
 
-        let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+      let gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="BikeRoutePlanner" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
   <trk>
     <name>Planned Bike Route</name>
     <trkseg>`;
 
-        selectedSegments.forEach(segmentName => {
-          for (const placemark of placemarks) {
-            const nameElement = placemark.getElementsByTagName('name')[0];
-            if (nameElement && nameElement.textContent === segmentName) {
-              const coordinatesElement = placemark.getElementsByTagName('coordinates')[0];
-              if (coordinatesElement) {
-                const coordinatesStr = coordinatesElement.textContent.trim();
-                const coordinates = coordinatesStr.split(/\s+/);
-                coordinates.forEach(coordStr => {
-                  const [lng, lat] = coordStr.split(',');
-                  gpx += `
+      selectedSegments.forEach(segmentName => {
+        const feature = geoJsonData.features.find(f => 
+          (f.properties.name || 'Unnamed Route') === segmentName
+        );
+        
+        if (feature && feature.geometry.type === 'LineString') {
+          feature.geometry.coordinates.forEach(coord => {
+            const [lng, lat] = coord;
+            gpx += `
       <trkpt lat="${lat}" lon="${lng}"></trkpt>`;
-                });
-              }
-            }
-          }
-        });
+          });
+        }
+      });
 
-        gpx += `
+      gpx += `
     </trkseg>
   </trk>
 </gpx>`;
 
-        const blob = new Blob([gpx], {type: 'application/gpx+xml'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'bike_route.gpx';
-        a.click();
-        URL.revokeObjectURL(url);
+      const blob = new Blob([gpx], {type: 'application/gpx+xml'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bike_route.gpx';
+      a.click();
+      URL.revokeObjectURL(url);
     });
 
     // Search functionality
