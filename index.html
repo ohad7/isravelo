@@ -556,12 +556,7 @@
             
             // Update segment name display with details
             const segmentDisplay = document.getElementById('segment-name-display');
-            segmentDisplay.innerHTML = `
-              <strong>${name}</strong><br>
-              📏 ${segmentDistanceKm} km<br>
-              ⬆️ ${segmentElevationGain} m<br>
-              ⬇️ ${segmentElevationLoss} m
-            `;
+            segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} km • ⬆️ ${segmentElevationGain} m • ⬇️ ${segmentElevationLoss} m`;
             segmentDisplay.style.display = 'block';
           });
 
@@ -661,6 +656,20 @@
           if (polyline) {
             map.setPaintProperty(polyline.layerId, 'line-color', '#654321');
             map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 3);
+            
+            // Show segment summary in top right display
+            const coordObjects = polyline.coordinates;
+            let segmentDistance = 0;
+            for (let i = 0; i < coordObjects.length - 1; i++) {
+              segmentDistance += getDistance(coordObjects[i], coordObjects[i + 1]);
+            }
+            const segmentDistanceKm = (segmentDistance / 1000).toFixed(1);
+            const segmentElevationGain = Math.round(coordObjects.length * 0.4);
+            const segmentElevationLoss = Math.round(coordObjects.length * 0.3);
+            
+            const segmentDisplay = document.getElementById('segment-name-display');
+            segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} km • ⬆️ ${segmentElevationGain} m • ⬇️ ${segmentElevationLoss} m`;
+            segmentDisplay.style.display = 'block';
           }
         });
         
@@ -669,6 +678,10 @@
           if (polyline) {
             map.setPaintProperty(polyline.layerId, 'line-color', '#00ff00');
             map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 1);
+            
+            // Hide segment summary display
+            const segmentDisplay = document.getElementById('segment-name-display');
+            segmentDisplay.style.display = 'none';
           }
         });
         
