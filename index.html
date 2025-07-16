@@ -12,41 +12,37 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B7355 0%, #A0845C 100%);
       min-height: 100vh;
       color: #333;
-    }
-    h1 {
-      color: white;
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 2.5em;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     .container {
       display: flex;
       gap: 20px;
-      align-items: flex-start;
+      align-items: stretch;
       max-width: 1400px;
       margin: 0 auto;
+      height: 600px;
     }
     .map-container {
       flex: 2;
-      background: white;
+      background: #F5F5DC;
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.1);
       padding: 15px;
+      position: relative;
     }
     .sidebar {
       flex: 1;
       min-width: 320px;
-      background: white;
+      background: #F5F5DC;
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.1);
       padding: 20px;
+      overflow-y: auto;
     }
     #map {
-      height: 500px;
+      height: 100%;
       width: 100%;
       border-radius: 8px;
       overflow: hidden;
@@ -54,12 +50,28 @@
     }
     #route-list {
       margin-top: 15px;
-      border: 1px solid #e0e0e0;
+      border: 1px solid #D2B48C;
       padding: 15px;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      background: linear-gradient(135deg, #F5DEB3 0%, #DEB887 100%);
       border-radius: 8px;
       max-height: 200px;
       overflow-y: auto;
+    }
+    .segment-name-display {
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      background: rgba(139, 115, 85, 0.9);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      max-width: 250px;
+      word-wrap: break-word;
+      display: none;
     }
     #error-message {
       color: #e74c3c;
@@ -87,7 +99,7 @@
       padding-left: 4px;
     }
     .remove-btn {
-      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+      background: linear-gradient(135deg, #CD853F 0%, #A0522D 100%);
       color: white;
       border: none;
       padding: 4px 10px;
@@ -95,11 +107,11 @@
       cursor: pointer;
       font-size: 11px;
       transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(238,90,82,0.3);
+      box-shadow: 0 2px 8px rgba(160,82,45,0.3);
     }
     .remove-btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(238,90,82,0.4);
+      box-shadow: 0 4px 12px rgba(160,82,45,0.4);
     }
     .action-buttons {
       display: flex;
@@ -107,7 +119,7 @@
       margin-top: 15px;
     }
     #download-gpx {
-      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+      background: linear-gradient(135deg, #6B8E23 0%, #556B2F 100%);
       color: white;
       border: none;
       padding: 12px 20px;
@@ -116,7 +128,7 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(76,175,80,0.3);
+      box-shadow: 0 4px 16px rgba(107,142,35,0.3);
       flex: 1;
     }
     #download-gpx:disabled {
@@ -126,10 +138,10 @@
     }
     #download-gpx:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+      box-shadow: 0 6px 20px rgba(107,142,35,0.4);
     }
     .undo-btn {
-      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      background: linear-gradient(135deg, #D2691E 0%, #A0522D 100%);
       color: white;
       border: none;
       padding: 12px 16px;
@@ -138,7 +150,7 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(255,152,0,0.3);
+      box-shadow: 0 4px 16px rgba(210,105,30,0.3);
       min-width: 60px;
     }
     .undo-btn:disabled {
@@ -148,7 +160,7 @@
     }
     .undo-btn:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(255,152,0,0.4);
+      box-shadow: 0 6px 20px rgba(210,105,30,0.4);
     }
     .mapboxgl-popup.segment-tooltip .mapboxgl-popup-content {
       background-color: rgba(0, 0, 0, 0.9);
@@ -182,7 +194,7 @@
       border-color: #2196F3;
     }
     #search-btn {
-      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+      background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
       color: white;
       border: none;
       padding: 12px 20px;
@@ -191,11 +203,11 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(33,150,243,0.3);
+      box-shadow: 0 4px 16px rgba(139,69,19,0.3);
     }
     #search-btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(33,150,243,0.4);
+      box-shadow: 0 6px 20px rgba(139,69,19,0.4);
     }
     .leaflet-interactive {
       outline: none !important;
@@ -211,7 +223,7 @@
       font-weight: 600;
     }
     #route-description {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      background: linear-gradient(135deg, #D2691E 0%, #A0522D 100%);
       color: white;
       padding: 15px;
       border-radius: 8px;
@@ -242,14 +254,11 @@
 </head>
 <body>
 
-  <h1>🚴‍♂️ Bike Route Planner</h1>
-
   <div id="error-message"></div>
   
-  
-
   <div class="container">
     <div class="map-container">
+      <div class="segment-name-display" id="segment-name-display">No segment selected</div>
       <div id="map"></div>
     </div>
     
@@ -528,7 +537,7 @@
 
           
 
-          // Add hover effects with tooltip
+          // Add hover effects with segment name display
           map.on('mouseenter', layerId, (e) => {
             map.getCanvas().style.cursor = 'pointer';
             if (!selectedSegments.includes(name)) {
@@ -536,18 +545,10 @@
               map.setPaintProperty(layerId, 'line-opacity', 1);
             }
             
-            // Create and show tooltip
-            const tooltip = new mapboxgl.Popup({
-              closeButton: false,
-              closeOnClick: false,
-              className: 'segment-tooltip'
-            })
-            .setLngLat(e.lngLat)
-            .setHTML(`<div>${name}</div>`)
-            .addTo(map);
-            
-            // Store tooltip reference for cleanup
-            map._currentTooltip = tooltip;
+            // Update segment name display
+            const segmentDisplay = document.getElementById('segment-name-display');
+            segmentDisplay.textContent = name;
+            segmentDisplay.style.display = 'block';
           });
 
           map.on('mouseleave', layerId, () => {
@@ -557,17 +558,9 @@
               map.setPaintProperty(layerId, 'line-opacity', originalOpacity);
             }
             
-            // Remove tooltip
-            if (map._currentTooltip) {
-              map._currentTooltip.remove();
-              map._currentTooltip = null;
-            }
-          });
-
-          map.on('mousemove', layerId, (e) => {
-            if (map._currentTooltip) {
-              map._currentTooltip.setLngLat(e.lngLat);
-            }
+            // Hide segment name display
+            const segmentDisplay = document.getElementById('segment-name-display');
+            segmentDisplay.style.display = 'none';
           });
         });
 
