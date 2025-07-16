@@ -376,7 +376,12 @@
                       focusPoint = currentStart;
                     }
                     
-                    map.setView(focusPoint, Math.max(map.getZoom(), 15));
+                    // Use smooth panning with current zoom level
+                    map.panTo(focusPoint, {
+                      animate: true,
+                      duration: 1.0, // 1 second transition
+                      easeLinearity: 0.25
+                    });
                   }
                 }
                 // Don't focus for the first segment since we don't know the direction yet
