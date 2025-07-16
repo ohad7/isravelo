@@ -526,67 +526,7 @@
           // Add coordinates to bounds for auto-fitting
           coordinates.forEach(coord => bounds.extend(coord));
 
-          // Add click event listener
-          map.on('click', layerId, (e) => {
-            if (!selectedSegments.includes(name)) {
-              // Save state before making changes
-              saveState();
-              // Add segment to selection
-              selectedSegments.push(name);
-              map.setPaintProperty(layerId, 'line-color', '#00ff00');
-              map.setPaintProperty(layerId, 'line-width', originalWeight + 1);
-              
-              // Smart focusing based on route direction
-              if (coordObjects.length > 0 && selectedSegments.length > 1) {
-                // Find the previously selected segment
-                const previousSegmentName = selectedSegments[selectedSegments.length - 2];
-                const previousPolyline = routePolylines.find(p => p.segmentName === previousSegmentName);
-                
-                if (previousPolyline) {
-                  const prevCoords = previousPolyline.coordinates;
-                  const prevStart = prevCoords[0];
-                  const prevEnd = prevCoords[prevCoords.length - 1];
-                  
-                  const currentStart = coordObjects[0];
-                  const currentEnd = coordObjects[coordObjects.length - 1];
-                  
-                  // Calculate distances between endpoints
-                  const prevEndToCurrentStart = getDistance(prevEnd, currentStart);
-                  const prevEndToCurrentEnd = getDistance(prevEnd, currentEnd);
-                  const prevStartToCurrentStart = getDistance(prevStart, currentStart);
-                  const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
-                  
-                  // Find the minimum distance to determine connection
-                  const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
-                  
-                  let focusPoint;
-                  if (minDistance === prevEndToCurrentStart) {
-                    focusPoint = [currentEnd.lng, currentEnd.lat];
-                  } else if (minDistance === prevEndToCurrentEnd) {
-                    focusPoint = [currentStart.lng, currentStart.lat];
-                  } else if (minDistance === prevStartToCurrentStart) {
-                    focusPoint = [currentEnd.lng, currentEnd.lat];
-                  } else {
-                    focusPoint = [currentStart.lng, currentStart.lat];
-                  }
-                  
-                  // Use smooth panning
-                  map.panTo(focusPoint, {
-                    duration: 1000
-                  });
-                }
-              }
-            } else {
-              // Save state before making changes
-              saveState();
-              // Remove segment from selection
-              const index = selectedSegments.indexOf(name);
-              selectedSegments.splice(index, 1);
-              map.setPaintProperty(layerId, 'line-color', originalColor);
-              map.setPaintProperty(layerId, 'line-width', originalWeight);
-            }
-            updateRouteListAndDescription();
-          });
+          
 
           // Add hover effects with tooltip
           map.on('mouseenter', layerId, (e) => {
