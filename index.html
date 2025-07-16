@@ -543,6 +543,10 @@
             if (!selectedSegments.includes(name)) {
               map.setPaintProperty(layerId, 'line-width', originalWeight + 2);
               map.setPaintProperty(layerId, 'line-opacity', 1);
+            } else {
+              // Dark brown highlight for selected segments
+              map.setPaintProperty(layerId, 'line-color', '#654321');
+              map.setPaintProperty(layerId, 'line-width', originalWeight + 3);
             }
             
             // Update segment name display
@@ -556,6 +560,10 @@
             if (!selectedSegments.includes(name)) {
               map.setPaintProperty(layerId, 'line-width', originalWeight);
               map.setPaintProperty(layerId, 'line-opacity', originalOpacity);
+            } else {
+              // Restore selected segment style
+              map.setPaintProperty(layerId, 'line-color', '#00ff00');
+              map.setPaintProperty(layerId, 'line-width', originalWeight + 1);
             }
             
             // Hide segment name display
@@ -643,9 +651,10 @@
         routeList.appendChild(segmentDiv);
       });
 
-      // Calculate total distance and elevation gain
+      // Calculate total distance and elevation changes
       let totalDistance = 0;
       let totalElevationGain = 0;
+      let totalElevationLoss = 0;
       
       selectedSegments.forEach(segmentName => {
         const polyline = routePolylines.find(p => p.segmentName === segmentName);
@@ -656,22 +665,26 @@
             totalDistance += distance;
           }
           
-          // Calculate elevation gain (simulated - you can replace with real elevation data)
+          // Calculate elevation changes (simulated - you can replace with real elevation data)
           // For now, we'll estimate based on segment length and assume some elevation change
           const segmentLength = polyline.coordinates.length;
-          const estimatedElevationGain = segmentLength * 0.5; // Rough estimate
+          const estimatedElevationGain = segmentLength * 0.4; // Rough estimate for uphill
+          const estimatedElevationLoss = segmentLength * 0.3; // Rough estimate for downhill
           totalElevationGain += estimatedElevationGain;
+          totalElevationLoss += estimatedElevationLoss;
         }
       });
       
       const totalDistanceKm = (totalDistance / 1000).toFixed(1);
-      const totalElevationM = Math.round(totalElevationGain);
+      const totalElevationGainM = Math.round(totalElevationGain);
+      const totalElevationLossM = Math.round(totalElevationLoss);
       
       routeDescription.innerHTML = `
         <strong>Route Summary:</strong><br>
         ${selectedSegments.length} segment${selectedSegments.length > 1 ? 's' : ''} selected<br>
         <strong>📏 Distance:</strong> ${totalDistanceKm} km<br>
-        <strong>⛰️ Elevation Gain:</strong> ${totalElevationM} m<br>
+        <strong>⬆️ Uphill:</strong> ${totalElevationGainM} m<br>
+        <strong>⬇️ Downhill:</strong> ${totalElevationLossM} m<br>
         <small style="color: #333; margin-top: 8px; display: block;">${selectedSegments.join(' → ')}</small>
       `;
       
@@ -687,7 +700,8 @@
         // Reset polyline to original style
         const polyline = routePolylines.find(p => p.segmentName === segmentName);
         if (polyline) {
-          polyline.setStyle(polyline.originalStyle);
+          map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
+          map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
         }
         
         updateRouteListAndDescription();
