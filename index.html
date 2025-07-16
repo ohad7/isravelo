@@ -150,14 +150,19 @@
       transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(255,152,0,0.4);
     }
-    .segment-tooltip {
-      background-color: rgba(0, 0, 0, 0.8);
+    .mapboxgl-popup.segment-tooltip .mapboxgl-popup-content {
+      background-color: rgba(0, 0, 0, 0.9);
       color: white;
       border: none;
-      border-radius: 4px;
-      padding: 5px 8px;
-      font-size: 12px;
-      font-weight: bold;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+    .mapboxgl-popup.segment-tooltip .mapboxgl-popup-tip {
+      border-top-color: rgba(0, 0, 0, 0.9);
     }
     .search-container {
       display: flex;
@@ -340,6 +345,88 @@
         map.on('load', () => {
           loadKMLFile();
         });
+
+        // Add global click handler for proximity-based selection
+        map.on('click', (e) => {
+          const clickPoint = e.lngLat;
+          const threshold = 50; // meters
+          let closestSegment = null;
+          let minDistance = Infinity;
+          
+          // Find closest segment within threshold
+          routePolylines.forEach(polylineData => {
+            const coords = polylineData.coordinates;
+            for (let i = 0; i < coords.length - 1; i++) {
+              const distance = distanceToLineSegment(
+                { lat: clickPoint.lat, lng: clickPoint.lng },
+                coords[i],
+                coords[i + 1]
+              );
+              
+              if (distance < threshold && distance < minDistance) {
+                minDistance = distance;
+                closestSegment = polylineData;
+              }
+            }
+          });
+          
+          // Select/deselect closest segment if found
+          if (closestSegment) {
+            const name = closestSegment.segmentName;
+            const layerId = closestSegment.layerId;
+            
+            if (!selectedSegments.includes(name)) {
+              saveState();
+              selectedSegments.push(name);
+              map.setPaintProperty(layerId, 'line-color', '#00ff00');
+              map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 1);
+              
+              // Smart focusing logic (same as before)
+              if (closestSegment.coordinates.length > 0 && selectedSegments.length > 1) {
+                const previousSegmentName = selectedSegments[selectedSegments.length - 2];
+                const previousPolyline = routePolylines.find(p => p.segmentName === previousSegmentName);
+                
+                if (previousPolyline) {
+                  const prevCoords = previousPolyline.coordinates;
+                  const prevStart = prevCoords[0];
+                  const prevEnd = prevCoords[prevCoords.length - 1];
+                  
+                  const currentStart = closestSegment.coordinates[0];
+                  const currentEnd = closestSegment.coordinates[closestSegment.coordinates.length - 1];
+                  
+                  const prevEndToCurrentStart = getDistance(prevEnd, currentStart);
+                  const prevEndToCurrentEnd = getDistance(prevEnd, currentEnd);
+                  const prevStartToCurrentStart = getDistance(prevStart, currentStart);
+                  const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
+                  
+                  const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
+                  
+                  let focusPoint;
+                  if (minDistance === prevEndToCurrentStart) {
+                    focusPoint = [currentEnd.lng, currentEnd.lat];
+                  } else if (minDistance === prevEndToCurrentEnd) {
+                    focusPoint = [currentStart.lng, currentStart.lat];
+                  } else if (minDistance === prevStartToCurrentStart) {
+                    focusPoint = [currentEnd.lng, currentEnd.lat];
+                  } else {
+                    focusPoint = [currentStart.lng, currentStart.lat];
+                  }
+                  
+                  map.panTo(focusPoint, {
+                    duration: 1000
+                  });
+                }
+              }
+            } else {
+              saveState();
+              const index = selectedSegments.indexOf(name);
+              selectedSegments.splice(index, 1);
+              map.setPaintProperty(layerId, 'line-color', closestSegment.originalStyle.color);
+              map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight);
+            }
+            updateRouteListAndDescription();
+          }
+        });
         
       } catch (error) {
         document.getElementById('error-message').style.display = 'block';
@@ -501,13 +588,26 @@
             updateRouteListAndDescription();
           });
 
-          // Add hover effects
-          map.on('mouseenter', layerId, () => {
+          // Add hover effects with tooltip
+          map.on('mouseenter', layerId, (e) => {
             map.getCanvas().style.cursor = 'pointer';
             if (!selectedSegments.includes(name)) {
               map.setPaintProperty(layerId, 'line-width', originalWeight + 2);
               map.setPaintProperty(layerId, 'line-opacity', 1);
             }
+            
+            // Create and show tooltip
+            const tooltip = new mapboxgl.Popup({
+              closeButton: false,
+              closeOnClick: false,
+              className: 'segment-tooltip'
+            })
+            .setLngLat(e.lngLat)
+            .setHTML(`<div>${name}</div>`)
+            .addTo(map);
+            
+            // Store tooltip reference for cleanup
+            map._currentTooltip = tooltip;
           });
 
           map.on('mouseleave', layerId, () => {
@@ -515,6 +615,18 @@
             if (!selectedSegments.includes(name)) {
               map.setPaintProperty(layerId, 'line-width', originalWeight);
               map.setPaintProperty(layerId, 'line-opacity', originalOpacity);
+            }
+            
+            // Remove tooltip
+            if (map._currentTooltip) {
+              map._currentTooltip.remove();
+              map._currentTooltip = null;
+            }
+          });
+
+          map.on('mousemove', layerId, (e) => {
+            if (map._currentTooltip) {
+              map._currentTooltip.setLngLat(e.lngLat);
             }
           });
         });
@@ -546,6 +658,35 @@
       return R * c;
     }
 
+    // Helper function to calculate distance from point to line segment
+    function distanceToLineSegment(point, lineStart, lineEnd) {
+      const A = point.lng - lineStart.lng;
+      const B = point.lat - lineStart.lat;
+      const C = lineEnd.lng - lineStart.lng;
+      const D = lineEnd.lat - lineStart.lat;
+
+      const dot = A * C + B * D;
+      const lenSq = C * C + D * D;
+      let param = -1;
+      if (lenSq !== 0) {
+        param = dot / lenSq;
+      }
+
+      let xx, yy;
+      if (param < 0) {
+        xx = lineStart.lng;
+        yy = lineStart.lat;
+      } else if (param > 1) {
+        xx = lineEnd.lng;
+        yy = lineEnd.lat;
+      } else {
+        xx = lineStart.lng + param * C;
+        yy = lineStart.lat + param * D;
+      }
+
+      return getDistance(point, { lat: yy, lng: xx });
+    }
+
     function updateRouteListAndDescription() {
       const routeList = document.getElementById('route-list');
       const routeDescription = document.getElementById('route-description');
@@ -569,10 +710,36 @@
         routeList.appendChild(segmentDiv);
       });
 
+      // Calculate total distance and elevation gain
+      let totalDistance = 0;
+      let totalElevationGain = 0;
+      
+      selectedSegments.forEach(segmentName => {
+        const polyline = routePolylines.find(p => p.segmentName === segmentName);
+        if (polyline && polyline.coordinates) {
+          // Calculate distance for this segment
+          for (let i = 0; i < polyline.coordinates.length - 1; i++) {
+            const distance = getDistance(polyline.coordinates[i], polyline.coordinates[i + 1]);
+            totalDistance += distance;
+          }
+          
+          // Calculate elevation gain (simulated - you can replace with real elevation data)
+          // For now, we'll estimate based on segment length and assume some elevation change
+          const segmentLength = polyline.coordinates.length;
+          const estimatedElevationGain = segmentLength * 0.5; // Rough estimate
+          totalElevationGain += estimatedElevationGain;
+        }
+      });
+      
+      const totalDistanceKm = (totalDistance / 1000).toFixed(1);
+      const totalElevationM = Math.round(totalElevationGain);
+      
       routeDescription.innerHTML = `
         <strong>Route Summary:</strong><br>
         ${selectedSegments.length} segment${selectedSegments.length > 1 ? 's' : ''} selected<br>
-        <small style="color: #666;">${selectedSegments.join(' → ')}</small>
+        <strong>📏 Distance:</strong> ${totalDistanceKm} km<br>
+        <strong>⛰️ Elevation Gain:</strong> ${totalElevationM} m<br>
+        <small style="color: #333; margin-top: 8px; display: block;">${selectedSegments.join(' → ')}</small>
       `;
       
       downloadButton.disabled = false;
