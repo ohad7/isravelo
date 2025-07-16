@@ -696,6 +696,7 @@ function removeSegment(segmentName) {
       map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
     }
 
+    updateSegmentStyles();
     updateRouteListAndDescription();
   }
 }
