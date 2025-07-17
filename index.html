@@ -194,6 +194,97 @@
       display: none;
     }
 
+    .legend-container {
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      z-index: 1000;
+      direction: rtl;
+    }
+
+    .legend-toggle {
+      background: #F8F8F8;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s;
+      margin-bottom: 5px;
+      display: block;
+      width: 100%;
+    }
+
+    .legend-toggle:hover {
+      background: #e0e0e0;
+      transform: translateY(-1px);
+    }
+
+    .legend-box {
+      background: #F8F8F8;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      padding: 15px;
+      min-width: 200px;
+      overflow: hidden;
+      transition: all 0.3s ease-in-out;
+      transform-origin: top;
+    }
+
+    .legend-box.closed {
+      max-height: 0;
+      padding: 0 15px;
+      opacity: 0;
+      transform: scaleY(0);
+    }
+
+    .legend-box.open {
+      max-height: 300px;
+      opacity: 1;
+      transform: scaleY(1);
+    }
+
+    .legend-title {
+      font-weight: bold;
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 4px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .legend-label {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .paved-trail {
+      background-color: rgb(2, 136, 209);
+    }
+
+    .dirt-trail {
+      background-color: rgb(85, 139, 47);
+    }
+
+    .road {
+      background-color: rgb(230, 238, 156);
+    }
+
     #error-message {
       color: #e74c3c;
       margin: 10px 0;
@@ -468,6 +559,24 @@
     <div class="container">
       <div class="map-container">
         <div class="segment-name-display" id="segment-name-display">No segment selected</div>
+        <div class="legend-container">
+          <button class="legend-toggle" id="legend-toggle">🗺️ מקרא</button>
+          <div class="legend-box open" id="legend-box">
+            <div class="legend-title">סוגי דרכים</div>
+            <div class="legend-item">
+              <div class="legend-color paved-trail"></div>
+              <div class="legend-label">שביל סלול</div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color dirt-trail"></div>
+              <div class="legend-label">שביל עפר</div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color road"></div>
+              <div class="legend-label">כביש</div>
+            </div>
+          </div>
+        </div>
         <div id="map"></div>
       </div>
 

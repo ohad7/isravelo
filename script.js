@@ -810,6 +810,20 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('undo-btn').addEventListener('click', undo);
   document.getElementById('redo-btn').addEventListener('click', redo);
 
+  // Legend toggle functionality
+  document.getElementById('legend-toggle').addEventListener('click', function() {
+    const legendBox = document.getElementById('legend-box');
+    const isOpen = legendBox.classList.contains('open');
+    
+    if (isOpen) {
+      legendBox.classList.remove('open');
+      legendBox.classList.add('closed');
+    } else {
+      legendBox.classList.remove('closed');
+      legendBox.classList.add('open');
+    }
+  });
+
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
