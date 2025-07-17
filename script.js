@@ -834,9 +834,9 @@ function generateElevationProfile() {
   // Close the path to create a filled area
   pathData += ` L 100 100 L 0 100 Z`;
 
-  // Add SVG for continuous elevation profile
+  // Add SVG for continuous elevation profile with proper viewBox
   elevationHtml += `
-    <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0;">
       <defs>
         <linearGradient id="elevationGradient" x1="0%" y1="100%" x2="0%" y2="0%">
           <stop offset="0%" style="stop-color:#8B4513;stop-opacity:1" />
@@ -844,7 +844,7 @@ function generateElevationProfile() {
           <stop offset="100%" style="stop-color:#F4A460;stop-opacity:1" />
         </linearGradient>
       </defs>
-      <path d="${pathData}" fill="url(#elevationGradient)" stroke="#654321" stroke-width="1"/>
+      <path d="${pathData}" fill="url(#elevationGradient)" stroke="#654321" stroke-width="0.5"/>
     </svg>
   `;
 
