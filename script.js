@@ -88,7 +88,7 @@ function initMap() {
     map.on('click', (e) => {
       const clickPoint = e.lngLat;
       const clickPixel = map.project(clickPoint);
-      const threshold = 15; // pixels
+      const threshold = 30; // pixels
       let closestSegment = null;
       let minDistance = Infinity;
 
@@ -98,7 +98,7 @@ function initMap() {
         for (let i = 0; i < coords.length - 1; i++) {
           const startPixel = map.project([coords[i].lng, coords[i].lat]);
           const endPixel = map.project([coords[i + 1].lng, coords[i + 1].lat]);
-          
+
           const distance = distanceToLineSegmentPixels(
             clickPixel,
             startPixel,
