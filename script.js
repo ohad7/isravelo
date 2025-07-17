@@ -675,8 +675,37 @@ function getOrderedCoordinates() {
 
     let coords = [...polyline.coordinates];
 
-    // For the first segment, add as-is
+    // For the first segment, check if we need to orient it correctly
     if (i === 0) {
+      // If there's a second segment, orient the first segment to connect better
+      if (selectedSegments.length > 1) {
+        const nextSegmentName = selectedSegments[1];
+        const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
+        
+        if (nextPolyline) {
+          const nextCoords = nextPolyline.coordinates;
+          const firstStart = coords[0];
+          const firstEnd = coords[coords.length - 1];
+          const nextStart = nextCoords[0];
+          const nextEnd = nextCoords[nextCoords.length - 1];
+
+          // Calculate all possible connection distances
+          const distances = [
+            getDistance(firstEnd, nextStart),    // first end to next start
+            getDistance(firstEnd, nextEnd),      // first end to next end
+            getDistance(firstStart, nextStart),  // first start to next start
+            getDistance(firstStart, nextEnd)     // first start to next end
+          ];
+
+          const minDistance = Math.min(...distances);
+          const minIndex = distances.indexOf(minDistance);
+
+          // If the best connection is from first start, reverse the first segment
+          if (minIndex === 2 || minIndex === 3) {
+            coords.reverse();
+          }
+        }
+      }
       orderedCoords = [...coords];
     } else {
       // For subsequent segments, determine which end connects better
