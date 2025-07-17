@@ -205,15 +205,16 @@
     .legend-toggle {
       background: #F8F8F8;
       border: none;
-      padding: 10px 12px;
-      border-radius: 8px;
+      padding: 6px 8px;
+      border-radius: 4px;
       cursor: pointer;
-      font-size: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      font-size: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
       transition: all 0.2s;
-      margin-bottom: 5px;
+      margin-bottom: 2px;
       display: block;
-      width: 100%;
+      width: auto;
+      min-width: 0;
     }
 
     .legend-toggle:hover {
@@ -223,10 +224,11 @@
 
     .legend-box {
       background: #F8F8F8;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      padding: 15px;
-      min-width: 200px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      padding: 6px;
+      min-width: 0;
+      width: auto;
       overflow: hidden;
       transition: all 0.3s ease-in-out;
       transform-origin: top;
@@ -234,43 +236,44 @@
 
     .legend-box.closed {
       max-height: 0;
-      padding: 0 15px;
+      padding: 0 6px;
       opacity: 0;
       transform: scaleY(0);
     }
 
     .legend-box.open {
-      max-height: 300px;
+      max-height: 150px;
       opacity: 1;
       transform: scaleY(1);
     }
 
     .legend-title {
       font-weight: bold;
-      font-size: 16px;
+      font-size: 11px;
       color: #333;
-      margin-bottom: 12px;
+      margin-bottom: 4px;
       text-align: center;
     }
 
     .legend-item {
       display: flex;
       align-items: center;
-      margin-bottom: 8px;
-      gap: 10px;
+      margin-bottom: 3px;
+      gap: 4px;
     }
 
     .legend-color {
-      width: 20px;
-      height: 4px;
-      border-radius: 2px;
+      width: 12px;
+      height: 3px;
+      border-radius: 1px;
       flex-shrink: 0;
     }
 
     .legend-label {
-      font-size: 14px;
+      font-size: 10px;
       color: #333;
       font-weight: 500;
+      white-space: nowrap;
     }
 
     .paved-trail {
