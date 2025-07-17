@@ -57,8 +57,10 @@ function initMap() {
     map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/outdoors-v12',
-      center: [35.6, 33.2], // Centered on the bike routes area
-      zoom: 11
+      // center: [35.6, 33.2], // Centered on the bike routes area
+      // center: [35.600542, 33.190749],
+      center: [35.599995, 33.103954],
+      zoom: 10.5
     });
 
     // Set Hebrew language after map loads
@@ -360,26 +362,26 @@ function parseGeoJSON(geoJsonData) {
           segmentDistance += getDistance(coordObjects[i], coordObjects[i + 1]);
         }
         const segmentDistanceKm = (segmentDistance / 1000).toFixed(1);
-        
+
         // Calculate actual elevation gain and loss from coordinate data
         let segmentElevationGain = 0;
         let segmentElevationLoss = 0;
-        
+
         for (let i = 0; i < coordObjects.length - 1; i++) {
           let currentElevation, nextElevation;
-          
+
           if (coordObjects[i].elevation !== undefined) {
             currentElevation = coordObjects[i].elevation;
           } else {
             currentElevation = 200 + Math.sin(coordObjects[i].lat * 10) * 100 + Math.cos(coordObjects[i].lng * 8) * 50;
           }
-          
+
           if (coordObjects[i + 1].elevation !== undefined) {
             nextElevation = coordObjects[i + 1].elevation;
           } else {
             nextElevation = 200 + Math.sin(coordObjects[i + 1].lat * 10) * 100 + Math.cos(coordObjects[i + 1].lng * 8) * 50;
           }
-          
+
           const elevationChange = nextElevation - currentElevation;
           if (elevationChange > 0) {
             segmentElevationGain += elevationChange;
@@ -387,7 +389,7 @@ function parseGeoJSON(geoJsonData) {
             segmentElevationLoss += Math.abs(elevationChange);
           }
         }
-        
+
         segmentElevationGain = Math.round(segmentElevationGain);
         segmentElevationLoss = Math.round(segmentElevationLoss);
 
@@ -516,11 +518,6 @@ function parseGeoJSON(geoJsonData) {
         }
       });
     });
-
-    // Fit map to show all route segments
-    if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 20 });
-    }
 
   } catch (error) {
     document.getElementById('error-message').style.display = 'block';
@@ -710,7 +707,7 @@ function getOrderedCoordinates() {
       if (selectedSegments.length > 1) {
         const nextSegmentName = selectedSegments[1];
         const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
-        
+
         if (nextPolyline) {
           const nextCoords = nextPolyline.coordinates;
           const firstStart = coords[0];
@@ -785,7 +782,7 @@ function generateElevationProfile() {
   // Create continuous elevation profile with interpolation
   const profileWidth = 300; // pixels
   const elevationData = [];
-  
+
   // First, calculate elevation for all coordinates
   const coordsWithElevation = orderedCoords.map((coord, index) => {
     // Use actual elevation from coordinates if available, otherwise calculate
@@ -796,7 +793,7 @@ function generateElevationProfile() {
       // Fallback: calculate elevation based on position (simulated)
       elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
     }
-    
+
     const distance = index === 0 ? 0 : orderedCoords.slice(0, index + 1).reduce((total, c, idx) => {
       if (idx === 0) return 0;
       return total + getDistance(orderedCoords[idx - 1], c);
@@ -812,11 +809,11 @@ function generateElevationProfile() {
   // Create continuous profile by interpolating between points
   for (let x = 0; x <= profileWidth; x++) {
     const distanceAtX = (x / profileWidth) * totalDistance;
-    
+
     // Find the two closest points to interpolate between
     let beforePoint = null;
     let afterPoint = null;
-    
+
     for (let i = 0; i < coordsWithElevation.length - 1; i++) {
       if (coordsWithElevation[i].distance <= distanceAtX && coordsWithElevation[i + 1].distance >= distanceAtX) {
         beforePoint = coordsWithElevation[i];
@@ -824,7 +821,7 @@ function generateElevationProfile() {
         break;
       }
     }
-    
+
     let elevation, coord;
     if (beforePoint && afterPoint && beforePoint !== afterPoint) {
       // Interpolate elevation and coordinates
@@ -841,10 +838,10 @@ function generateElevationProfile() {
       elevation = coordsWithElevation[0].elevation;
       coord = coordsWithElevation[0];
     }
-    
+
     const heightPercent = Math.max(5, ((elevation - minElevation) / elevationRange) * 80 + 10);
     const distancePercent = (x / profileWidth) * 100;
-    
+
     elevationData.push({
       elevation,
       distance: distanceAtX,
@@ -860,14 +857,14 @@ function generateElevationProfile() {
   elevationData.forEach((point, index) => {
     const x = point.distancePercent;
     const y = 100 - point.heightPercent; // Flip Y coordinate for SVG
-    
+
     if (index === 0) {
       pathData += `M ${x} ${y}`;
     } else {
       pathData += ` L ${x} ${y}`;
     }
   });
-  
+
   // Close the path to create a filled area
   pathData += ` L 100 100 L 0 100 Z`;
 
@@ -891,8 +888,8 @@ function generateElevationProfile() {
 
   elevationHtml += '</div>';
   elevationHtml += '<div class="elevation-labels">';
-  elevationHtml += '<span class="distance-label">0 ק"מ</span>';
   elevationHtml += `<span class="distance-label">${(totalDistance / 1000).toFixed(1)} ק"מ</span>`;
+  elevationHtml += '<span class="distance-label">0 ק"מ</span>';
   elevationHtml += '</div>';
   elevationHtml += '</div>';
 
@@ -976,22 +973,22 @@ function updateRouteListAndDescription() {
   // Calculate actual elevation changes from coordinate data
   totalElevationGain = 0;
   totalElevationLoss = 0;
-  
+
   for (let i = 0; i < orderedCoords.length - 1; i++) {
     let currentElevation, nextElevation;
-    
+
     if (orderedCoords[i].elevation !== undefined) {
       currentElevation = orderedCoords[i].elevation;
     } else {
       currentElevation = 200 + Math.sin(orderedCoords[i].lat * 10) * 100 + Math.cos(orderedCoords[i].lng * 8) * 50;
     }
-    
+
     if (orderedCoords[i + 1].elevation !== undefined) {
       nextElevation = orderedCoords[i + 1].elevation;
     } else {
       nextElevation = 200 + Math.sin(orderedCoords[i + 1].lat * 10) * 100 + Math.cos(orderedCoords[i + 1].lng * 8) * 50;
     }
-    
+
     const elevationChange = nextElevation - currentElevation;
     if (elevationChange > 0) {
       totalElevationGain += elevationChange;
@@ -999,7 +996,7 @@ function updateRouteListAndDescription() {
       totalElevationLoss += Math.abs(elevationChange);
     }
   }
-  
+
   totalElevationGain = Math.round(totalElevationGain);
   totalElevationLoss = Math.round(totalElevationLoss);
 
@@ -1025,11 +1022,11 @@ function updateRouteListAndDescription() {
         const rect = elevationOverlay.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const xPercent = (x / rect.width) * 100;
-        
+
         // Find closest elevation data point
         let closestPoint = null;
         let minDistance = Infinity;
-        
+
         window.currentElevationData.forEach(point => {
           const distance = Math.abs(point.distancePercent - xPercent);
           if (distance < minDistance) {
@@ -1037,7 +1034,7 @@ function updateRouteListAndDescription() {
             closestPoint = point;
           }
         });
-        
+
         if (closestPoint) {
           // Remove existing elevation marker if any
           if (window.elevationMarker) {
@@ -1127,9 +1124,9 @@ function searchLocation() {
         const lon = parseFloat(result.lon);
 
         // Only pan to the location without showing markers or popups
-        const zoomLevel = result.type === 'city' ? 12 :
-          result.type === 'town' ? 13 :
-            result.type === 'village' ? 14 : 13;
+        const zoomLevel = result.type === 'city' ? 14 :
+          result.type === 'town' ? 15 :
+            result.type === 'village' ? 17 : 16;
 
         map.flyTo({
           center: [lon, lat],

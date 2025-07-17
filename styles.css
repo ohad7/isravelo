@@ -93,13 +93,24 @@ body::before {
 
 .main-container {
   padding: 20px;
+  padding-top: 0px;
 }
 
 .content-section {
   background: #F8F8F8;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  padding: 30px;
+  padding: 10px;
+  margin: 20px auto;
+  max-width: 1400px;
+  text-align: justify;
+}
+
+.content-section-top {
+  background: #F8F8F8;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 10px;
   margin: 20px auto;
   max-width: 1400px;
 }
