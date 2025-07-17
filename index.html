@@ -20,6 +20,10 @@
     }
     .header {
       background: #F8F8F8;
+      background-image: url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAyAMgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD2aiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//Z');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       padding: 15px 40px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       display: flex;
@@ -28,16 +32,24 @@
       position: sticky;
       top: 0;
       z-index: 1000;
+      position: relative;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(248, 248, 248, 0.85);
+      z-index: 1;
     }
     .logo-section {
       display: flex;
       align-items: center;
       gap: 15px;
-    }
-    .bike-icon {
-      width: 40px;
-      height: 40px;
-      fill: #748873;
+      position: relative;
+      z-index: 2;
     }
     .site-title {
       font-size: 24px;
@@ -48,6 +60,8 @@
     .nav-links {
       display: flex;
       gap: 30px;
+      position: relative;
+      z-index: 2;
     }
     .nav-link {
       color: #333;
@@ -122,7 +136,7 @@
       margin-top: 15px;
       border: 1px solid #D1A980;
       padding: 15px;
-      background: linear-gradient(135deg, #E5E0D8 0%, #D1A980 100%);
+      background: #E5E0D8;
       border-radius: 8px;
       max-height: 200px;
       overflow-y: auto;
@@ -337,7 +351,7 @@
       font-weight: 600;
     }
     #route-description {
-      background: linear-gradient(135deg, #748873 0%, #D1A980 100%);
+      background: #748873;
       color: white;
       padding: 15px;
       border-radius: 8px;
@@ -369,13 +383,6 @@
 <body>
   <header class="header">
     <div class="logo-section">
-      <svg class="bike-icon" viewBox="0 0 100 100">
-        <circle cx="20" cy="75" r="15" fill="none" stroke="currentColor" stroke-width="2"/>
-        <circle cx="80" cy="75" r="15" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M20 75 L35 35 L65 35 L80 75" fill="none" stroke="currentColor" stroke-width="3"/>
-        <path d="M35 35 L45 55 L65 35" fill="none" stroke="currentColor" stroke-width="3"/>
-        <circle cx="50" cy="40" r="3" fill="currentColor"/>
-      </svg>
       <h1 class="site-title">שבילי אופניים גליל עליון</h1>
     </div>
     <nav class="nav-links">
