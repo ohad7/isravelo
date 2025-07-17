@@ -1,3 +1,4 @@
+// Script.js - Bike Route Planner
 let map;
 let selectedSegments = [];
 let routePolylines = [];
@@ -13,12 +14,12 @@ function encodeRouteToURL() {
       const url = new URL(window.location.href);
       url.searchParams.delete('route');
       const newUrl = url.toString();
-      
+
       // Use both replaceState and try to update the URL
       if (window.history && window.history.replaceState) {
         window.history.replaceState({}, '', newUrl);
       }
-      
+
       // Also try direct URL manipulation for production environments
       if (window.location.href !== newUrl) {
         try {
@@ -33,21 +34,22 @@ function encodeRouteToURL() {
     const routeData = {
       segments: selectedSegments
     };
-    
+
     // Convert to JSON, compress with simple encoding, then base64
+    console.log('Encoding route data:', routeData);
     const jsonString = JSON.stringify(routeData);
     const compressed = btoa(unescape(encodeURIComponent(jsonString)));
-    
+
     // Update URL with route parameter
     const url = new URL(window.location.href);
     url.searchParams.set('route', compressed);
     const newUrl = url.toString();
-    
+
     // Use both replaceState and try to update the URL
     if (window.history && window.history.replaceState) {
       window.history.replaceState({}, '', newUrl);
     }
-    
+
     // Also try pushState for production environments that might not support replaceState properly
     if (window.location.href !== newUrl) {
       try {
@@ -56,7 +58,7 @@ function encodeRouteToURL() {
         console.warn('Could not update URL:', e);
       }
     }
-    
+
     console.log('URL updated with route parameter:', newUrl);
   } catch (error) {
     console.error('Error encoding route to URL:', error);
@@ -67,20 +69,20 @@ function decodeRouteFromURL() {
   try {
     const urlParams = new URLSearchParams(window.location.search);
     const routeParam = urlParams.get('route');
-    
+
     console.log('Checking for route parameter:', routeParam);
-    
+
     if (!routeParam) {
       console.log('No route parameter found in URL');
       return null;
     }
-    
+
     // Decode base64, decompress, and parse JSON
     const decompressed = decodeURIComponent(escape(atob(routeParam)));
     const routeData = JSON.parse(decompressed);
-    
+
     console.log('Decoded route data:', routeData);
-    
+
     if (routeData && routeData.segments && Array.isArray(routeData.segments)) {
       console.log('Successfully decoded route segments:', routeData.segments);
       return routeData.segments;
@@ -90,7 +92,7 @@ function decodeRouteFromURL() {
   } catch (error) {
     console.error('Failed to decode route from URL:', error);
   }
-  
+
   return null;
 }
 
@@ -628,7 +630,7 @@ function loadRouteFromURL() {
   if (routeSegments && routeSegments.length > 0) {
     // Clear existing selection
     selectedSegments = [];
-    
+
     // Add segments from URL if they exist in the loaded data
     routeSegments.forEach(segmentName => {
       const polyline = routePolylines.find(p => p.segmentName === segmentName);
@@ -636,7 +638,7 @@ function loadRouteFromURL() {
         selectedSegments.push(segmentName);
       }
     });
-    
+
     // Update visual styles and UI
     updateSegmentStyles();
     updateRouteListAndDescription();
@@ -1340,18 +1342,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedSegments.length > 0) {
       // Force URL encoding before sharing
       encodeRouteToURL();
-      
+
       // Wait a moment for URL to update, then get the current URL
       setTimeout(() => {
         const url = window.location.href;
         console.log('Sharing URL:', url);
-        
+
         navigator.clipboard.writeText(url).then(() => {
           const shareBtn = document.getElementById('share-route');
           const originalText = shareBtn.textContent;
           shareBtn.textContent = '✅ הועתק!';
           shareBtn.style.backgroundColor = '#27ae60';
-          
+
           setTimeout(() => {
             shareBtn.textContent = originalText;
             shareBtn.style.backgroundColor = '#3498db';
@@ -1361,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const shareBtn = document.getElementById('share-route');
           const originalText = shareBtn.textContent;
           shareBtn.textContent = 'העתק URL מהדפדפן';
-          
+
           setTimeout(() => {
             shareBtn.textContent = originalText;
           }, 3000);
