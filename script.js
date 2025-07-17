@@ -602,7 +602,7 @@ function updateRouteListAndDescription() {
   const downloadButton = document.getElementById('download-gpx');
 
   if (selectedSegments.length === 0) {
-    routeList.innerHTML = '<p style="color: #666; font-style: italic;">לא נבחרו קטעים. לחץ על קטעי מסלול במפה כדי להוסיף אותם למסלול שלך.</p>';
+    routeList.innerHTML = '<p style="color: #666; font-style: italic;">תכננו מסלול על ידי לחיצה על קטע והוספתו למסלול. ליחצו על הסר כדי להסיר קטע ממסלול. בסיום הורידו קובץ GPX כדי להעלות לאפליקציית הניווט שלכם.</p>';
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
     return;
