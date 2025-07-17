@@ -839,12 +839,13 @@ function generateElevationProfile() {
     <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0;">
       <defs>
         <linearGradient id="elevationGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-          <stop offset="0%" style="stop-color:#8B4513;stop-opacity:1" />
-          <stop offset="50%" style="stop-color:#CD853F;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#F4A460;stop-opacity:1" />
+          <stop offset="0%" style="stop-color:#748873;stop-opacity:1" />
+          <stop offset="33%" style="stop-color:#D1A980;stop-opacity:1" />
+          <stop offset="66%" style="stop-color:#E5E0D8;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#F8F8F8;stop-opacity:1" />
         </linearGradient>
       </defs>
-      <path d="${pathData}" fill="url(#elevationGradient)" stroke="#654321" stroke-width="0.5"/>
+      <path d="${pathData}" fill="url(#elevationGradient)" stroke="#748873" stroke-width="0.5"/>
     </svg>
   `;
 
