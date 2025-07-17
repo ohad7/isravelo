@@ -753,48 +753,103 @@ function generateElevationProfile() {
     return elevationHtml;
   }
 
-  const segments = Math.min(100, orderedCoords.length);
-  const step = Math.max(1, Math.floor(orderedCoords.length / segments));
-
-  let minElevation = Infinity;
-  let maxElevation = -Infinity;
-  let elevationData = [];
-
-  // Calculate elevations and find min/max
-  for (let i = 0; i < orderedCoords.length; i += step) {
-    const coord = orderedCoords[i];
+  // Create continuous elevation profile with interpolation
+  const profileWidth = 300; // pixels
+  const elevationData = [];
+  
+  // First, calculate elevation for all coordinates
+  const coordsWithElevation = orderedCoords.map((coord, index) => {
     const elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
-    minElevation = Math.min(minElevation, elevation);
-    maxElevation = Math.max(maxElevation, elevation);
-
-    const distance = i === 0 ? 0 : orderedCoords.slice(0, i + 1).reduce((total, c, idx) => {
+    const distance = index === 0 ? 0 : orderedCoords.slice(0, index + 1).reduce((total, c, idx) => {
       if (idx === 0) return 0;
       return total + getDistance(orderedCoords[idx - 1], c);
     }, 0);
+    return { ...coord, elevation, distance };
+  });
 
-    elevationData.push({ 
-      elevation, 
-      distance, 
-      coord: coord,
-      coordIndex: i
+  // Find min/max elevation
+  let minElevation = Math.min(...coordsWithElevation.map(c => c.elevation));
+  let maxElevation = Math.max(...coordsWithElevation.map(c => c.elevation));
+  const elevationRange = maxElevation - minElevation || 100;
+
+  // Create continuous profile by interpolating between points
+  for (let x = 0; x <= profileWidth; x++) {
+    const distanceAtX = (x / profileWidth) * totalDistance;
+    
+    // Find the two closest points to interpolate between
+    let beforePoint = null;
+    let afterPoint = null;
+    
+    for (let i = 0; i < coordsWithElevation.length - 1; i++) {
+      if (coordsWithElevation[i].distance <= distanceAtX && coordsWithElevation[i + 1].distance >= distanceAtX) {
+        beforePoint = coordsWithElevation[i];
+        afterPoint = coordsWithElevation[i + 1];
+        break;
+      }
+    }
+    
+    let elevation, coord;
+    if (beforePoint && afterPoint && beforePoint !== afterPoint) {
+      // Interpolate elevation and coordinates
+      const ratio = (distanceAtX - beforePoint.distance) / (afterPoint.distance - beforePoint.distance);
+      elevation = beforePoint.elevation + (afterPoint.elevation - beforePoint.elevation) * ratio;
+      coord = {
+        lat: beforePoint.lat + (afterPoint.lat - beforePoint.lat) * ratio,
+        lng: beforePoint.lng + (afterPoint.lng - beforePoint.lng) * ratio
+      };
+    } else if (beforePoint) {
+      elevation = beforePoint.elevation;
+      coord = beforePoint;
+    } else {
+      elevation = coordsWithElevation[0].elevation;
+      coord = coordsWithElevation[0];
+    }
+    
+    const heightPercent = Math.max(5, ((elevation - minElevation) / elevationRange) * 80 + 10);
+    const distancePercent = (x / profileWidth) * 100;
+    
+    elevationData.push({
+      elevation,
+      distance: distanceAtX,
+      coord,
+      heightPercent,
+      distancePercent,
+      pixelX: x
     });
   }
 
-  const elevationRange = maxElevation - minElevation || 100;
-
+  // Create continuous elevation profile using SVG path
+  let pathData = '';
   elevationData.forEach((point, index) => {
-    const heightPercent = Math.max(5, ((point.elevation - minElevation) / elevationRange) * 80 + 10);
-    const distancePercent = (point.distance / totalDistance) * 100;
-
-    // Reverse direction: use left instead of right for left-to-right direction
-    elevationHtml += `<div class="elevation-point" 
-      style="left: ${distancePercent}%; height: ${heightPercent}%; background: linear-gradient(to top, #8B4513 0%, #CD853F 50%, #F4A460 100%);" 
-      title="מרחק: ${(point.distance / 1000).toFixed(1)}ק"מ, גובה: ${Math.round(point.elevation)}מ'"
-      data-coord-lat="${point.coord.lat}"
-      data-coord-lng="${point.coord.lng}"
-      data-distance="${point.distance}"
-      data-elevation="${Math.round(point.elevation)}"></div>`;
+    const x = point.distancePercent;
+    const y = 100 - point.heightPercent; // Flip Y coordinate for SVG
+    
+    if (index === 0) {
+      pathData += `M ${x} ${y}`;
+    } else {
+      pathData += ` L ${x} ${y}`;
+    }
   });
+  
+  // Close the path to create a filled area
+  pathData += ` L 100 100 L 0 100 Z`;
+
+  // Add SVG for continuous elevation profile
+  elevationHtml += `
+    <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+      <defs>
+        <linearGradient id="elevationGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" style="stop-color:#8B4513;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#CD853F;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#F4A460;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <path d="${pathData}" fill="url(#elevationGradient)" stroke="#654321" stroke-width="1"/>
+    </svg>
+  `;
+
+  // Add invisible hover overlay that covers the entire height
+  elevationHtml += '<div class="elevation-hover-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;"></div>';
 
   elevationHtml += '</div>';
   elevationHtml += '<div class="elevation-labels">';
@@ -802,6 +857,10 @@ function generateElevationProfile() {
   elevationHtml += `<span class="distance-label">${(totalDistance / 1000).toFixed(1)} ק"מ</span>`;
   elevationHtml += '</div>';
   elevationHtml += '</div>';
+
+  // Store elevation data globally for hover functionality
+  window.currentElevationData = elevationData;
+  window.currentTotalDistance = totalDistance;
 
   return elevationHtml;
 }
@@ -896,15 +955,26 @@ function updateRouteListAndDescription() {
 
   // Add elevation profile hover functionality after DOM is updated
   setTimeout(() => {
-    const elevationPoints = document.querySelectorAll('.elevation-point');
-    elevationPoints.forEach(point => {
-      point.addEventListener('mouseenter', (e) => {
-        const lat = parseFloat(e.target.dataset.coordLat);
-        const lng = parseFloat(e.target.dataset.coordLng);
-        const distance = parseFloat(e.target.dataset.distance);
-        const elevation = parseInt(e.target.dataset.elevation);
-
-        if (!isNaN(lat) && !isNaN(lng)) {
+    const elevationOverlay = document.querySelector('.elevation-hover-overlay');
+    if (elevationOverlay && window.currentElevationData) {
+      elevationOverlay.addEventListener('mousemove', (e) => {
+        const rect = elevationOverlay.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const xPercent = (x / rect.width) * 100;
+        
+        // Find closest elevation data point
+        let closestPoint = null;
+        let minDistance = Infinity;
+        
+        window.currentElevationData.forEach(point => {
+          const distance = Math.abs(point.distancePercent - xPercent);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestPoint = point;
+          }
+        });
+        
+        if (closestPoint) {
           // Remove existing elevation marker if any
           if (window.elevationMarker) {
             window.elevationMarker.remove();
@@ -924,17 +994,17 @@ function updateRouteListAndDescription() {
           `;
 
           window.elevationMarker = new mapboxgl.Marker(el)
-            .setLngLat([lng, lat])
+            .setLngLat([closestPoint.coord.lng, closestPoint.coord.lat])
             .addTo(map);
 
           // Update segment display with elevation info
           const segmentDisplay = document.getElementById('segment-name-display');
-          segmentDisplay.innerHTML = `📍 מרחק: ${(distance / 1000).toFixed(1)} ק"מ • גובה: ${elevation} מ'`;
+          segmentDisplay.innerHTML = `📍 מרחק: ${(closestPoint.distance / 1000).toFixed(1)} ק"מ • גובה: ${Math.round(closestPoint.elevation)} מ'`;
           segmentDisplay.style.display = 'block';
         }
       });
 
-      point.addEventListener('mouseleave', () => {
+      elevationOverlay.addEventListener('mouseleave', () => {
         // Remove elevation marker
         if (window.elevationMarker) {
           window.elevationMarker.remove();
@@ -945,7 +1015,7 @@ function updateRouteListAndDescription() {
         const segmentDisplay = document.getElementById('segment-name-display');
         segmentDisplay.style.display = 'none';
       });
-    });
+    }
   }, 100);
 }
 
