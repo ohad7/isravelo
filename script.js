@@ -403,6 +403,7 @@ function initMap() {
               const prevStartToCurrentStart = getDistance(prevStart, currentStart);
               const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
 
+              const distances = [prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd];
               const minDistance = Math.min(...distances);
 
               let focusPoint;
