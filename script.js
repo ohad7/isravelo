@@ -844,9 +844,9 @@ function updateRouteListAndDescription() {
   const elevationProfile = generateElevationProfile();
 
   routeDescription.innerHTML = `
-    <strong>📏 מרחק:</strong> ${totalDistanceKm} ק"מ<br>
-    <strong>⬆️ עלייה:</strong> ${totalElevationGain} מ'<br>
-    <strong>⬇️ ירידה:</strong> ${totalElevationLoss} מ'
+    <strong>📏 מרחק:</strong> ${totalDistanceKm} ק"מ
+    <strong>⬆️</strong> ${totalElevationGain} מ'
+    <strong>⬇️</strong> ${totalElevationLoss} מ'
     ${elevationProfile}
   `;
 
@@ -997,10 +997,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+    //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
+
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       undo();
-    } else if (e.ctrlKey && e.shiftKey && e.key === 'Z') {
+    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
       e.preventDefault();
       redo();
     }
