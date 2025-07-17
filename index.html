@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
+
 <head>
   <title>מתכנן מסלולי רכיבה</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2220%22 cy=%2275%22 r=%2215%22 fill=%22%23333%22 stroke=%22%23666%22 stroke-width=%222%22/><circle cx=%2280%22 cy=%2275%22 r=%2215%22 fill=%22%23333%22 stroke=%22%23666%22 stroke-width=%222%22/><path d=%22M20 75 L35 35 L65 35 L80 75%22 fill=%22none%22 stroke=%22%23333%22 stroke-width=%223%22/><path d=%22M35 35 L45 55 L65 35%22 fill=%22none%22 stroke=%22%23333%22 stroke-width=%223%22/><circle cx=%2250%22 cy=%2240%22 r=%223%22 fill=%22%23333%22/></svg>" type="image/svg+xml">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2220%22 cy=%2275%22 r=%2215%22 fill=%22%23333%22 stroke=%22%23666%22 stroke-width=%222%22/><circle cx=%2280%22 cy=%2275%22 r=%2215%22 fill=%22%23333%22 stroke=%22%23666%22 stroke-width=%222%22/><path d=%22M20 75 L35 35 L65 35 L80 75%22 fill=%22none%22 stroke=%22%23333%22 stroke-width=%223%22/><path d=%22M35 35 L45 55 L65 35%22 fill=%22none%22 stroke=%22%23333%22 stroke-width=%223%22/><circle cx=%2250%22 cy=%2240%22 r=%223%22 fill=%22%23333%22/></svg>"
+    type="image/svg+xml">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
     }
+
     body {
       font-family: 'Arial', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
@@ -22,6 +26,7 @@
       direction: rtl;
       position: relative;
     }
+
     body::before {
       content: '';
       position: fixed;
@@ -32,6 +37,7 @@
       background: rgba(255, 255, 255, 0.2);
       z-index: -1;
     }
+
     .header {
       background: #F8F8F8;
       background-image: url('./attached_assets/image_1752711191787.png');
@@ -39,7 +45,7 @@
       background-position: center;
       background-repeat: no-repeat;
       padding: 15px 40px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -48,6 +54,7 @@
       z-index: 1000;
       position: relative;
     }
+
     .header::before {
       content: '';
       position: absolute;
@@ -58,6 +65,7 @@
       background: rgba(248, 248, 248, 0.2);
       z-index: 1;
     }
+
     .logo-section {
       display: flex;
       align-items: center;
@@ -65,40 +73,47 @@
       position: relative;
       z-index: 2;
     }
+
     .site-title {
       font-size: 24px;
       font-weight: bold;
       color: #333;
       margin: 0;
     }
+
     .nav-links {
       display: flex;
       gap: 30px;
       position: relative;
       z-index: 2;
     }
+
     .nav-link {
       color: #333;
       text-decoration: none;
       font-size: 16px;
-      font-weight: 500;
+      font-weight: bold;
       transition: color 0.2s;
       cursor: pointer;
     }
+
     .nav-link:hover {
       color: #748873;
     }
+
     .main-container {
       padding: 20px;
     }
+
     .content-section {
       background: #F8F8F8;
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       padding: 30px;
       margin: 20px auto;
       max-width: 1400px;
     }
+
     .section-title {
       font-size: 28px;
       font-weight: bold;
@@ -106,11 +121,13 @@
       margin-bottom: 20px;
       text-align: center;
     }
+
     .section-content {
       line-height: 1.8;
       font-size: 16px;
       color: #555;
     }
+
     .container {
       display: flex;
       gap: 20px;
@@ -120,32 +137,36 @@
       height: 600px;
       flex-direction: row-reverse;
     }
+
     .map-container {
       flex: 2;
       background: #F8F8F8;
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       padding: 15px;
       position: relative;
       height: 600px;
     }
+
     .sidebar {
       flex: 1;
       min-width: 320px;
       background: #F8F8F8;
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       padding: 20px;
       overflow-y: auto;
       height: 600px;
     }
+
     #map {
       height: 100%;
       width: 100%;
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     }
+
     #route-list {
       margin-top: 15px;
       border: 1px solid #D1A980;
@@ -155,6 +176,7 @@
       max-height: 200px;
       overflow-y: auto;
     }
+
     .segment-name-display {
       position: absolute;
       top: 25px;
@@ -166,11 +188,12 @@
       font-weight: 600;
       font-size: 14px;
       z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       max-width: 250px;
       word-wrap: break-word;
       display: none;
     }
+
     #error-message {
       color: #e74c3c;
       margin: 10px 0;
@@ -180,9 +203,11 @@
       border: 1px solid #fecaca;
       border-radius: 6px;
     }
+
     .route-segment {
       cursor: pointer;
     }
+
     .segment-item {
       display: flex;
       justify-content: space-between;
@@ -191,11 +216,13 @@
       border-bottom: 1px solid #ddd;
       transition: background-color 0.2s;
     }
+
     .segment-item:hover {
-      background-color: rgba(255,255,255,0.5);
+      background-color: rgba(255, 255, 255, 0.5);
       border-radius: 4px;
       padding-left: 4px;
     }
+
     .remove-btn {
       background: #8FBC8F;
       color: white;
@@ -205,18 +232,21 @@
       cursor: pointer;
       font-size: 11px;
       transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(143,188,143,0.3);
+      box-shadow: 0 2px 8px rgba(143, 188, 143, 0.3);
     }
+
     .remove-btn:hover {
       background: #6B8E23;
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(107,142,35,0.4);
+      box-shadow: 0 4px 12px rgba(107, 142, 35, 0.4);
     }
+
     .action-buttons {
       display: flex;
       gap: 10px;
       margin-top: 15px;
     }
+
     #download-gpx {
       background: #4682B4;
       color: white;
@@ -227,19 +257,22 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(70,130,180,0.3);
+      box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
       flex: 1;
     }
+
     #download-gpx:disabled {
       background: #cccccc;
       cursor: not-allowed;
       box-shadow: none;
     }
+
     #download-gpx:hover:not(:disabled) {
       background: #5F9EA0;
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(70,130,180,0.4);
+      box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
     }
+
     .undo-btn {
       background: #8FBC8F;
       color: white;
@@ -250,19 +283,22 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(143,188,143,0.3);
+      box-shadow: 0 4px 16px rgba(143, 188, 143, 0.3);
       min-width: 60px;
     }
+
     .undo-btn:disabled {
       background: #cccccc;
       cursor: not-allowed;
       box-shadow: none;
     }
+
     .undo-btn:hover:not(:disabled) {
       background: #6B8E23;
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(107,142,35,0.4);
+      box-shadow: 0 6px 20px rgba(107, 142, 35, 0.4);
     }
+
     .mapboxgl-popup.segment-tooltip .mapboxgl-popup-content {
       background-color: rgba(0, 0, 0, 0.9);
       color: white;
@@ -271,12 +307,14 @@
       padding: 8px 12px;
       font-size: 13px;
       font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       pointer-events: none;
     }
+
     .mapboxgl-popup.segment-tooltip .mapboxgl-popup-tip {
       border-top-color: rgba(0, 0, 0, 0.9);
     }
+
     .elevation-profile {
       margin-top: 15px;
       padding: 15px;
@@ -284,12 +322,14 @@
       border-radius: 8px;
       border: 1px solid #8FBC8F;
     }
+
     .elevation-profile h4 {
       margin: 0 0 10px 0;
       color: #333;
       font-size: 14px;
       text-align: center;
     }
+
     .elevation-chart {
       position: relative;
       height: 80px;
@@ -298,6 +338,7 @@
       overflow: hidden;
       margin-bottom: 5px;
     }
+
     .elevation-point {
       position: absolute;
       bottom: 0;
@@ -307,9 +348,11 @@
       cursor: pointer;
       transition: opacity 0.2s;
     }
+
     .elevation-point:hover {
       opacity: 0.8;
     }
+
     .elevation-labels {
       display: flex;
       justify-content: space-between;
@@ -317,11 +360,13 @@
       color: #666;
       margin-top: 5px;
     }
+
     .search-container {
       display: flex;
       gap: 8px;
       margin-bottom: 20px;
     }
+
     #location-search {
       flex: 1;
       padding: 12px;
@@ -330,10 +375,12 @@
       font-size: 14px;
       transition: border-color 0.2s;
     }
+
     #location-search:focus {
       outline: none;
       border-color: #2196F3;
     }
+
     #search-btn {
       background: #4682B4;
       color: white;
@@ -344,19 +391,23 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(70,130,180,0.3);
+      box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
     }
+
     #search-btn:hover {
       background: #5F9EA0;
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(70,130,180,0.4);
+      box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
     }
+
     .leaflet-interactive {
       outline: none !important;
     }
+
     .leaflet-interactive:focus {
       outline: none !important;
     }
+
     h3 {
       color: #333;
       margin-top: 0;
@@ -364,6 +415,7 @@
       font-size: 1.2em;
       font-weight: 600;
     }
+
     #route-description {
       background: #4682B4;
       color: white;
@@ -373,14 +425,16 @@
       font-size: 14px;
       line-height: 1.4;
     }
+
     .file-upload-container {
       background: #F8F8F8;
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       padding: 20px;
       margin-bottom: 20px;
       text-align: center;
     }
+
     #kml-file {
       margin-bottom: 10px;
       padding: 10px;
@@ -389,20 +443,22 @@
       width: 100%;
       cursor: pointer;
     }
+
     #kml-file:hover {
       border-color: #2196F3;
     }
   </style>
 </head>
+
 <body>
   <header class="header">
     <div class="logo-section">
-      <h1 class="site-title">שבילי אופניים גליל עליון</h1>
+      <h1 class="site-title">גליל/גולן - גן עדן לאופניים</h1>
     </div>
     <nav class="nav-links">
-      <a class="nav-link" onclick="scrollToSection('trails')">מסלולים</a>
-      <a class="nav-link" onclick="scrollToSection('equipment')">ציוד</a>
-      <a class="nav-link" onclick="scrollToSection('about')">עזרה</a>
+      <a class="nav-link" onclick="scrollToSection('trails')">שבילים</a>
+      <a class="nav-link" onclick="scrollToSection('equipment')">תכנון מסלול</a>
+      <a class="nav-link" onclick="scrollToSection('about')">איך אפשר לעזור</a>
     </nav>
   </header>
 
@@ -410,70 +466,83 @@
     <div id="error-message"></div>
 
     <div class="container">
-    <div class="map-container">
-      <div class="segment-name-display" id="segment-name-display">No segment selected</div>
-      <div id="map"></div>
-    </div>
-
-    <div class="sidebar">
-      <h3>חיפוש מיקום</h3>
-      <div class="search-container">
-        <input type="text" id="location-search" placeholder="הכנס שם מקום..." />
-        <button id="search-btn">חיפוש</button>
-      </div>
-      <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none;"></div>
-
-      <h3>קטעי מסלול נבחרים</h3>
-      <div id="route-list">
-        <p style="color: #666; font-style: italic;">לא נבחרו קטעים. לחץ על קטעי מסלול במפה כדי להוסיף אותם למסלול שלך.</p>
+      <div class="map-container">
+        <div class="segment-name-display" id="segment-name-display">No segment selected</div>
+        <div id="map"></div>
       </div>
 
-      <h3>תיאור המסלול</h3>
-      <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
+      <div class="sidebar">
+        <h3>חיפוש מיקום</h3>
+        <div class="search-container">
+          <input type="text" id="location-search" placeholder="הכנס שם מקום..." />
+          <button id="search-btn">חיפוש</button>
+        </div>
+        <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none;"></div>
 
-      <div class="action-buttons">
-        <button id="undo-btn" class="undo-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
-        <button id="redo-btn" class="undo-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
-        <button id="download-gpx" disabled>הורדת מסלול GPX</button>
+        <h3>קטעי מסלול נבחרים</h3>
+        <div id="route-list">
+          <p style="color: #666; font-style: italic;">לא נבחרו קטעים. לחץ על קטעי מסלול במפה כדי להוסיף אותם למסלול שלך.
+          </p>
+        </div>
+
+        <h3>תיאור המסלול</h3>
+        <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
+
+        <div class="action-buttons">
+          <button id="undo-btn" class="undo-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
+          <button id="redo-btn" class="undo-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
+          <button id="download-gpx" disabled>הורדת מסלול GPX</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="content-section" id="trails">
-    <h2 class="section-title">מסלולי אופניים</h2>
-    <div class="section-content">
-      <p>הרי הגליל העליון מציעים חוויית רכיבה מגוונת ומאתגרת עבור רוכבי אופניים בכל הרמות. האזור כולל מסלולים מתאימים הן למתחילים והן לרוכבים מנוסים, עם נופים עוצרי נשימה וטבע פראי מדהים.</p>
+    <div class="content-section" id="trails">
+      <h2 class="section-title">מסלולי אופניים</h2>
+      <div class="section-content">
+        <p>הרי הגליל העליון מציעים חוויית רכיבה מגוונת ומאתגרת עבור רוכבי אופניים בכל הרמות. האזור כולל מסלולים מתאימים
+          הן למתחילים והן לרוכבים מנוסים, עם נופים עוצרי נשימה וטבע פראי מדהים.</p>
 
-      <p>המסלולים מחולקים לקטגוריות שונות: מסלולי משפחה קלים הנמשכים 5-10 קילומטרים, מסלולים בינוניים לרוכבים עם ניסיון בסיסי באורך 15-25 קילומטר, ומסלולים מתקדמים למומחים באורך של 30 קילומטר ומעלה עם עליות תלולות ושטח טכני.</p>
+        <p>המסלולים מחולקים לקטגוריות שונות: מסלולי משפחה קלים הנמשכים 5-10 קילומטרים, מסלולים בינוניים לרוכבים עם
+          ניסיון בסיסי באורך 15-25 קילומטר, ומסלולים מתקדמים למומחים באורך של 30 קילומטר ומעלה עם עליות תלולות ושטח
+          טכני.</p>
 
-      <p>כל מסלול מסומן בבירור עם שילוט מתאים ומציע תצפיות מרהיבות על הכנרת, רמת הגולן והרי לבנון. לאורך המסלולים ניתן למצוא נקודות מנוחה, מעיינות טבעיים ואתרים היסטוריים מעניינים.</p>
+        <p>כל מסלול מסומן בבירור עם שילוט מתאים ומציע תצפיות מרהיבות על הכנרת, רמת הגולן והרי לבנון. לאורך המסלולים ניתן
+          למצוא נקודות מנוחה, מעיינות טבעיים ואתרים היסטוריים מעניינים.</p>
+      </div>
     </div>
-  </div>
 
-  <div class="content-section" id="equipment">
-    <h2 class="section-title">ציוד ומידע טכני</h2>
-    <div class="section-content">
-      <p>לרכיבה בטוחה ומהנה בגליל העליון חשוב להיערך עם הציוד המתאים. קסדה היא חובה בכל המסלולים, וכן מומלץ על לבוש מתאים למזג האוויר ונעלי רכיבה נוחות.</p>
+    <div class="content-section" id="equipment">
+      <h2 class="section-title">ציוד ומידע טכני</h2>
+      <div class="section-content">
+        <p>לרכיבה בטוחה ומהנה בגליל העליון חשוב להיערך עם הציוד המתאים. קסדה היא חובה בכל המסלולים, וכן מומלץ על לבוש
+          מתאים למזג האוויר ונעלי רכיבה נוחות.</p>
 
-      <p>האופניים המתאימים ביותר למסלולים הם אופני הרים (MTB) עם מערכת הילוכים מתאימה לעליות תלולות. מומלץ לבדוק את מצב הבלמים והצמיגים לפני היציאה למסלול. כמו כן, חשוב לקחת איתכם מים בכמות מספקת, חטיפי אנרגיה וערכת תיקונים בסיסית.</p>
+        <p>האופניים המתאימים ביותר למסלולים הם אופני הרים (MTB) עם מערכת הילוכים מתאימה לעליות תלולות. מומלץ לבדוק את
+          מצב הבלמים והצמיגים לפני היציאה למסלול. כמו כן, חשוב לקחת איתכם מים בכמות מספקת, חטיפי אנרגיה וערכת תיקונים
+          בסיסית.</p>
 
-      <p>בעונות החורף מומלץ לבדוק את תנאי מזג האוויר ומצב השבילים לפני היציאה. חלק מהמסלולים עלולים להיות בלתי עבירים בתקופות של גשמים כבדים. תמיד עדכנו מישהו על תוכניות הרכיבה שלכם ושמרו על ערוץ תקשורת פתוח.</p>
+        <p>בעונות החורף מומלץ לבדוק את תנאי מזג האוויר ומצב השבילים לפני היציאה. חלק מהמסלולים עלולים להיות בלתי עבירים
+          בתקופות של גשמים כבדים. תמיד עדכנו מישהו על תוכניות הרכיבה שלכם ושמרו על ערוץ תקשורת פתוח.</p>
+      </div>
     </div>
-  </div>
 
-  <div class="content-section" id="about">
-    <h2 class="section-title">עזרה ומידע נוסף</h2>
-    <div class="section-content">
-      <p>מתכנן המסלולים שלנו מאפשר לכם ליצור מסלולי רכיבה מותאמים אישית על ידי בחירת קטעי דרך שונים. לחצו על קטעי המסלול במפה כדי להוסיף אותם למסלול שלכם, וקבלו תיאור מפורט עם מרחק, עליות וירידות.</p>
+    <div class="content-section" id="about">
+      <h2 class="section-title">עזרה ומידע נוסף</h2>
+      <div class="section-content">
+        <p>מתכנן המסלולים שלנו מאפשר לכם ליצור מסלולי רכיבה מותאמים אישית על ידי בחירת קטעי דרך שונים. לחצו על קטעי
+          המסלול במפה כדי להוסיף אותם למסלול שלכם, וקבלו תיאור מפורט עם מרחק, עליות וירידות.</p>
 
-      <p>המערכת מאפשרת לכם להוריד קובץ GPX של המסלול שבניתם, אותו תוכלו להעלות לאפליקציית הניווט המועדפת עליכם כמו Strava, Komoot או Garmin Connect. כל קטע מסלול מכיל מידע מדויק על המרחק, רמת הקושי והגובה.</p>
+        <p>המערכת מאפשרת לכם להוריד קובץ GPX של המסלול שבניתם, אותו תוכלו להעלות לאפליקציית הניווט המועדפת עליכם כמו
+          Strava, Komoot או Garmin Connect. כל קטע מסלול מכיל מידע מדויק על המרחק, רמת הקושי והגובה.</p>
 
-      <p>לשאלות נוספות, הצעות לשיפור או דיווח על בעיות טכניות, ניתן ליצור איתנו קשר. אנו פועלים כדי לשפר ולהרחיב ללא הרף את מאגר המסלולים ולספק לכם את החוויה הטובה ביותר ברכיבה על אופניים בגליל העליון.</p>
+        <p>לשאלות נוספות, הצעות לשיפור או דיווח על בעיות טכניות, ניתן ליצור איתנו קשר. אנו פועלים כדי לשפר ולהרחיב ללא
+          הרף את מאגר המסלולים ולספק לכם את החוויה הטובה ביותר ברכיבה על אופניים בגליל העליון.</p>
+      </div>
     </div>
-  </div>
   </div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
   <script src="script.js"></script>
 </body>
+
 </html>
