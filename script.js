@@ -295,10 +295,11 @@ function parseGeoJSON(geoJsonData) {
       const name = feature.properties.name || 'Unnamed Route';
       const coordinates = feature.geometry.coordinates;
 
-      // Convert coordinates from [lng, lat] to {lat, lng} objects for distance calculations
+      // Convert coordinates from [lng, lat, elevation] to {lat, lng, elevation} objects
       const coordObjects = coordinates.map(coord => ({
         lat: coord[1],
-        lng: coord[0]
+        lng: coord[0],
+        elevation: coord[2] // Preserve elevation data if available
       }));
 
       // Extract style information from properties
@@ -359,8 +360,36 @@ function parseGeoJSON(geoJsonData) {
           segmentDistance += getDistance(coordObjects[i], coordObjects[i + 1]);
         }
         const segmentDistanceKm = (segmentDistance / 1000).toFixed(1);
-        const segmentElevationGain = Math.round(coordObjects.length * 0.4);
-        const segmentElevationLoss = Math.round(coordObjects.length * 0.3);
+        
+        // Calculate actual elevation gain and loss from coordinate data
+        let segmentElevationGain = 0;
+        let segmentElevationLoss = 0;
+        
+        for (let i = 0; i < coordObjects.length - 1; i++) {
+          let currentElevation, nextElevation;
+          
+          if (coordObjects[i].elevation !== undefined) {
+            currentElevation = coordObjects[i].elevation;
+          } else {
+            currentElevation = 200 + Math.sin(coordObjects[i].lat * 10) * 100 + Math.cos(coordObjects[i].lng * 8) * 50;
+          }
+          
+          if (coordObjects[i + 1].elevation !== undefined) {
+            nextElevation = coordObjects[i + 1].elevation;
+          } else {
+            nextElevation = 200 + Math.sin(coordObjects[i + 1].lat * 10) * 100 + Math.cos(coordObjects[i + 1].lng * 8) * 50;
+          }
+          
+          const elevationChange = nextElevation - currentElevation;
+          if (elevationChange > 0) {
+            segmentElevationGain += elevationChange;
+          } else {
+            segmentElevationLoss += Math.abs(elevationChange);
+          }
+        }
+        
+        segmentElevationGain = Math.round(segmentElevationGain);
+        segmentElevationLoss = Math.round(segmentElevationLoss);
 
         // Update segment name display with details
         const segmentDisplay = document.getElementById('segment-name-display');
@@ -759,7 +788,15 @@ function generateElevationProfile() {
   
   // First, calculate elevation for all coordinates
   const coordsWithElevation = orderedCoords.map((coord, index) => {
-    const elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
+    // Use actual elevation from coordinates if available, otherwise calculate
+    let elevation;
+    if (coord.elevation !== undefined) {
+      elevation = coord.elevation;
+    } else {
+      // Fallback: calculate elevation based on position (simulated)
+      elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
+    }
+    
     const distance = index === 0 ? 0 : orderedCoords.slice(0, index + 1).reduce((total, c, idx) => {
       if (idx === 0) return 0;
       return total + getDistance(orderedCoords[idx - 1], c);
@@ -936,9 +973,35 @@ function updateRouteListAndDescription() {
     totalDistance += getDistance(orderedCoords[i], orderedCoords[i + 1]);
   }
 
-  // Calculate elevation changes (simulated)
-  totalElevationGain = Math.round(orderedCoords.length * 0.4);
-  totalElevationLoss = Math.round(orderedCoords.length * 0.3);
+  // Calculate actual elevation changes from coordinate data
+  totalElevationGain = 0;
+  totalElevationLoss = 0;
+  
+  for (let i = 0; i < orderedCoords.length - 1; i++) {
+    let currentElevation, nextElevation;
+    
+    if (orderedCoords[i].elevation !== undefined) {
+      currentElevation = orderedCoords[i].elevation;
+    } else {
+      currentElevation = 200 + Math.sin(orderedCoords[i].lat * 10) * 100 + Math.cos(orderedCoords[i].lng * 8) * 50;
+    }
+    
+    if (orderedCoords[i + 1].elevation !== undefined) {
+      nextElevation = orderedCoords[i + 1].elevation;
+    } else {
+      nextElevation = 200 + Math.sin(orderedCoords[i + 1].lat * 10) * 100 + Math.cos(orderedCoords[i + 1].lng * 8) * 50;
+    }
+    
+    const elevationChange = nextElevation - currentElevation;
+    if (elevationChange > 0) {
+      totalElevationGain += elevationChange;
+    } else {
+      totalElevationLoss += Math.abs(elevationChange);
+    }
+  }
+  
+  totalElevationGain = Math.round(totalElevationGain);
+  totalElevationLoss = Math.round(totalElevationLoss);
 
   const totalDistanceKm = (totalDistance / 1000).toFixed(1);
 
@@ -1113,8 +1176,14 @@ document.addEventListener('DOMContentLoaded', function() {
     <trkseg>`;
 
     orderedCoords.forEach(coord => {
-      // Simulate elevation based on coordinate variations (replace with real elevation data if available)
-      const elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
+      // Use actual elevation from coordinates if available, otherwise calculate
+      let elevation;
+      if (coord.elevation !== undefined) {
+        elevation = coord.elevation;
+      } else {
+        // Fallback: calculate elevation based on position (simulated)
+        elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
+      }
       gpx += `
       <trkpt lat="${coord.lat}" lon="${coord.lng}">
         <ele>${Math.round(elevation)}</ele>
