@@ -358,9 +358,31 @@ body::before {
 }
 
 .remove-btn:hover {
-  background: #6B8E23;
+  background-color: #e74c3c;
+}
+
+#share-route {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin: 5px 0;
+}
+
+#share-route:hover {
+  background-color: #2980b9;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(107, 142, 35, 0.4);
+}
+
+#share-route:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .action-buttons {
