@@ -12,11 +12,76 @@
     body {
       font-family: 'Arial', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 0;
       background: linear-gradient(135deg, #748873 0%, #D1A980 100%);
       min-height: 100vh;
       color: #333;
       direction: rtl;
+    }
+    .header {
+      background: #F8F8F8;
+      padding: 15px 40px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .bike-icon {
+      width: 40px;
+      height: 40px;
+      fill: #748873;
+    }
+    .site-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin: 0;
+    }
+    .nav-links {
+      display: flex;
+      gap: 30px;
+    }
+    .nav-link {
+      color: #333;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+    .nav-link:hover {
+      color: #748873;
+    }
+    .main-container {
+      padding: 20px;
+    }
+    .content-section {
+      background: #F8F8F8;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      padding: 30px;
+      margin: 20px auto;
+      max-width: 1400px;
+    }
+    .section-title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .section-content {
+      line-height: 1.8;
+      font-size: 16px;
+      color: #555;
     }
     .container {
       display: flex;
@@ -104,7 +169,7 @@
       padding-left: 4px;
     }
     .remove-btn {
-      background: linear-gradient(135deg, #D1A980 0%, #748873 100%);
+      background: #D1A980;
       color: white;
       border: none;
       padding: 4px 10px;
@@ -115,6 +180,7 @@
       box-shadow: 0 2px 8px rgba(116,136,115,0.3);
     }
     .remove-btn:hover {
+      background: #748873;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(116,136,115,0.4);
     }
@@ -124,7 +190,7 @@
       margin-top: 15px;
     }
     #download-gpx {
-      background: linear-gradient(135deg, #748873 0%, #D1A980 100%);
+      background: #748873;
       color: white;
       border: none;
       padding: 12px 20px;
@@ -142,11 +208,12 @@
       box-shadow: none;
     }
     #download-gpx:hover:not(:disabled) {
+      background: #D1A980;
       transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(116,136,115,0.4);
     }
     .undo-btn {
-      background: linear-gradient(135deg, #D1A980 0%, #748873 100%);
+      background: #D1A980;
       color: white;
       border: none;
       padding: 12px 16px;
@@ -164,6 +231,7 @@
       box-shadow: none;
     }
     .undo-btn:hover:not(:disabled) {
+      background: #748873;
       transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(116,136,115,0.4);
     }
@@ -239,7 +307,7 @@
       border-color: #2196F3;
     }
     #search-btn {
-      background: linear-gradient(135deg, #748873 0%, #D1A980 100%);
+      background: #748873;
       color: white;
       border: none;
       padding: 12px 20px;
@@ -251,6 +319,7 @@
       box-shadow: 0 4px 16px rgba(116,136,115,0.3);
     }
     #search-btn:hover {
+      background: #D1A980;
       transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(116,136,115,0.4);
     }
@@ -298,10 +367,28 @@
   </style>
 </head>
 <body>
+  <header class="header">
+    <div class="logo-section">
+      <svg class="bike-icon" viewBox="0 0 100 100">
+        <circle cx="20" cy="75" r="15" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="80" cy="75" r="15" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M20 75 L35 35 L65 35 L80 75" fill="none" stroke="currentColor" stroke-width="3"/>
+        <path d="M35 35 L45 55 L65 35" fill="none" stroke="currentColor" stroke-width="3"/>
+        <circle cx="50" cy="40" r="3" fill="currentColor"/>
+      </svg>
+      <h1 class="site-title">שבילי אופניים גליל עליון</h1>
+    </div>
+    <nav class="nav-links">
+      <a class="nav-link" onclick="scrollToSection('trails')">מסלולים</a>
+      <a class="nav-link" onclick="scrollToSection('equipment')">ציוד</a>
+      <a class="nav-link" onclick="scrollToSection('about')">עזרה</a>
+    </nav>
+  </header>
 
-  <div id="error-message"></div>
-  
-  <div class="container">
+  <div class="main-container">
+    <div id="error-message"></div>
+    
+    <div class="container">
     <div class="map-container">
       <div class="segment-name-display" id="segment-name-display">No segment selected</div>
       <div id="map"></div>
@@ -329,6 +416,40 @@
         <button id="download-gpx" disabled>הורדת מסלול GPX</button>
       </div>
     </div>
+  </div>
+
+  <div class="content-section" id="trails">
+    <h2 class="section-title">מסלולי אופניים</h2>
+    <div class="section-content">
+      <p>הרי הגליל העליון מציעים חוויית רכיבה מגוונת ומאתגרת עבור רוכבי אופניים בכל הרמות. האזור כולל מסלולים מתאימים הן למתחילים והן לרוכבים מנוסים, עם נופים עוצרי נשימה וטבע פראי מדהים.</p>
+      
+      <p>המסלולים מחולקים לקטגוריות שונות: מסלולי משפחה קלים הנמשכים 5-10 קילומטרים, מסלולים בינוניים לרוכבים עם ניסיון בסיסי באורך 15-25 קילומטר, ומסלולים מתקדמים למומחים באורך של 30 קילומטר ומעלה עם עליות תלולות ושטח טכני.</p>
+      
+      <p>כל מסלול מסומן בבירור עם שילוט מתאים ומציע תצפיות מרהיבות על הכנרת, רמת הגולן והרי לבנון. לאורך המסלולים ניתן למצוא נקודות מנוחה, מעיינות טבעיים ואתרים היסטוריים מעניינים.</p>
+    </div>
+  </div>
+
+  <div class="content-section" id="equipment">
+    <h2 class="section-title">ציוד ומידע טכני</h2>
+    <div class="section-content">
+      <p>לרכיבה בטוחה ומהנה בגליל העליון חשוב להיערך עם הציוד המתאים. קסדה היא חובה בכל המסלולים, וכן מומלץ על לבוש מתאים למזג האוויר ונעלי רכיבה נוחות.</p>
+      
+      <p>האופניים המתאימים ביותר למסלולים הם אופני הרים (MTB) עם מערכת הילוכים מתאימה לעליות תלולות. מומלץ לבדוק את מצב הבלמים והצמיגים לפני היציאה למסלול. כמו כן, חשוב לקחת איתכם מים בכמות מספקת, חטיפי אנרגיה וערכת תיקונים בסיסית.</p>
+      
+      <p>בעונות החורף מומלץ לבדוק את תנאי מזג האוויר ומצב השבילים לפני היציאה. חלק מהמסלולים עלולים להיות בלתי עבירים בתקופות של גשמים כבדים. תמיד עדכנו מישהו על תוכניות הרכיבה שלכם ושמרו על ערוץ תקשורת פתוח.</p>
+    </div>
+  </div>
+
+  <div class="content-section" id="about">
+    <h2 class="section-title">עזרה ומידע נוסף</h2>
+    <div class="section-content">
+      <p>מתכנן המסלולים שלנו מאפשר לכם ליצור מסלולי רכיבה מותאמים אישית על ידי בחירת קטעי דרך שונים. לחצו על קטעי המסלול במפה כדי להוסיף אותם למסלול שלכם, וקבלו תיאור מפורט עם מרחק, עליות וירידות.</p>
+      
+      <p>המערכת מאפשרת לכם להוריד קובץ GPX של המסלול שבניתם, אותו תוכלו להעלות לאפליקציית הניווט המועדפת עליכם כמו Strava, Komoot או Garmin Connect. כל קטע מסלול מכיל מידע מדויק על המרחק, רמת הקושי והגובה.</p>
+      
+      <p>לשאלות נוספות, הצעות לשיפור או דיווח על בעיות טכניות, ניתן ליצור איתנו קשר. אנו פועלים כדי לשפר ולהרחיב ללא הרף את מאגר המסלולים ולספק לכם את החוויה הטובה ביותר ברכיבה על אופניים בגליל העליון.</p>
+    </div>
+  </div>
   </div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>

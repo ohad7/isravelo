@@ -750,6 +750,14 @@ function searchLocation() {
     });
 }
 
+// Function to scroll to section
+function scrollToSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize the map when page loads
