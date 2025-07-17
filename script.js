@@ -1,4 +1,3 @@
-
 let map;
 let selectedSegments = [];
 let routePolylines = [];
@@ -84,11 +83,89 @@ function initMap() {
 
 
 
+    // Add global mouse move handler for proximity-based highlighting
+    map.on('mousemove', (e) => {
+      const mousePoint = e.lngLat;
+      const mousePixel = map.project(mousePoint);
+      const threshold = 15; // pixels
+      let closestSegment = null;
+      let minDistance = Infinity;
+
+      // Find closest segment within threshold
+      routePolylines.forEach(polylineData => {
+        const coords = polylineData.coordinates;
+        for (let i = 0; i < coords.length - 1; i++) {
+          const startPixel = map.project([coords[i].lng, coords[i].lat]);
+          const endPixel = map.project([coords[i + 1].lng, coords[i + 1].lat]);
+
+          const distance = distanceToLineSegmentPixels(
+            mousePixel,
+            startPixel,
+            endPixel
+          );
+
+          if (distance < threshold && distance < minDistance) {
+            minDistance = distance;
+            closestSegment = polylineData;
+          }
+        }
+      });
+
+      // Reset all segments to normal style first
+      routePolylines.forEach(polylineData => {
+        const layerId = polylineData.layerId;
+        if (selectedSegments.includes(polylineData.segmentName)) {
+          // Keep selected segments green
+          map.setPaintProperty(layerId, 'line-color', '#00ff00');
+          map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 1);
+        } else {
+          // Reset non-selected segments to original style
+          map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
+          map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight);
+        }
+      });
+
+      // Highlight closest segment if found
+      if (closestSegment) {
+        const layerId = closestSegment.layerId;
+        map.getCanvas().style.cursor = 'pointer';
+
+        if (!selectedSegments.includes(closestSegment.segmentName)) {
+          // Highlight non-selected segment
+          map.setPaintProperty(layerId, 'line-color', '#ff6600');
+          map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 2);
+        } else {
+          // Make selected segment more prominent
+          map.setPaintProperty(layerId, 'line-color', '#00dd00');
+          map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 3);
+        }
+
+        // Show segment info
+        const name = closestSegment.segmentName;
+        let segmentDistance = 0;
+        for (let i = 0; i < closestSegment.coordinates.length - 1; i++) {
+          segmentDistance += getDistance(closestSegment.coordinates[i], closestSegment.coordinates[i + 1]);
+        }
+        const segmentDistanceKm = (segmentDistance / 1000).toFixed(1);
+        const segmentElevationGain = Math.round(closestSegment.coordinates.length * 0.4);
+        const segmentElevationLoss = Math.round(closestSegment.coordinates.length * 0.3);
+
+        const segmentDisplay = document.getElementById('segment-name-display');
+        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.style.display = 'block';
+      } else {
+        // No segment close enough - reset cursor and hide display
+        map.getCanvas().style.cursor = '';
+        const segmentDisplay = document.getElementById('segment-name-display');
+        segmentDisplay.style.display = 'none';
+      }
+    });
+
     // Add global click handler for proximity-based selection
     map.on('click', (e) => {
       const clickPoint = e.lngLat;
       const clickPixel = map.project(clickPoint);
-      const threshold = 30; // pixels
+      const threshold = 15; // pixels
       let closestSegment = null;
       let minDistance = Infinity;
 
