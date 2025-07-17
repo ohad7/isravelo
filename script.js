@@ -604,6 +604,63 @@ function getClosestPointOnLineSegment(point, lineStart, lineEnd) {
   return { lat: yy, lng: xx };
 }
 
+// Function to check if route is continuous
+function checkRouteContinuity() {
+  if (selectedSegments.length <= 1) return true;
+
+  const tolerance = 100; // 100 meters tolerance
+
+  for (let i = 0; i < selectedSegments.length - 1; i++) {
+    const currentSegmentName = selectedSegments[i];
+    const nextSegmentName = selectedSegments[i + 1];
+
+    const currentPolyline = routePolylines.find(p => p.segmentName === currentSegmentName);
+    const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
+
+    if (!currentPolyline || !nextPolyline) continue;
+
+    const currentCoords = currentPolyline.coordinates;
+    const nextCoords = nextPolyline.coordinates;
+
+    // Get endpoints of current segment
+    const currentStart = currentCoords[0];
+    const currentEnd = currentCoords[currentCoords.length - 1];
+
+    // Get endpoints of next segment
+    const nextStart = nextCoords[0];
+    const nextEnd = nextCoords[nextCoords.length - 1];
+
+    // Check all possible connections
+    const distances = [
+      getDistance(currentEnd, nextStart),
+      getDistance(currentEnd, nextEnd),
+      getDistance(currentStart, nextStart),
+      getDistance(currentStart, nextEnd)
+    ];
+
+    const minDistance = Math.min(...distances);
+
+    // If minimum distance is greater than tolerance, route is broken
+    if (minDistance > tolerance) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Function to update route warning visibility
+function updateRouteWarning() {
+  const routeWarning = document.getElementById('route-warning');
+  const isContinuous = checkRouteContinuity();
+
+  if (selectedSegments.length > 1 && !isContinuous) {
+    routeWarning.style.display = 'block';
+  } else {
+    routeWarning.style.display = 'none';
+  }
+}
+
 // Function to order coordinates based on route connectivity
 function getOrderedCoordinates() {
   if (selectedSegments.length === 0) return [];
@@ -717,6 +774,7 @@ function updateRouteListAndDescription() {
     routeList.innerHTML = '<p style="color: #666; font-style: italic;">תכננו מסלול על ידי לחיצה על קטע והוספתו למסלול. ליחצו על הסר כדי להסיר קטע ממסלול. בסיום הורידו קובץ GPX כדי להעלות לאפליקציית הניווט שלכם.</p>';
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
+    updateRouteWarning();
     return;
   }
 
@@ -793,6 +851,7 @@ function updateRouteListAndDescription() {
   `;
 
   downloadButton.disabled = false;
+  updateRouteWarning();
 }
 
 function removeSegment(segmentName) {
