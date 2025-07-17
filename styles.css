@@ -93,24 +93,13 @@ body::before {
 
 .main-container {
   padding: 20px;
-  padding-top: 0px;
 }
 
 .content-section {
   background: #F8F8F8;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  padding: 10px;
-  margin: 20px auto;
-  max-width: 1400px;
-  text-align: justify;
-}
-
-.content-section-top {
-  background: #F8F8F8;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  padding: 10px;
+  padding: 30px;
   margin: 20px auto;
   max-width: 1400px;
 }
@@ -358,31 +347,9 @@ body::before {
 }
 
 .remove-btn:hover {
-  background-color: #e74c3c;
-}
-
-#share-route {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
-  margin: 5px 0;
-}
-
-#share-route:hover {
-  background-color: #2980b9;
+  background: #6B8E23;
   transform: translateY(-1px);
-}
-
-#share-route:disabled {
-  background-color: #bdc3c7;
-  cursor: not-allowed;
-  transform: none;
+  box-shadow: 0 4px 12px rgba(107, 142, 35, 0.4);
 }
 
 .action-buttons {

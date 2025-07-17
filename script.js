@@ -1,4 +1,3 @@
-// Script.js - Bike Route Planner
 let map;
 let selectedSegments = [];
 let routePolylines = [];
@@ -6,191 +5,11 @@ let undoStack = [];
 let redoStack = [];
 let kmlData = null;
 
-// Gzip compression utility functions
-function gzipCompress(str) {
-  const bytes = new TextEncoder().encode(str);
-  const cs = new CompressionStream('gzip');
-  const writer = cs.writable.getWriter();
-  const reader = cs.readable.getReader();
-
-  return new Promise((resolve) => {
-    const chunks = [];
-
-    const pump = () => {
-      reader.read().then(({ done, value }) => {
-        if (done) {
-          const compressed = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
-          let offset = 0;
-          chunks.forEach(chunk => {
-            compressed.set(chunk, offset);
-            offset += chunk.length;
-          });
-          resolve(compressed);
-        } else {
-          chunks.push(value);
-          pump();
-        }
-      });
-    };
-
-    pump();
-    writer.write(bytes);
-    writer.close();
-  });
-}
-
-function gzipDecompress(bytes) {
-  const cs = new DecompressionStream('gzip');
-  const writer = cs.writable.getWriter();
-  const reader = cs.readable.getReader();
-
-  return new Promise((resolve) => {
-    const chunks = [];
-
-    const pump = () => {
-      reader.read().then(({ done, value }) => {
-        if (done) {
-          const decompressed = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
-          let offset = 0;
-          chunks.forEach(chunk => {
-            decompressed.set(chunk, offset);
-            offset += chunk.length;
-          });
-          resolve(new TextDecoder().decode(decompressed));
-        } else {
-          chunks.push(value);
-          pump();
-        }
-      });
-    };
-
-    pump();
-    writer.write(bytes);
-    writer.close();
-  });
-}
-
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function base64ToArrayBuffer(base64) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-// URL encoding/decoding functions for route sharing
-async function encodeRouteToURL() {
-  try {
-    if (selectedSegments.length === 0) {
-      // Remove route parameter if no segments selected
-      const url = new URL(window.location.href);
-      url.searchParams.delete('route');
-      const newUrl = url.toString();
-
-      // Use both replaceState and try to update the URL
-      if (window.history && window.history.replaceState) {
-        window.history.replaceState({}, '', newUrl);
-      }
-
-      // Also try direct URL manipulation for production environments
-      if (window.location.href !== newUrl) {
-        try {
-          window.history.pushState({}, '', newUrl);
-        } catch (e) {
-          // Silent failure in production
-        }
-      }
-      return;
-    }
-
-    const routeData = {
-      segments: selectedSegments
-    };
-
-    // Convert to JSON, compress with gzip, then base64
-    const jsonString = JSON.stringify(routeData);
-    const compressed = await gzipCompress(jsonString);
-    const base64Compressed = arrayBufferToBase64(compressed);
-
-    // Update URL with route parameter
-    const url = new URL(window.location.href);
-    url.searchParams.set('route', base64Compressed);
-    const newUrl = url.toString();
-
-    // Use both replaceState and try to update the URL
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState({}, '', newUrl);
-    }
-
-    // Also try pushState for production environments that might not support replaceState properly
-    if (window.location.href !== newUrl) {
-      try {
-        window.history.pushState({}, '', newUrl);
-      } catch (e) {
-        // Silent failure in production
-      }
-    }
-  } catch (error) {
-    // Silent failure in production
-  }
-}
-
-async function decodeRouteFromURL() {
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const routeParam = urlParams.get('route');
-
-    if (!routeParam) {
-      return null;
-    }
-
-    // Decode base64, decompress with gzip, and parse JSON
-    const compressedBytes = base64ToArrayBuffer(routeParam);
-    const decompressed = await gzipDecompress(compressedBytes);
-    const routeData = JSON.parse(decompressed);
-
-    if (routeData && routeData.segments && Array.isArray(routeData.segments)) {
-      return routeData.segments;
-    }
-  } catch (error) {
-    // Try fallback to old format (non-gzipped)
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const routeParam = urlParams.get('route');
-
-      if (!routeParam) return null;
-
-      // Decode base64, decompress, and parse JSON (old format)
-      const decompressed = decodeURIComponent(escape(atob(routeParam)));
-      const routeData = JSON.parse(decompressed);
-
-      if (routeData && routeData.segments && Array.isArray(routeData.segments)) {
-        return routeData.segments;
-      }
-    } catch (fallbackError) {
-      // Silent failure
-    }
-  }
-
-  return null;
-}
-
 // Save state for undo/redo
 function saveState() {
   undoStack.push([...selectedSegments]);
   redoStack = []; // Clear redo stack when new action is performed
   updateUndoRedoButtons();
-  encodeRouteToURL(); // Update URL when state changes
 }
 
 function undo() {
@@ -200,7 +19,6 @@ function undo() {
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
-    encodeRouteToURL(); // Update URL when undoing
   }
 }
 
@@ -211,7 +29,6 @@ function redo() {
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
-    encodeRouteToURL(); // Update URL when redoing
   }
 }
 
@@ -240,10 +57,8 @@ function initMap() {
     map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/outdoors-v12',
-      // center: [35.6, 33.2], // Centered on the bike routes area
-      // center: [35.600542, 33.190749],
-      center: [35.599995, 33.103954],
-      zoom: 10.5
+      center: [35.6, 33.2], // Centered on the bike routes area
+      zoom: 11
     });
 
     // Set Hebrew language after map loads
@@ -403,7 +218,7 @@ function initMap() {
               const prevStartToCurrentStart = getDistance(prevStart, currentStart);
               const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
 
-              const minDistance = Math.min(...distances);
+              const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
 
               let focusPoint;
               if (minDistance === prevEndToCurrentStart) {
@@ -545,26 +360,26 @@ function parseGeoJSON(geoJsonData) {
           segmentDistance += getDistance(coordObjects[i], coordObjects[i + 1]);
         }
         const segmentDistanceKm = (segmentDistance / 1000).toFixed(1);
-
+        
         // Calculate actual elevation gain and loss from coordinate data
         let segmentElevationGain = 0;
         let segmentElevationLoss = 0;
-
+        
         for (let i = 0; i < coordObjects.length - 1; i++) {
           let currentElevation, nextElevation;
-
+          
           if (coordObjects[i].elevation !== undefined) {
             currentElevation = coordObjects[i].elevation;
           } else {
             currentElevation = 200 + Math.sin(coordObjects[i].lat * 10) * 100 + Math.cos(coordObjects[i].lng * 8) * 50;
           }
-
+          
           if (coordObjects[i + 1].elevation !== undefined) {
             nextElevation = coordObjects[i + 1].elevation;
           } else {
             nextElevation = 200 + Math.sin(coordObjects[i + 1].lat * 10) * 100 + Math.cos(coordObjects[i + 1].lng * 8) * 50;
           }
-
+          
           const elevationChange = nextElevation - currentElevation;
           if (elevationChange > 0) {
             segmentElevationGain += elevationChange;
@@ -572,7 +387,7 @@ function parseGeoJSON(geoJsonData) {
             segmentElevationLoss += Math.abs(elevationChange);
           }
         }
-
+        
         segmentElevationGain = Math.round(segmentElevationGain);
         segmentElevationLoss = Math.round(segmentElevationLoss);
 
@@ -702,36 +517,14 @@ function parseGeoJSON(geoJsonData) {
       });
     });
 
-    // Load route from URL if present
-    setTimeout(() => {
-      loadRouteFromURL();
-    }, 100);
+    // Fit map to show all route segments
+    if (!bounds.isEmpty()) {
+      map.fitBounds(bounds, { padding: 20 });
+    }
 
   } catch (error) {
     document.getElementById('error-message').style.display = 'block';
     document.getElementById('error-message').textContent = 'Error parsing GeoJSON file: ' + error.message;
-  }
-}
-
-// Function to load route from URL after map and polylines are ready
-function loadRouteFromURL() {
-  const routeSegments = decodeRouteFromURL();
-  if (routeSegments && routeSegments.length > 0) {
-    // Clear existing selection
-    selectedSegments = [];
-
-    // Add segments from URL if they exist in the loaded data
-    routeSegments.forEach(segmentName => {
-      const polyline = routePolylines.find(p => p.segmentName === segmentName);
-      if (polyline) {
-        selectedSegments.push(segmentName);
-      }
-    });
-
-    // Update visual styles and UI
-    updateSegmentStyles();
-    updateRouteListAndDescription();
-    updateUndoRedoButtons();
   }
 }
 
@@ -917,7 +710,7 @@ function getOrderedCoordinates() {
       if (selectedSegments.length > 1) {
         const nextSegmentName = selectedSegments[1];
         const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
-
+        
         if (nextPolyline) {
           const nextCoords = nextPolyline.coordinates;
           const firstStart = coords[0];
@@ -992,7 +785,7 @@ function generateElevationProfile() {
   // Create continuous elevation profile with interpolation
   const profileWidth = 300; // pixels
   const elevationData = [];
-
+  
   // First, calculate elevation for all coordinates
   const coordsWithElevation = orderedCoords.map((coord, index) => {
     // Use actual elevation from coordinates if available, otherwise calculate
@@ -1003,7 +796,7 @@ function generateElevationProfile() {
       // Fallback: calculate elevation based on position (simulated)
       elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
     }
-
+    
     const distance = index === 0 ? 0 : orderedCoords.slice(0, index + 1).reduce((total, c, idx) => {
       if (idx === 0) return 0;
       return total + getDistance(orderedCoords[idx - 1], c);
@@ -1019,11 +812,11 @@ function generateElevationProfile() {
   // Create continuous profile by interpolating between points
   for (let x = 0; x <= profileWidth; x++) {
     const distanceAtX = (x / profileWidth) * totalDistance;
-
+    
     // Find the two closest points to interpolate between
     let beforePoint = null;
     let afterPoint = null;
-
+    
     for (let i = 0; i < coordsWithElevation.length - 1; i++) {
       if (coordsWithElevation[i].distance <= distanceAtX && coordsWithElevation[i + 1].distance >= distanceAtX) {
         beforePoint = coordsWithElevation[i];
@@ -1031,7 +824,7 @@ function generateElevationProfile() {
         break;
       }
     }
-
+    
     let elevation, coord;
     if (beforePoint && afterPoint && beforePoint !== afterPoint) {
       // Interpolate elevation and coordinates
@@ -1048,10 +841,10 @@ function generateElevationProfile() {
       elevation = coordsWithElevation[0].elevation;
       coord = coordsWithElevation[0];
     }
-
+    
     const heightPercent = Math.max(5, ((elevation - minElevation) / elevationRange) * 80 + 10);
     const distancePercent = (x / profileWidth) * 100;
-
+    
     elevationData.push({
       elevation,
       distance: distanceAtX,
@@ -1067,14 +860,14 @@ function generateElevationProfile() {
   elevationData.forEach((point, index) => {
     const x = point.distancePercent;
     const y = 100 - point.heightPercent; // Flip Y coordinate for SVG
-
+    
     if (index === 0) {
       pathData += `M ${x} ${y}`;
     } else {
       pathData += ` L ${x} ${y}`;
     }
   });
-
+  
   // Close the path to create a filled area
   pathData += ` L 100 100 L 0 100 Z`;
 
@@ -1098,8 +891,8 @@ function generateElevationProfile() {
 
   elevationHtml += '</div>';
   elevationHtml += '<div class="elevation-labels">';
-  elevationHtml += `<span class="distance-label">${(totalDistance / 1000).toFixed(1)} ק"מ</span>`;
   elevationHtml += '<span class="distance-label">0 ק"מ</span>';
+  elevationHtml += `<span class="distance-label">${(totalDistance / 1000).toFixed(1)} ק"מ</span>`;
   elevationHtml += '</div>';
   elevationHtml += '</div>';
 
@@ -1119,7 +912,6 @@ function updateRouteListAndDescription() {
     routeList.innerHTML = '<p style="color: #666; font-style: italic;">תכננו מסלול על ידי לחיצה על קטע והוספתו למסלול. ליחצו על הסר כדי להסיר קטע ממסלול. בסיום הורידו קובץ GPX כדי להעלות לאפליקציית הניווט שלכם.</p>';
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
-    document.getElementById('share-route').disabled = true;
     updateRouteWarning();
     return;
   }
@@ -1184,22 +976,22 @@ function updateRouteListAndDescription() {
   // Calculate actual elevation changes from coordinate data
   totalElevationGain = 0;
   totalElevationLoss = 0;
-
+  
   for (let i = 0; i < orderedCoords.length - 1; i++) {
     let currentElevation, nextElevation;
-
+    
     if (orderedCoords[i].elevation !== undefined) {
       currentElevation = orderedCoords[i].elevation;
     } else {
       currentElevation = 200 + Math.sin(orderedCoords[i].lat * 10) * 100 + Math.cos(orderedCoords[i].lng * 8) * 50;
     }
-
+    
     if (orderedCoords[i + 1].elevation !== undefined) {
       nextElevation = orderedCoords[i + 1].elevation;
     } else {
       nextElevation = 200 + Math.sin(orderedCoords[i + 1].lat * 10) * 100 + Math.cos(orderedCoords[i + 1].lng * 8) * 50;
     }
-
+    
     const elevationChange = nextElevation - currentElevation;
     if (elevationChange > 0) {
       totalElevationGain += elevationChange;
@@ -1207,7 +999,7 @@ function updateRouteListAndDescription() {
       totalElevationLoss += Math.abs(elevationChange);
     }
   }
-
+  
   totalElevationGain = Math.round(totalElevationGain);
   totalElevationLoss = Math.round(totalElevationLoss);
 
@@ -1223,7 +1015,6 @@ function updateRouteListAndDescription() {
   `;
 
   downloadButton.disabled = false;
-  document.getElementById('share-route').disabled = false;
   updateRouteWarning();
 
   // Add elevation profile hover functionality after DOM is updated
@@ -1234,11 +1025,11 @@ function updateRouteListAndDescription() {
         const rect = elevationOverlay.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const xPercent = (x / rect.width) * 100;
-
+        
         // Find closest elevation data point
         let closestPoint = null;
         let minDistance = Infinity;
-
+        
         window.currentElevationData.forEach(point => {
           const distance = Math.abs(point.distancePercent - xPercent);
           if (distance < minDistance) {
@@ -1246,7 +1037,7 @@ function updateRouteListAndDescription() {
             closestPoint = point;
           }
         });
-
+        
         if (closestPoint) {
           // Remove existing elevation marker if any
           if (window.elevationMarker) {
@@ -1307,7 +1098,6 @@ function removeSegment(segmentName) {
 
     updateSegmentStyles();
     updateRouteListAndDescription();
-    encodeRouteToURL(); // Update URL when removing segment
   }
 }
 
@@ -1337,9 +1127,9 @@ function searchLocation() {
         const lon = parseFloat(result.lon);
 
         // Only pan to the location without showing markers or popups
-        const zoomLevel = result.type === 'city' ? 14 :
-          result.type === 'town' ? 15 :
-            result.type === 'village' ? 17 : 16;
+        const zoomLevel = result.type === 'city' ? 12 :
+          result.type === 'town' ? 13 :
+            result.type === 'village' ? 14 : 13;
 
         map.flyTo({
           center: [lon, lat],
@@ -1426,40 +1216,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('undo-btn').addEventListener('click', undo);
   document.getElementById('redo-btn').addEventListener('click', redo);
 
-  // Share route button
-  document.getElementById('share-route').addEventListener('click', async () => {
-    if (selectedSegments.length > 0) {
-      // Force URL encoding before sharing
-      await encodeRouteToURL();
-
-      // Wait a moment for URL to update, then get the current URL
-      setTimeout(() => {
-        const url = window.location.href;
-
-        navigator.clipboard.writeText(url).then(() => {
-          const shareBtn = document.getElementById('share-route');
-          const originalText = shareBtn.textContent;
-          shareBtn.textContent = '✅ הועתק!';
-          shareBtn.style.backgroundColor = '#27ae60';
-
-          setTimeout(() => {
-            shareBtn.textContent = originalText;
-            shareBtn.style.backgroundColor = '#3498db';
-          }, 2000);
-        }).catch(() => {
-          // Fallback for browsers that don't support clipboard API
-          const shareBtn = document.getElementById('share-route');
-          const originalText = shareBtn.textContent;
-          shareBtn.textContent = 'העתק URL מהדפדפן';
-
-          setTimeout(() => {
-            shareBtn.textContent = originalText;
-          }, 3000);
-        });
-      }, 100);
-    }
-  });
-
   // Legend toggle functionality
   document.getElementById('legend-toggle').addEventListener('click', function() {
     const legendBox = document.getElementById('legend-box');
@@ -1476,6 +1232,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
+    //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
+
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       undo();
