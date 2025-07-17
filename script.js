@@ -87,7 +87,8 @@ function initMap() {
     // Add global click handler for proximity-based selection
     map.on('click', (e) => {
       const clickPoint = e.lngLat;
-      const threshold = 50; // meters
+      const clickPixel = map.project(clickPoint);
+      const threshold = 15; // pixels
       let closestSegment = null;
       let minDistance = Infinity;
 
@@ -95,10 +96,13 @@ function initMap() {
       routePolylines.forEach(polylineData => {
         const coords = polylineData.coordinates;
         for (let i = 0; i < coords.length - 1; i++) {
-          const distance = distanceToLineSegment(
-            { lat: clickPoint.lat, lng: clickPoint.lng },
-            coords[i],
-            coords[i + 1]
+          const startPixel = map.project([coords[i].lng, coords[i].lat]);
+          const endPixel = map.project([coords[i + 1].lng, coords[i + 1].lat]);
+          
+          const distance = distanceToLineSegmentPixels(
+            clickPixel,
+            startPixel,
+            endPixel
           );
 
           if (distance < threshold && distance < minDistance) {
@@ -461,6 +465,37 @@ function distanceToLineSegment(point, lineStart, lineEnd) {
   }
 
   return getDistance(point, { lat: yy, lng: xx });
+}
+
+// Helper function to calculate distance from point to line segment in pixels
+function distanceToLineSegmentPixels(point, lineStart, lineEnd) {
+  const A = point.x - lineStart.x;
+  const B = point.y - lineStart.y;
+  const C = lineEnd.x - lineStart.x;
+  const D = lineEnd.y - lineStart.y;
+
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  let param = -1;
+  if (lenSq !== 0) {
+    param = dot / lenSq;
+  }
+
+  let xx, yy;
+  if (param < 0) {
+    xx = lineStart.x;
+    yy = lineStart.y;
+  } else if (param > 1) {
+    xx = lineEnd.x;
+    yy = lineEnd.y;
+  } else {
+    xx = lineStart.x + param * C;
+    yy = lineStart.y + param * D;
+  }
+
+  const dx = point.x - xx;
+  const dy = point.y - yy;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 // Helper function to find closest point on line segment
