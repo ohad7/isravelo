@@ -741,7 +741,7 @@ function generateElevationProfile() {
 
   let elevationHtml = '<div class="elevation-profile">';
   elevationHtml += '<h4>גרף גובה (Elevation Profile)</h4>';
-  elevationHtml += '<div class="elevation-chart" style="position: relative;">';
+  elevationHtml += '<div class="elevation-chart" id="elevation-chart" style="position: relative;">';
 
   const totalDistance = orderedCoords.reduce((total, coord, index) => {
     if (index === 0) return 0;
@@ -772,7 +772,12 @@ function generateElevationProfile() {
       return total + getDistance(orderedCoords[idx - 1], c);
     }, 0);
 
-    elevationData.push({ elevation, distance });
+    elevationData.push({ 
+      elevation, 
+      distance, 
+      coord: coord,
+      coordIndex: i
+    });
   }
 
   const elevationRange = maxElevation - minElevation || 100;
@@ -781,7 +786,14 @@ function generateElevationProfile() {
     const heightPercent = Math.max(5, ((point.elevation - minElevation) / elevationRange) * 80 + 10);
     const distancePercent = (point.distance / totalDistance) * 100;
 
-    elevationHtml += `<div class="elevation-point" style="right: ${100 - distancePercent}%; height: ${heightPercent}%; background: linear-gradient(to top, #8B4513 0%, #CD853F 50%, #F4A460 100%);" title="מרחק: ${(point.distance / 1000).toFixed(1)}ק"מ, גובה: ${Math.round(point.elevation)}מ'"></div>`;
+    // Reverse direction: use left instead of right for left-to-right direction
+    elevationHtml += `<div class="elevation-point" 
+      style="left: ${distancePercent}%; height: ${heightPercent}%; background: linear-gradient(to top, #8B4513 0%, #CD853F 50%, #F4A460 100%);" 
+      title="מרחק: ${(point.distance / 1000).toFixed(1)}ק"מ, גובה: ${Math.round(point.elevation)}מ'"
+      data-coord-lat="${point.coord.lat}"
+      data-coord-lng="${point.coord.lng}"
+      data-distance="${point.distance}"
+      data-elevation="${Math.round(point.elevation)}"></div>`;
   });
 
   elevationHtml += '</div>';
@@ -881,6 +893,60 @@ function updateRouteListAndDescription() {
 
   downloadButton.disabled = false;
   updateRouteWarning();
+
+  // Add elevation profile hover functionality after DOM is updated
+  setTimeout(() => {
+    const elevationPoints = document.querySelectorAll('.elevation-point');
+    elevationPoints.forEach(point => {
+      point.addEventListener('mouseenter', (e) => {
+        const lat = parseFloat(e.target.dataset.coordLat);
+        const lng = parseFloat(e.target.dataset.coordLng);
+        const distance = parseFloat(e.target.dataset.distance);
+        const elevation = parseInt(e.target.dataset.elevation);
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          // Remove existing elevation marker if any
+          if (window.elevationMarker) {
+            window.elevationMarker.remove();
+          }
+
+          // Create red circle marker
+          const el = document.createElement('div');
+          el.className = 'elevation-marker';
+          el.style.cssText = `
+            width: 16px;
+            height: 16px;
+            background: #ff0000;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(255, 0, 0, 0.6);
+            cursor: pointer;
+          `;
+
+          window.elevationMarker = new mapboxgl.Marker(el)
+            .setLngLat([lng, lat])
+            .addTo(map);
+
+          // Update segment display with elevation info
+          const segmentDisplay = document.getElementById('segment-name-display');
+          segmentDisplay.innerHTML = `📍 מרחק: ${(distance / 1000).toFixed(1)} ק"מ • גובה: ${elevation} מ'`;
+          segmentDisplay.style.display = 'block';
+        }
+      });
+
+      point.addEventListener('mouseleave', () => {
+        // Remove elevation marker
+        if (window.elevationMarker) {
+          window.elevationMarker.remove();
+          window.elevationMarker = null;
+        }
+
+        // Hide segment display
+        const segmentDisplay = document.getElementById('segment-name-display');
+        segmentDisplay.style.display = 'none';
+      });
+    });
+  }, 100);
 }
 
 function removeSegment(segmentName) {
