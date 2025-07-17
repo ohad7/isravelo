@@ -6,8 +6,90 @@ let undoStack = [];
 let redoStack = [];
 let kmlData = null;
 
+// Gzip compression utility functions
+function gzipCompress(str) {
+  const bytes = new TextEncoder().encode(str);
+  const cs = new CompressionStream('gzip');
+  const writer = cs.writable.getWriter();
+  const reader = cs.readable.getReader();
+
+  return new Promise((resolve) => {
+    const chunks = [];
+
+    const pump = () => {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          const compressed = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+          let offset = 0;
+          chunks.forEach(chunk => {
+            compressed.set(chunk, offset);
+            offset += chunk.length;
+          });
+          resolve(compressed);
+        } else {
+          chunks.push(value);
+          pump();
+        }
+      });
+    };
+
+    pump();
+    writer.write(bytes);
+    writer.close();
+  });
+}
+
+function gzipDecompress(bytes) {
+  const cs = new DecompressionStream('gzip');
+  const writer = cs.writable.getWriter();
+  const reader = cs.readable.getReader();
+
+  return new Promise((resolve) => {
+    const chunks = [];
+
+    const pump = () => {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          const decompressed = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+          let offset = 0;
+          chunks.forEach(chunk => {
+            decompressed.set(chunk, offset);
+            offset += chunk.length;
+          });
+          resolve(new TextDecoder().decode(decompressed));
+        } else {
+          chunks.push(value);
+          pump();
+        }
+      });
+    };
+
+    pump();
+    writer.write(bytes);
+    writer.close();
+  });
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 // URL encoding/decoding functions for route sharing
-function encodeRouteToURL() {
+async function encodeRouteToURL() {
   try {
     if (selectedSegments.length === 0) {
       // Remove route parameter if no segments selected
@@ -25,7 +107,7 @@ function encodeRouteToURL() {
         try {
           window.history.pushState({}, '', newUrl);
         } catch (e) {
-          console.warn('Could not update URL:', e);
+          // Silent failure in production
         }
       }
       return;
@@ -35,14 +117,14 @@ function encodeRouteToURL() {
       segments: selectedSegments
     };
 
-    // Convert to JSON, compress with simple encoding, then base64
-    console.log('Encoding route data:', routeData);
+    // Convert to JSON, compress with gzip, then base64
     const jsonString = JSON.stringify(routeData);
-    const compressed = btoa(unescape(encodeURIComponent(jsonString)));
+    const compressed = await gzipCompress(jsonString);
+    const base64Compressed = arrayBufferToBase64(compressed);
 
     // Update URL with route parameter
     const url = new URL(window.location.href);
-    url.searchParams.set('route', compressed);
+    url.searchParams.set('route', base64Compressed);
     const newUrl = url.toString();
 
     // Use both replaceState and try to update the URL
@@ -55,42 +137,49 @@ function encodeRouteToURL() {
       try {
         window.history.pushState({}, '', newUrl);
       } catch (e) {
-        console.warn('Could not update URL:', e);
+        // Silent failure in production
       }
     }
-
-    console.log('URL updated with route parameter:', newUrl);
   } catch (error) {
-    console.error('Error encoding route to URL:', error);
+    // Silent failure in production
   }
 }
 
-function decodeRouteFromURL() {
+async function decodeRouteFromURL() {
   try {
     const urlParams = new URLSearchParams(window.location.search);
     const routeParam = urlParams.get('route');
 
-    console.log('Checking for route parameter:', routeParam);
-
     if (!routeParam) {
-      console.log('No route parameter found in URL');
       return null;
     }
 
-    // Decode base64, decompress, and parse JSON
-    const decompressed = decodeURIComponent(escape(atob(routeParam)));
+    // Decode base64, decompress with gzip, and parse JSON
+    const compressedBytes = base64ToArrayBuffer(routeParam);
+    const decompressed = await gzipDecompress(compressedBytes);
     const routeData = JSON.parse(decompressed);
 
-    console.log('Decoded route data:', routeData);
-
     if (routeData && routeData.segments && Array.isArray(routeData.segments)) {
-      console.log('Successfully decoded route segments:', routeData.segments);
       return routeData.segments;
-    } else {
-      console.warn('Invalid route data structure:', routeData);
     }
   } catch (error) {
-    console.error('Failed to decode route from URL:', error);
+    // Try fallback to old format (non-gzipped)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const routeParam = urlParams.get('route');
+
+      if (!routeParam) return null;
+
+      // Decode base64, decompress, and parse JSON (old format)
+      const decompressed = decodeURIComponent(escape(atob(routeParam)));
+      const routeData = JSON.parse(decompressed);
+
+      if (routeData && routeData.segments && Array.isArray(routeData.segments)) {
+        return routeData.segments;
+      }
+    } catch (fallbackError) {
+      // Silent failure
+    }
   }
 
   return null;
@@ -314,7 +403,7 @@ function initMap() {
               const prevStartToCurrentStart = getDistance(prevStart, currentStart);
               const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
 
-              const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
+              const minDistance = Math.min(...distances);
 
               let focusPoint;
               if (minDistance === prevEndToCurrentStart) {
@@ -1338,15 +1427,14 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('redo-btn').addEventListener('click', redo);
 
   // Share route button
-  document.getElementById('share-route').addEventListener('click', () => {
+  document.getElementById('share-route').addEventListener('click', async () => {
     if (selectedSegments.length > 0) {
       // Force URL encoding before sharing
-      encodeRouteToURL();
+      await encodeRouteToURL();
 
       // Wait a moment for URL to update, then get the current URL
       setTimeout(() => {
         const url = window.location.href;
-        console.log('Sharing URL:', url);
 
         navigator.clipboard.writeText(url).then(() => {
           const shareBtn = document.getElementById('share-route');
@@ -1388,8 +1476,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
-    //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
-
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       undo();
