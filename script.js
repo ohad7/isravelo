@@ -814,7 +814,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('legend-toggle').addEventListener('click', function() {
     const legendBox = document.getElementById('legend-box');
     const isOpen = legendBox.classList.contains('open');
-    
+
     if (isOpen) {
       legendBox.classList.remove('open');
       legendBox.classList.add('closed');

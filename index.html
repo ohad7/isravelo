@@ -3,9 +3,8 @@
 
 <head>
   <title>מתכנן מסלולי רכיבה</title>
-  <link rel="icon"
-    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2220%22 cy=%2275%22 r=%2215%22 fill=%22%23333%22 stroke=%22%23666%22 stroke-width=%222%22/><circle cx=%2280%22 cy=%2275%22 r=%2215%22 fill=%22%23333%22 stroke=%22%23666%22 stroke-width=%222%22/><path d=%22M20 75 L35 35 L65 35 L80 75%22 fill=%22none%22 stroke=%22%23333%22 stroke-width=%223%22/><path d=%22M35 35 L45 55 L65 35%22 fill=%22none%22 stroke=%22%23333%22 stroke-width=%223%22/><circle cx=%2250%22 cy=%2240%22 r=%223%22 fill=%22%23333%22/></svg>"
-    type="image/svg+xml">
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2387CEEB'/%3E%3Cpolygon points='4,48 14,26 24,48' fill='%23E0E0E0'/%3E%3Cpolygon points='20,48 30,24 40,48' fill='%23D8D8D8'/%3E%3Cpolygon points='38,48 48,26 58,48' fill='%23D0D0D0'/%3E%3Cpolygon points='0,48 12,22 28,48' fill='%23D3D3D3'/%3E%3Cpolygon points='28,48 46,16 64,48' fill='%23D3D3D3'/%3E%3Cpolygon points='42,24 46,16 50,24 48,22 46,23 44,22' fill='white'/%3E%3Crect y='48' width='64' height='16' fill='%2332CD32'/%3E%3Ccircle cx='44' cy='50' r='6' stroke='black' stroke-width='1.8' fill='none'/%3E%3Ccircle cx='20' cy='50' r='6' stroke='black' stroke-width='1.8' fill='none'/%3E%3Cline x1='44' y1='50' x2='36' y2='40' stroke='black' stroke-width='1.5'/%3E%3Cline x1='36' y1='40' x2='20' y2='50' stroke='black' stroke-width='1.5'/%3E%3Cline x1='36' y1='40' x2='36' y2='33' stroke='black' stroke-width='1.5'/%3E%3Cline x1='36' y1='33' x2='40' y2='33' stroke='black' stroke-width='1.2'/%3E%3Cline x1='36' y1='33' x2='29' y2='30' stroke='black' stroke-width='1.5'/%3E%3Cline x1='29' y1='30' x2='20' y2='50' stroke='black' stroke-width='1.5'/%3E%3Cline x1='29' y1='30' x2='29' y2='27' stroke='black' stroke-width='1.5'/%3E%3Cline x1='27' y1='27' x2='31' y2='27' stroke='black' stroke-width='1.2'/%3E%3Ccircle cx='36' cy='40' r='1.2' fill='black'/%3E%3Cline x1='36.5' y1='39.5' x2='38.5' y2='37.5' stroke='black' stroke-width='1'/%3E%3Cline x1='35.5' y1='40.5' x2='33.5' y2='42.5' stroke='black' stroke-width='1'/%3E%3Ccircle cx='36' cy='40' r='2.5' stroke='black' stroke-width='1' fill='none'/%3E%3C/svg%3E">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
   <style>
     * {
@@ -205,7 +204,7 @@
     .legend-toggle {
       background: #F8F8F8;
       border: none;
-      padding: 6px 8px;
+      padding: 4px 15px;
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
@@ -547,7 +546,7 @@
 <body>
   <header class="header">
     <div class="logo-section">
-      <h1 class="site-title">גליל/גולן - גן עדן לאופניים</h1>
+      <h1 class="site-title">מפת שבילי אופניים - גליל עליון וגולן</h1>
     </div>
     <nav class="nav-links">
       <a class="nav-link" onclick="scrollToSection('trails')">שבילים</a>
