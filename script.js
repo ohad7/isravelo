@@ -7,44 +7,88 @@ let kmlData = null;
 
 // URL encoding/decoding functions for route sharing
 function encodeRouteToURL() {
-  if (selectedSegments.length === 0) {
-    // Remove route parameter if no segments selected
-    const url = new URL(window.location);
-    url.searchParams.delete('route');
-    window.history.replaceState({}, '', url);
-    return;
-  }
+  try {
+    if (selectedSegments.length === 0) {
+      // Remove route parameter if no segments selected
+      const url = new URL(window.location.href);
+      url.searchParams.delete('route');
+      const newUrl = url.toString();
+      
+      // Use both replaceState and try to update the URL
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', newUrl);
+      }
+      
+      // Also try direct URL manipulation for production environments
+      if (window.location.href !== newUrl) {
+        try {
+          window.history.pushState({}, '', newUrl);
+        } catch (e) {
+          console.warn('Could not update URL:', e);
+        }
+      }
+      return;
+    }
 
-  const routeData = {
-    segments: selectedSegments
-  };
-  
-  // Convert to JSON, compress with simple encoding, then base64
-  const jsonString = JSON.stringify(routeData);
-  const compressed = btoa(unescape(encodeURIComponent(jsonString)));
-  
-  // Update URL with route parameter
-  const url = new URL(window.location);
-  url.searchParams.set('route', compressed);
-  window.history.replaceState({}, '', url);
+    const routeData = {
+      segments: selectedSegments
+    };
+    
+    // Convert to JSON, compress with simple encoding, then base64
+    const jsonString = JSON.stringify(routeData);
+    const compressed = btoa(unescape(encodeURIComponent(jsonString)));
+    
+    // Update URL with route parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set('route', compressed);
+    const newUrl = url.toString();
+    
+    // Use both replaceState and try to update the URL
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, '', newUrl);
+    }
+    
+    // Also try pushState for production environments that might not support replaceState properly
+    if (window.location.href !== newUrl) {
+      try {
+        window.history.pushState({}, '', newUrl);
+      } catch (e) {
+        console.warn('Could not update URL:', e);
+      }
+    }
+    
+    console.log('URL updated with route parameter:', newUrl);
+  } catch (error) {
+    console.error('Error encoding route to URL:', error);
+  }
 }
 
 function decodeRouteFromURL() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const routeParam = urlParams.get('route');
-  
-  if (!routeParam) return null;
-  
   try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const routeParam = urlParams.get('route');
+    
+    console.log('Checking for route parameter:', routeParam);
+    
+    if (!routeParam) {
+      console.log('No route parameter found in URL');
+      return null;
+    }
+    
     // Decode base64, decompress, and parse JSON
     const decompressed = decodeURIComponent(escape(atob(routeParam)));
     const routeData = JSON.parse(decompressed);
     
+    console.log('Decoded route data:', routeData);
+    
     if (routeData && routeData.segments && Array.isArray(routeData.segments)) {
+      console.log('Successfully decoded route segments:', routeData.segments);
       return routeData.segments;
+    } else {
+      console.warn('Invalid route data structure:', routeData);
     }
   } catch (error) {
-    console.warn('Failed to decode route from URL:', error);
+    console.error('Failed to decode route from URL:', error);
   }
   
   return null;
@@ -1294,27 +1338,35 @@ document.addEventListener('DOMContentLoaded', function() {
   // Share route button
   document.getElementById('share-route').addEventListener('click', () => {
     if (selectedSegments.length > 0) {
-      const url = window.location.href;
-      navigator.clipboard.writeText(url).then(() => {
-        const shareBtn = document.getElementById('share-route');
-        const originalText = shareBtn.textContent;
-        shareBtn.textContent = '✅ הועתק!';
-        shareBtn.style.backgroundColor = '#27ae60';
+      // Force URL encoding before sharing
+      encodeRouteToURL();
+      
+      // Wait a moment for URL to update, then get the current URL
+      setTimeout(() => {
+        const url = window.location.href;
+        console.log('Sharing URL:', url);
         
-        setTimeout(() => {
-          shareBtn.textContent = originalText;
-          shareBtn.style.backgroundColor = '#3498db';
-        }, 2000);
-      }).catch(() => {
-        // Fallback for browsers that don't support clipboard API
-        const shareBtn = document.getElementById('share-route');
-        const originalText = shareBtn.textContent;
-        shareBtn.textContent = 'העתק URL מהדפדפן';
-        
-        setTimeout(() => {
-          shareBtn.textContent = originalText;
-        }, 3000);
-      });
+        navigator.clipboard.writeText(url).then(() => {
+          const shareBtn = document.getElementById('share-route');
+          const originalText = shareBtn.textContent;
+          shareBtn.textContent = '✅ הועתק!';
+          shareBtn.style.backgroundColor = '#27ae60';
+          
+          setTimeout(() => {
+            shareBtn.textContent = originalText;
+            shareBtn.style.backgroundColor = '#3498db';
+          }, 2000);
+        }).catch(() => {
+          // Fallback for browsers that don't support clipboard API
+          const shareBtn = document.getElementById('share-route');
+          const originalText = shareBtn.textContent;
+          shareBtn.textContent = 'העתק URL מהדפדפן';
+          
+          setTimeout(() => {
+            shareBtn.textContent = originalText;
+          }, 3000);
+        });
+      }, 100);
     }
   });
 
