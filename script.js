@@ -37,6 +37,46 @@ function updateUndoRedoButtons() {
   document.getElementById('redo-btn').disabled = redoStack.length === 0;
 }
 
+function resetRoute() {
+  // Save current state for potential undo
+  if (selectedSegments.length > 0) {
+    saveState();
+  }
+  
+  // Clear selected segments
+  selectedSegments = [];
+  
+  // Clear undo/redo stacks
+  undoStack = [];
+  redoStack = [];
+  
+  // Reset all segment styles to original
+  routePolylines.forEach(polylineData => {
+    const layerId = polylineData.layerId;
+    map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
+    map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight);
+  });
+  
+  // Remove any existing markers
+  if (window.hoverMarker) {
+    window.hoverMarker.remove();
+    window.hoverMarker = null;
+  }
+  
+  if (window.elevationMarker) {
+    window.elevationMarker.remove();
+    window.elevationMarker = null;
+  }
+  
+  // Hide segment name display
+  const segmentDisplay = document.getElementById('segment-name-display');
+  segmentDisplay.style.display = 'none';
+  
+  // Update UI
+  updateRouteListAndDescription();
+  updateUndoRedoButtons();
+}
+
 function updateSegmentStyles() {
   routePolylines.forEach(polylineData => {
     const layerId = polylineData.layerId;
@@ -1215,6 +1255,17 @@ document.addEventListener('DOMContentLoaded', function() {
   // Undo/redo buttons
   document.getElementById('undo-btn').addEventListener('click', undo);
   document.getElementById('redo-btn').addEventListener('click', redo);
+  
+  // Reset button
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    if (selectedSegments.length > 0) {
+      if (confirm('האם אתה בטוח שברצונך לאפס את המסלול? פעולה זו תמחק את כל הקטעים שנבחרו.')) {
+        resetRoute();
+      }
+    } else {
+      resetRoute();
+    }
+  });
 
   // Legend toggle functionality
   document.getElementById('legend-toggle').addEventListener('click', function() {
