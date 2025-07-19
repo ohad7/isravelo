@@ -295,7 +295,7 @@ function initMap() {
 
 async function loadKMLFile() {
   try {
-    const response = await fetch('./bike_roads_v02.geojson');
+    const response = await fetch('./bike_roads_v03.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
   } catch (error) {
