@@ -11,6 +11,15 @@ function saveState() {
   undoStack.push([...selectedSegments]);
   redoStack = []; // Clear redo stack when new action is performed
   updateUndoRedoButtons();
+  clearRouteFromUrl(); // Clear route parameter when making changes
+}
+
+function clearRouteFromUrl() {
+  const url = new URL(window.location);
+  if (url.searchParams.has('route')) {
+    url.searchParams.delete('route');
+    window.history.replaceState({}, document.title, url.toString());
+  }
 }
 
 function undo() {
@@ -20,6 +29,7 @@ function undo() {
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
+    clearRouteFromUrl(); // Clear route parameter on undo
   }
 }
 
@@ -30,6 +40,7 @@ function redo() {
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
+    clearRouteFromUrl(); // Clear route parameter on redo
   }
 }
 
@@ -76,6 +87,7 @@ function resetRoute() {
   // Update UI
   updateRouteListAndDescription();
   updateUndoRedoButtons();
+  clearRouteFromUrl(); // Clear route parameter when resetting
 }
 
 function updateSegmentStyles() {
@@ -1486,6 +1498,7 @@ function removeSegment(segmentName) {
 
     updateSegmentStyles();
     updateRouteListAndDescription();
+    clearRouteFromUrl(); // Clear route parameter when removing segments
   }
 }
 
