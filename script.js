@@ -1267,8 +1267,8 @@ function generateElevationProfile() {
 
   elevationHtml += '</div>';
   elevationHtml += '<div class="elevation-labels">';
-  elevationHtml += '<span class="distance-label">0 ק"מ</span>';
   elevationHtml += `<span class="distance-label">${(totalDistance / 1000).toFixed(1)} ק"מ</span>`;
+  elevationHtml += '<span class="distance-label">0 ק"מ</span>';
   elevationHtml += '</div>';
   elevationHtml += '</div>';
 
