@@ -293,6 +293,32 @@ body::before {
   }
 }
 
+.winter-warning {
+  background: #ff9800;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 8px;
+  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+  text-align: center;
+  animation: pulse 2s infinite;
+}
+
+.segment-warning {
+  background: #f44336;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 8px;
+  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.3);
+  text-align: center;
+  animation: pulse 2s infinite;
+}
+
 .paved-trail {
   background-color: rgb(2, 136, 209);
 }

@@ -4,6 +4,7 @@ let routePolylines = [];
 let undoStack = [];
 let redoStack = [];
 let kmlData = null;
+let segmentsData = null;
 
 // Save state for undo/redo
 function saveState() {
@@ -293,8 +294,19 @@ function initMap() {
   }
 }
 
+async function loadSegmentsData() {
+  try {
+    const response = await fetch('./segments.json');
+    segmentsData = await response.json();
+  } catch (error) {
+    console.warn('Could not load segments.json:', error);
+    segmentsData = {};
+  }
+}
+
 async function loadKMLFile() {
   try {
+    await loadSegmentsData();
     const response = await fetch('./bike_roads_v03.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
@@ -431,9 +443,21 @@ function parseGeoJSON(geoJsonData) {
         segmentElevationGain = Math.round(segmentElevationGain);
         segmentElevationLoss = Math.round(segmentElevationLoss);
 
+        // Check for warnings in segments data
+        let warningText = '';
+        const segmentInfo = segmentsData[name];
+        if (segmentInfo) {
+          if (segmentInfo.winter === false) {
+            warningText += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+          }
+          if (segmentInfo.warning) {
+            warningText += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+          }
+        }
+
         // Update segment name display with details
         const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'${warningText}`;
         segmentDisplay.style.display = 'block';
       });
 
@@ -718,15 +742,51 @@ function checkRouteContinuity() {
   return true;
 }
 
+// Function to check if any selected segments have winter warning
+function hasWinterSegments() {
+  return selectedSegments.some(segmentName => {
+    const segmentInfo = segmentsData[segmentName];
+    return segmentInfo && segmentInfo.winter === false;
+  });
+}
+
+// Function to check if any selected segments have warnings
+function hasSegmentWarnings() {
+  return selectedSegments.some(segmentName => {
+    const segmentInfo = segmentsData[segmentName];
+    return segmentInfo && segmentInfo.warning;
+  });
+}
+
 // Function to update route warning visibility
 function updateRouteWarning() {
   const routeWarning = document.getElementById('route-warning');
+  const winterWarning = document.getElementById('winter-warning');
+  const segmentWarning = document.getElementById('segment-warning');
+  
   const isContinuous = checkRouteContinuity();
+  const hasWinter = hasWinterSegments();
+  const hasWarnings = hasSegmentWarnings();
 
+  // Show broken route warning
   if (selectedSegments.length > 1 && !isContinuous) {
     routeWarning.style.display = 'block';
   } else {
     routeWarning.style.display = 'none';
+  }
+
+  // Show winter warning
+  if (hasWinter) {
+    winterWarning.style.display = 'block';
+  } else {
+    winterWarning.style.display = 'none';
+  }
+
+  // Show segment warnings indicator
+  if (hasWarnings) {
+    segmentWarning.style.display = 'block';
+  } else {
+    segmentWarning.style.display = 'none';
   }
 }
 
@@ -960,8 +1020,21 @@ function updateRouteListAndDescription() {
   selectedSegments.forEach((segmentName, index) => {
     const segmentDiv = document.createElement('div');
     segmentDiv.className = 'segment-item';
+    
+    // Check for warnings
+    let warningIcons = '';
+    const segmentInfo = segmentsData[segmentName];
+    if (segmentInfo) {
+      if (segmentInfo.winter === false) {
+        warningIcons += ' ❄️';
+      }
+      if (segmentInfo.warning) {
+        warningIcons += ' ⚠️';
+      }
+    }
+    
     segmentDiv.innerHTML = `
-      <span><strong>${index + 1}.</strong> ${segmentName}</span>
+      <span><strong>${index + 1}.</strong> ${segmentName}${warningIcons}</span>
       <button class="remove-btn" onclick="removeSegment('${segmentName}')">הסר</button>
     `;
 
@@ -982,8 +1055,20 @@ function updateRouteListAndDescription() {
         const segmentElevationGain = Math.round(coordObjects.length * 0.4);
         const segmentElevationLoss = Math.round(coordObjects.length * 0.3);
 
+        // Check for warnings in segments data
+        let warningText = '';
+        const segmentInfo = segmentsData[segmentName];
+        if (segmentInfo) {
+          if (segmentInfo.winter === false) {
+            warningText += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+          }
+          if (segmentInfo.warning) {
+            warningText += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+          }
+        }
+
         const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'${warningText}`;
         segmentDisplay.style.display = 'block';
       }
     });
