@@ -81,12 +81,15 @@ function resetRoute() {
 function updateSegmentStyles() {
   routePolylines.forEach(polylineData => {
     const layerId = polylineData.layerId;
-    if (selectedSegments.includes(polylineData.segmentName)) {
-      map.setPaintProperty(layerId, 'line-color', '#00ff00');
-      map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 1);
-    } else {
-      map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
-      map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight);
+    // Check if layer exists before trying to set properties
+    if (map.getLayer(layerId)) {
+      if (selectedSegments.includes(polylineData.segmentName)) {
+        map.setPaintProperty(layerId, 'line-color', '#00ff00');
+        map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 1);
+      } else {
+        map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
+        map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight);
+      }
     }
   });
 }
@@ -379,20 +382,92 @@ function shareRoute() {
   
   const url = new URL(window.location);
   url.searchParams.set('route', routeId);
+  const shareUrl = url.toString();
   
-  // Copy to clipboard
-  navigator.clipboard.writeText(url.toString()).then(() => {
-    alert('קישור המסלול הועתק ללוח. שתפו אותו עם אחרים!');
-  }).catch(() => {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea');
-    textArea.value = url.toString();
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
-    alert('קישור המסלול הועתק ללוח. שתפו אותו עם אחרים!');
+  // Show share modal
+  showShareModal(shareUrl);
+}
+
+function showShareModal(shareUrl) {
+  // Create modal elements
+  const modal = document.createElement('div');
+  modal.className = 'share-modal';
+  modal.innerHTML = `
+    <div class="share-modal-content">
+      <div class="share-modal-header">
+        <h3>שיתוף המסלול</h3>
+        <button class="share-modal-close">&times;</button>
+      </div>
+      <div class="share-modal-body">
+        <div class="share-url-container">
+          <input type="text" class="share-url-input" value="${shareUrl}" readonly>
+          <button class="copy-url-btn">העתק קישור</button>
+        </div>
+        <div class="share-buttons">
+          <button class="share-btn-social twitter" onclick="shareToTwitter('${encodeURIComponent(shareUrl)}')">
+            🐦 Twitter
+          </button>
+          <button class="share-btn-social facebook" onclick="shareToFacebook('${encodeURIComponent(shareUrl)}')">
+            📘 Facebook
+          </button>
+          <button class="share-btn-social whatsapp" onclick="shareToWhatsApp('${encodeURIComponent(shareUrl)}')">
+            💬 WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Add event listeners
+  const closeBtn = modal.querySelector('.share-modal-close');
+  const copyBtn = modal.querySelector('.copy-url-btn');
+  const urlInput = modal.querySelector('.share-url-input');
+  
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
   });
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+  
+  copyBtn.addEventListener('click', () => {
+    urlInput.select();
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      copyBtn.textContent = 'הועתק!';
+      copyBtn.style.background = '#4CAF50';
+      setTimeout(() => {
+        copyBtn.textContent = 'העתק קישור';
+        copyBtn.style.background = '#4682B4';
+      }, 2000);
+    }).catch(() => {
+      document.execCommand('copy');
+      copyBtn.textContent = 'הועתק!';
+      copyBtn.style.background = '#4CAF50';
+      setTimeout(() => {
+        copyBtn.textContent = 'העתק קישור';
+        copyBtn.style.background = '#4682B4';
+      }, 2000);
+    });
+  });
+}
+
+function shareToTwitter(url) {
+  const text = 'בדקו את מסלול הרכיבה שיצרתי במפת שבילי אופניים - גליל עליון וגולן!';
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`, '_blank');
+}
+
+function shareToFacebook(url) {
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+}
+
+function shareToWhatsApp(url) {
+  const text = 'בדקו את מסלול הרכיבה שיצרתי במפת שבילי אופניים - גליל עליון וגולן!';
+  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + decodeURIComponent(url))}`, '_blank');
 }
 
 function loadRouteFromUrl() {
@@ -403,8 +478,11 @@ function loadRouteFromUrl() {
     const decodedSegments = decodeRoute(routeParam);
     if (decodedSegments.length > 0) {
       selectedSegments = decodedSegments;
-      updateSegmentStyles();
-      updateRouteListAndDescription();
+      // Wait a bit for map to be fully loaded before updating styles
+      setTimeout(() => {
+        updateSegmentStyles();
+        updateRouteListAndDescription();
+      }, 500);
       
       // Remove route parameter from URL without page reload
       const url = new URL(window.location);
@@ -421,9 +499,6 @@ async function loadSegmentsData() {
   try {
     const response = await fetch('./segments.json');
     segmentsData = await response.json();
-    
-    // Try to load route from URL after segments data is loaded
-    loadRouteFromUrl();
   } catch (error) {
     console.warn('Could not load segments.json:', error);
     segmentsData = {};
@@ -436,6 +511,11 @@ async function loadKMLFile() {
     const response = await fetch('./bike_roads_v03.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
+    
+    // Try to load route from URL after everything is loaded
+    setTimeout(() => {
+      loadRouteFromUrl();
+    }, 1000);
   } catch (error) {
     document.getElementById('error-message').style.display = 'block';
     document.getElementById('error-message').textContent = 'Error loading GeoJSON file: ' + error.message;

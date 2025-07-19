@@ -499,6 +499,147 @@ body::before {
   box-shadow: 0 6px 20px rgba(245, 124, 0, 0.4);
 }
 
+.share-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  direction: rtl;
+}
+
+.share-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.share-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.share-modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.share-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.share-modal-close:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.share-modal-body {
+  padding: 20px 25px;
+}
+
+.share-url-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+
+.share-url-input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #f9f9f9;
+  direction: ltr;
+  text-align: left;
+}
+
+.copy-url-btn {
+  background: #4682B4;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.copy-url-btn:hover {
+  background: #5F9EA0;
+}
+
+.share-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.share-btn-social {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  color: white;
+}
+
+.share-btn-social.twitter {
+  background: #1DA1F2;
+}
+
+.share-btn-social.twitter:hover {
+  background: #0d8bd9;
+}
+
+.share-btn-social.facebook {
+  background: #4267B2;
+}
+
+.share-btn-social.facebook:hover {
+  background: #365899;
+}
+
+.share-btn-social.whatsapp {
+  background: #25D366;
+}
+
+.share-btn-social.whatsapp:hover {
+  background: #128C7E;
+}
+
 .mapboxgl-popup.segment-tooltip .mapboxgl-popup-content {
   background-color: rgba(0, 0, 0, 0.9);
   color: white;
