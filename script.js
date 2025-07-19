@@ -43,36 +43,36 @@ function resetRoute() {
   if (selectedSegments.length > 0) {
     saveState();
   }
-  
+
   // Clear selected segments
   selectedSegments = [];
-  
+
   // Clear undo/redo stacks
   undoStack = [];
   redoStack = [];
-  
+
   // Reset all segment styles to original
   routePolylines.forEach(polylineData => {
     const layerId = polylineData.layerId;
     map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
     map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight);
   });
-  
+
   // Remove any existing markers
   if (window.hoverMarker) {
     window.hoverMarker.remove();
     window.hoverMarker = null;
   }
-  
+
   if (window.elevationMarker) {
     window.elevationMarker.remove();
     window.elevationMarker = null;
   }
-  
+
   // Hide segment name display
   const segmentDisplay = document.getElementById('segment-name-display');
   segmentDisplay.style.display = 'none';
-  
+
   // Update UI
   updateRouteListAndDescription();
   updateUndoRedoButtons();
@@ -193,6 +193,18 @@ function initMap() {
 
         const segmentDisplay = document.getElementById('segment-name-display');
         segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+
+        // Check for warnings in segments data and add to segment display
+        const segmentInfo = segmentsData[name];
+        if (segmentInfo) {
+          if (segmentInfo.winter === false) {
+            segmentDisplay.innerHTML += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+          }
+          if (segmentInfo.warning) {
+            segmentDisplay.innerHTML += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+          }
+        }
+
         segmentDisplay.style.display = 'block';
       } else {
         // No segment close enough - reset cursor and hide display
@@ -412,26 +424,26 @@ function parseGeoJSON(geoJsonData) {
           segmentDistance += getDistance(coordObjects[i], coordObjects[i + 1]);
         }
         const segmentDistanceKm = (segmentDistance / 1000).toFixed(1);
-        
+
         // Calculate actual elevation gain and loss from coordinate data
         let segmentElevationGain = 0;
         let segmentElevationLoss = 0;
-        
+
         for (let i = 0; i < coordObjects.length - 1; i++) {
           let currentElevation, nextElevation;
-          
+
           if (coordObjects[i].elevation !== undefined) {
             currentElevation = coordObjects[i].elevation;
           } else {
             currentElevation = 200 + Math.sin(coordObjects[i].lat * 10) * 100 + Math.cos(coordObjects[i].lng * 8) * 50;
           }
-          
+
           if (coordObjects[i + 1].elevation !== undefined) {
             nextElevation = coordObjects[i + 1].elevation;
           } else {
             nextElevation = 200 + Math.sin(coordObjects[i + 1].lat * 10) * 100 + Math.cos(coordObjects[i + 1].lng * 8) * 50;
           }
-          
+
           const elevationChange = nextElevation - currentElevation;
           if (elevationChange > 0) {
             segmentElevationGain += elevationChange;
@@ -439,7 +451,7 @@ function parseGeoJSON(geoJsonData) {
             segmentElevationLoss += Math.abs(elevationChange);
           }
         }
-        
+
         segmentElevationGain = Math.round(segmentElevationGain);
         segmentElevationLoss = Math.round(segmentElevationLoss);
 
@@ -768,7 +780,7 @@ function updateRouteWarning() {
   const routeWarning = document.getElementById('route-warning');
   const winterWarning = document.getElementById('winter-warning');
   const segmentWarning = document.getElementById('segment-warning');
-  
+
   const continuityResult = checkRouteContinuity();
   const winterResult = hasWinterSegments();
   const warningsResult = hasSegmentWarnings();
@@ -828,8 +840,7 @@ function focusOnSegment(segmentName) {
     duration: 1000
   });
 
-  // Temporarily highlight the segment
-  const layerId = polyline.layerId;
+  // Temporarily highlight the segmentconst layerId = polyline.layerId;
   const originalColor = map.getPaintProperty(layerId, 'line-color');
   const originalWidth = map.getPaintProperty(layerId, 'line-width');
 
@@ -868,7 +879,7 @@ function getOrderedCoordinates() {
       if (selectedSegments.length > 1) {
         const nextSegmentName = selectedSegments[1];
         const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
-        
+
         if (nextPolyline) {
           const nextCoords = nextPolyline.coordinates;
           const firstStart = coords[0];
@@ -943,7 +954,7 @@ function generateElevationProfile() {
   // Create continuous elevation profile with interpolation
   const profileWidth = 300; // pixels
   const elevationData = [];
-  
+
   // First, calculate elevation for all coordinates
   const coordsWithElevation = orderedCoords.map((coord, index) => {
     // Use actual elevation from coordinates if available, otherwise calculate
@@ -954,7 +965,7 @@ function generateElevationProfile() {
       // Fallback: calculate elevation based on position (simulated)
       elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
     }
-    
+
     const distance = index === 0 ? 0 : orderedCoords.slice(0, index + 1).reduce((total, c, idx) => {
       if (idx === 0) return 0;
       return total + getDistance(orderedCoords[idx - 1], c);
@@ -970,11 +981,11 @@ function generateElevationProfile() {
   // Create continuous profile by interpolating between points
   for (let x = 0; x <= profileWidth; x++) {
     const distanceAtX = (x / profileWidth) * totalDistance;
-    
+
     // Find the two closest points to interpolate between
     let beforePoint = null;
     let afterPoint = null;
-    
+
     for (let i = 0; i < coordsWithElevation.length - 1; i++) {
       if (coordsWithElevation[i].distance <= distanceAtX && coordsWithElevation[i + 1].distance >= distanceAtX) {
         beforePoint = coordsWithElevation[i];
@@ -982,7 +993,7 @@ function generateElevationProfile() {
         break;
       }
     }
-    
+
     let elevation, coord;
     if (beforePoint && afterPoint && beforePoint !== afterPoint) {
       // Interpolate elevation and coordinates
@@ -999,10 +1010,10 @@ function generateElevationProfile() {
       elevation = coordsWithElevation[0].elevation;
       coord = coordsWithElevation[0];
     }
-    
+
     const heightPercent = Math.max(5, ((elevation - minElevation) / elevationRange) * 80 + 10);
     const distancePercent = (x / profileWidth) * 100;
-    
+
     elevationData.push({
       elevation,
       distance: distanceAtX,
@@ -1018,14 +1029,14 @@ function generateElevationProfile() {
   elevationData.forEach((point, index) => {
     const x = point.distancePercent;
     const y = 100 - point.heightPercent; // Flip Y coordinate for SVG
-    
+
     if (index === 0) {
       pathData += `M ${x} ${y}`;
     } else {
       pathData += ` L ${x} ${y}`;
     }
   });
-  
+
   // Close the path to create a filled area
   pathData += ` L 100 100 L 0 100 Z`;
 
@@ -1078,7 +1089,7 @@ function updateRouteListAndDescription() {
   selectedSegments.forEach((segmentName, index) => {
     const segmentDiv = document.createElement('div');
     segmentDiv.className = 'segment-item';
-    
+
     // Check for warnings
     let warningIcons = '';
     const segmentInfo = segmentsData[segmentName];
@@ -1090,7 +1101,7 @@ function updateRouteListAndDescription() {
         warningIcons += ' ⚠️';
       }
     }
-    
+
     segmentDiv.innerHTML = `
       <span><strong>${index + 1}.</strong> ${segmentName}${warningIcons}</span>
       <button class="remove-btn" onclick="removeSegment('${segmentName}')">הסר</button>
@@ -1158,22 +1169,22 @@ function updateRouteListAndDescription() {
   // Calculate actual elevation changes from coordinate data
   totalElevationGain = 0;
   totalElevationLoss = 0;
-  
+
   for (let i = 0; i < orderedCoords.length - 1; i++) {
     let currentElevation, nextElevation;
-    
+
     if (orderedCoords[i].elevation !== undefined) {
       currentElevation = orderedCoords[i].elevation;
     } else {
       currentElevation = 200 + Math.sin(orderedCoords[i].lat * 10) * 100 + Math.cos(orderedCoords[i].lng * 8) * 50;
     }
-    
+
     if (orderedCoords[i + 1].elevation !== undefined) {
       nextElevation = orderedCoords[i + 1].elevation;
     } else {
       nextElevation = 200 + Math.sin(orderedCoords[i + 1].lat * 10) * 100 + Math.cos(orderedCoords[i + 1].lng * 8) * 50;
     }
-    
+
     const elevationChange = nextElevation - currentElevation;
     if (elevationChange > 0) {
       totalElevationGain += elevationChange;
@@ -1181,7 +1192,7 @@ function updateRouteListAndDescription() {
       totalElevationLoss += Math.abs(elevationChange);
     }
   }
-  
+
   totalElevationGain = Math.round(totalElevationGain);
   totalElevationLoss = Math.round(totalElevationLoss);
 
@@ -1207,11 +1218,11 @@ function updateRouteListAndDescription() {
         const rect = elevationOverlay.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const xPercent = (x / rect.width) * 100;
-        
+
         // Find closest elevation data point
         let closestPoint = null;
         let minDistance = Infinity;
-        
+
         window.currentElevationData.forEach(point => {
           const distance = Math.abs(point.distancePercent - xPercent);
           if (distance < minDistance) {
@@ -1219,7 +1230,7 @@ function updateRouteListAndDescription() {
             closestPoint = point;
           }
         });
-        
+
         if (closestPoint) {
           // Remove existing elevation marker if any
           if (window.elevationMarker) {
@@ -1397,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Undo/redo buttons
   document.getElementById('undo-btn').addEventListener('click', undo);
   document.getElementById('redo-btn').addEventListener('click', redo);
-  
+
   // Reset button
   document.getElementById('reset-btn').addEventListener('click', () => {
     if (selectedSegments.length > 0) {

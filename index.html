@@ -67,7 +67,10 @@
         </div>
         <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none;"></div>
 
-        <h3>קטעי מסלול נבחרים</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h3 style="margin: 0;">קטעי מסלול נבחרים</h3>
+          <button id="reset-btn" class="reset-btn-subtle" title="איפוס מסלול">🗑️</button>
+        </div>
         <div id="route-list">
           <p style="color: #666; font-style: italic;">תכננו מסלול על ידי <b>לחיצה על קטע </b>והוספתו
             למסלול.<br>
@@ -82,7 +85,6 @@
         <div class="action-buttons">
           <button id="undo-btn" class="undo-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
           <button id="redo-btn" class="undo-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
-          <button id="reset-btn" class="reset-btn" title="איפוס מסלול">🗑️</button>
           <button id="download-gpx" disabled>הורדת מסלול GPX</button>
         </div>
       </div>
