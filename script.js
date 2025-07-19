@@ -607,6 +607,16 @@ function parseGeoJSON(geoJsonData) {
 
       // Extract style information from properties
       let originalColor = feature.properties.stroke || feature.properties['stroke-color'] || '#0288d1';
+      
+      // Convert colors according to specification
+      if (originalColor === '#0288d1' || originalColor === 'rgb(2, 136, 209)') {
+        originalColor = 'rgb(101, 170, 162)';
+      } else if (originalColor === 'rgb(230, 238, 156)') {
+        originalColor = 'rgb(138, 147, 158)';
+      } else {
+        originalColor = 'rgb(174, 144, 103)';
+      }
+      
       let originalWeight = feature.properties['stroke-width'] || 3;
       let originalOpacity = feature.properties['stroke-opacity'] || 0.8;
 
