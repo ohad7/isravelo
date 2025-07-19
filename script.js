@@ -487,6 +487,9 @@ function loadRouteFromUrl() {
   const routeParam = urlParams.get('route');
   
   if (routeParam && segmentsData) {
+    // Show loading indication
+    showRouteLoadingIndicator();
+    
     const decodedSegments = decodeRoute(routeParam);
     if (decodedSegments.length > 0) {
       selectedSegments = decodedSegments;
@@ -494,17 +497,38 @@ function loadRouteFromUrl() {
       setTimeout(() => {
         updateSegmentStyles();
         updateRouteListAndDescription();
+        hideRouteLoadingIndicator();
       }, 500);
       
-      // Remove route parameter from URL without page reload
-      const url = new URL(window.location);
-      url.searchParams.delete('route');
-      window.history.replaceState({}, document.title, url.toString());
-      
       return true;
+    } else {
+      hideRouteLoadingIndicator();
     }
   }
   return false;
+}
+
+function showRouteLoadingIndicator() {
+  // Remove existing indicator if any
+  const existing = document.getElementById('route-loading-indicator');
+  if (existing) {
+    existing.remove();
+  }
+  
+  const indicator = document.createElement('div');
+  indicator.id = 'route-loading-indicator';
+  indicator.className = 'route-loading';
+  indicator.innerHTML = '⏳ טוען מסלול...';
+  
+  const legendContainer = document.querySelector('.legend-container');
+  legendContainer.appendChild(indicator);
+}
+
+function hideRouteLoadingIndicator() {
+  const indicator = document.getElementById('route-loading-indicator');
+  if (indicator) {
+    indicator.remove();
+  }
 }
 
 async function loadSegmentsData() {
