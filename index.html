@@ -69,7 +69,11 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <h3 style="margin: 0;">קטעי מסלול נבחרים</h3>
-          <button id="reset-btn" class="reset-btn-subtle" title="איפוס מסלול">🗑️</button>
+          <div style="display: flex; gap: 5px;">
+            <button id="undo-btn" class="reset-btn-subtle" disabled title="ביטול (Ctrl+Z)">↶</button>
+            <button id="redo-btn" class="reset-btn-subtle" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
+            <button id="reset-btn" class="reset-btn-subtle" title="איפוס מסלול">🗑️</button>
+          </div>
         </div>
         <div id="route-list">
           <p style="color: #666; font-style: italic;">תכננו מסלול על ידי <b>לחיצה על קטע </b>והוספתו
@@ -83,8 +87,6 @@
         <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
 
         <div class="action-buttons">
-          <button id="undo-btn" class="undo-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
-          <button id="redo-btn" class="undo-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
           <button id="share-route" class="share-btn" title="שיתוף מסלול">📤</button>
           <button id="download-gpx" disabled>הורדת מסלול GPX</button>
         </div>

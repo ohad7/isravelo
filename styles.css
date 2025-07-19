@@ -470,13 +470,21 @@ body::before {
   font-size: 14px;
   transition: all 0.2s;
   box-shadow: none;
+  min-width: 36px;
 }
 
-.reset-btn-subtle:hover {
+.reset-btn-subtle:hover:not(:disabled) {
   background: #e8e8e8;
-  color: #d32f2f;
-  border-color: #d32f2f;
+  color: #333;
+  border-color: #ccc;
   transform: none;
+}
+
+.reset-btn-subtle:disabled {
+  background: #f9f9f9;
+  color: #ccc;
+  border-color: #f0f0f0;
+  cursor: not-allowed;
 }
 
 .share-btn {
