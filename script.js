@@ -306,10 +306,124 @@ function initMap() {
   }
 }
 
+// Route sharing functions
+function encodeRoute(segmentNames) {
+  if (!segmentNames || segmentNames.length === 0) return '';
+  
+  // Convert segment names to IDs using segments data
+  const segmentIds = segmentNames.map(name => {
+    const segmentInfo = segmentsData[name];
+    return segmentInfo ? segmentInfo.id : 0;
+  }).filter(id => id > 0);
+  
+  if (segmentIds.length === 0) return '';
+  
+  // Convert to 16-bit binary representation
+  const binaryData = new ArrayBuffer(segmentIds.length * 2);
+  const view = new Uint16Array(binaryData);
+  
+  segmentIds.forEach((id, index) => {
+    view[index] = id;
+  });
+  
+  // Convert to base64
+  const uint8Array = new Uint8Array(binaryData);
+  let binaryString = '';
+  for (let i = 0; i < uint8Array.length; i++) {
+    binaryString += String.fromCharCode(uint8Array[i]);
+  }
+  
+  return btoa(binaryString);
+}
+
+function decodeRoute(routeString) {
+  if (!routeString) return [];
+  
+  try {
+    // Decode from base64
+    const binaryString = atob(routeString);
+    const binaryData = new ArrayBuffer(binaryString.length);
+    const uint8Array = new Uint8Array(binaryData);
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      uint8Array[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Convert back to 16-bit integers
+    const view = new Uint16Array(binaryData);
+    const segmentIds = Array.from(view);
+    
+    // Convert IDs back to segment names
+    const segmentNames = [];
+    for (const segmentName in segmentsData) {
+      const segmentInfo = segmentsData[segmentName];
+      if (segmentInfo && segmentIds.includes(segmentInfo.id)) {
+        const index = segmentIds.indexOf(segmentInfo.id);
+        segmentNames[index] = segmentName;
+      }
+    }
+    
+    return segmentNames.filter(name => name); // Remove empty slots
+  } catch (error) {
+    console.error('Error decoding route:', error);
+    return [];
+  }
+}
+
+function shareRoute() {
+  const routeId = encodeRoute(selectedSegments);
+  if (!routeId) {
+    alert('אין מסלול לשיתוף. בחרו קטעים כדי ליצור מסלול.');
+    return;
+  }
+  
+  const url = new URL(window.location);
+  url.searchParams.set('route', routeId);
+  
+  // Copy to clipboard
+  navigator.clipboard.writeText(url.toString()).then(() => {
+    alert('קישור המסלול הועתק ללוח. שתפו אותו עם אחרים!');
+  }).catch(() => {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = url.toString();
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    alert('קישור המסלול הועתק ללוח. שתפו אותו עם אחרים!');
+  });
+}
+
+function loadRouteFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const routeParam = urlParams.get('route');
+  
+  if (routeParam && segmentsData) {
+    const decodedSegments = decodeRoute(routeParam);
+    if (decodedSegments.length > 0) {
+      selectedSegments = decodedSegments;
+      updateSegmentStyles();
+      updateRouteListAndDescription();
+      
+      // Remove route parameter from URL without page reload
+      const url = new URL(window.location);
+      url.searchParams.delete('route');
+      window.history.replaceState({}, document.title, url.toString());
+      
+      return true;
+    }
+  }
+  return false;
+}
+
 async function loadSegmentsData() {
   try {
     const response = await fetch('./segments.json');
     segmentsData = await response.json();
+    
+    // Try to load route from URL after segments data is loaded
+    loadRouteFromUrl();
   } catch (error) {
     console.warn('Could not load segments.json:', error);
     segmentsData = {};
@@ -840,7 +954,8 @@ function focusOnSegment(segmentName) {
     duration: 1000
   });
 
-  // Temporarily highlight the segmentconst layerId = polyline.layerId;
+  // Temporarily highlight the segment
+  const layerId = polyline.layerId;
   const originalColor = map.getPaintProperty(layerId, 'line-color');
   const originalWidth = map.getPaintProperty(layerId, 'line-width');
 
@@ -1419,6 +1534,9 @@ document.addEventListener('DOMContentLoaded', function() {
       resetRoute();
     }
   });
+
+  // Share route button
+  document.getElementById('share-route').addEventListener('click', shareRoute);
 
   // Legend toggle functionality
   document.getElementById('legend-toggle').addEventListener('click', function() {
