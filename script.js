@@ -443,22 +443,21 @@ function parseGeoJSON(geoJsonData) {
         segmentElevationGain = Math.round(segmentElevationGain);
         segmentElevationLoss = Math.round(segmentElevationLoss);
 
-        // Check for warnings in segments data
-        let warningText = '';
+        // Update segment name display with details
+        const segmentDisplay = document.getElementById('segment-name-display');
+        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.style.display = 'block';
+
+        // Check for warnings in segments data and add to segment display
         const segmentInfo = segmentsData[name];
         if (segmentInfo) {
           if (segmentInfo.winter === false) {
-            warningText += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+            segmentDisplay.innerHTML += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
           }
           if (segmentInfo.warning) {
-            warningText += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+            segmentDisplay.innerHTML += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
           }
         }
-
-        // Update segment name display with details
-        const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'${warningText}`;
-        segmentDisplay.style.display = 'block';
       });
 
       // Add hover functionality for selected segments to show distance from start
@@ -697,9 +696,9 @@ function getClosestPointOnLineSegment(point, lineStart, lineEnd) {
   return { lat: yy, lng: xx };
 }
 
-// Function to check if route is continuous
+// Function to check if route is continuous and find first broken segment
 function checkRouteContinuity() {
-  if (selectedSegments.length <= 1) return true;
+  if (selectedSegments.length <= 1) return { isContinuous: true, brokenSegmentIndex: -1 };
 
   const tolerance = 100; // 100 meters tolerance
 
@@ -735,27 +734,33 @@ function checkRouteContinuity() {
 
     // If minimum distance is greater than tolerance, route is broken
     if (minDistance > tolerance) {
-      return false;
+      return { isContinuous: false, brokenSegmentIndex: i };
     }
   }
 
-  return true;
+  return { isContinuous: true, brokenSegmentIndex: -1 };
 }
 
-// Function to check if any selected segments have winter warning
+// Function to check if any selected segments have winter warning and find first one
 function hasWinterSegments() {
-  return selectedSegments.some(segmentName => {
-    const segmentInfo = segmentsData[segmentName];
-    return segmentInfo && segmentInfo.winter === false;
-  });
+  for (let i = 0; i < selectedSegments.length; i++) {
+    const segmentInfo = segmentsData[selectedSegments[i]];
+    if (segmentInfo && segmentInfo.winter === false) {
+      return { hasWinter: true, firstWinterSegment: selectedSegments[i] };
+    }
+  }
+  return { hasWinter: false, firstWinterSegment: null };
 }
 
-// Function to check if any selected segments have warnings
+// Function to check if any selected segments have warnings and find first one
 function hasSegmentWarnings() {
-  return selectedSegments.some(segmentName => {
-    const segmentInfo = segmentsData[segmentName];
-    return segmentInfo && segmentInfo.warning;
-  });
+  for (let i = 0; i < selectedSegments.length; i++) {
+    const segmentInfo = segmentsData[selectedSegments[i]];
+    if (segmentInfo && segmentInfo.warning) {
+      return { hasWarnings: true, firstWarningSegment: selectedSegments[i] };
+    }
+  }
+  return { hasWarnings: false, firstWarningSegment: null };
 }
 
 // Function to update route warning visibility
@@ -764,30 +769,83 @@ function updateRouteWarning() {
   const winterWarning = document.getElementById('winter-warning');
   const segmentWarning = document.getElementById('segment-warning');
   
-  const isContinuous = checkRouteContinuity();
-  const hasWinter = hasWinterSegments();
-  const hasWarnings = hasSegmentWarnings();
+  const continuityResult = checkRouteContinuity();
+  const winterResult = hasWinterSegments();
+  const warningsResult = hasSegmentWarnings();
 
   // Show broken route warning
-  if (selectedSegments.length > 1 && !isContinuous) {
+  if (selectedSegments.length > 1 && !continuityResult.isContinuous) {
     routeWarning.style.display = 'block';
   } else {
     routeWarning.style.display = 'none';
   }
 
   // Show winter warning
-  if (hasWinter) {
+  if (winterResult.hasWinter) {
     winterWarning.style.display = 'block';
   } else {
     winterWarning.style.display = 'none';
   }
 
   // Show segment warnings indicator
-  if (hasWarnings) {
+  if (warningsResult.hasWarnings) {
     segmentWarning.style.display = 'block';
   } else {
     segmentWarning.style.display = 'none';
   }
+}
+
+// Function to focus map on a specific segment
+function focusOnSegment(segmentName) {
+  const polyline = routePolylines.find(p => p.segmentName === segmentName);
+  if (!polyline) return;
+
+  const coords = polyline.coordinates;
+  if (coords.length === 0) return;
+
+  // Calculate bounds for the segment
+  let minLat = coords[0].lat, maxLat = coords[0].lat;
+  let minLng = coords[0].lng, maxLng = coords[0].lng;
+
+  coords.forEach(coord => {
+    minLat = Math.min(minLat, coord.lat);
+    maxLat = Math.max(maxLat, coord.lat);
+    minLng = Math.min(minLng, coord.lng);
+    maxLng = Math.max(maxLng, coord.lng);
+  });
+
+  // Add some padding around the segment
+  const latPadding = (maxLat - minLat) * 0.2 || 0.01;
+  const lngPadding = (maxLng - minLng) * 0.2 || 0.01;
+
+  const bounds = new mapboxgl.LngLatBounds(
+    [minLng - lngPadding, minLat - latPadding],
+    [maxLng + lngPadding, maxLat + latPadding]
+  );
+
+  map.fitBounds(bounds, {
+    padding: 50,
+    duration: 1000
+  });
+
+  // Temporarily highlight the segment
+  const layerId = polyline.layerId;
+  const originalColor = map.getPaintProperty(layerId, 'line-color');
+  const originalWidth = map.getPaintProperty(layerId, 'line-width');
+
+  map.setPaintProperty(layerId, 'line-color', '#ff0000');
+  map.setPaintProperty(layerId, 'line-width', originalWidth + 3);
+
+  // Reset after 2 seconds
+  setTimeout(() => {
+    if (selectedSegments.includes(segmentName)) {
+      map.setPaintProperty(layerId, 'line-color', '#00ff00');
+      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
+    } else {
+      map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
+      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
+    }
+  }, 2000);
 }
 
 // Function to order coordinates based on route connectivity
@@ -1055,21 +1113,20 @@ function updateRouteListAndDescription() {
         const segmentElevationGain = Math.round(coordObjects.length * 0.4);
         const segmentElevationLoss = Math.round(coordObjects.length * 0.3);
 
-        // Check for warnings in segments data
-        let warningText = '';
+        const segmentDisplay = document.getElementById('segment-name-display');
+        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.style.display = 'block';
+
+        // Check for warnings in segments data and add to segment display
         const segmentInfo = segmentsData[segmentName];
         if (segmentInfo) {
           if (segmentInfo.winter === false) {
-            warningText += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+            segmentDisplay.innerHTML += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
           }
           if (segmentInfo.warning) {
-            warningText += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+            segmentDisplay.innerHTML += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
           }
         }
-
-        const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'${warningText}`;
-        segmentDisplay.style.display = 'block';
       }
     });
 
@@ -1363,6 +1420,29 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       legendBox.classList.remove('closed');
       legendBox.classList.add('open');
+    }
+  });
+
+  // Warning box click handlers
+  document.getElementById('route-warning').addEventListener('click', function() {
+    const continuityResult = checkRouteContinuity();
+    if (!continuityResult.isContinuous && continuityResult.brokenSegmentIndex >= 0) {
+      const segmentName = selectedSegments[continuityResult.brokenSegmentIndex];
+      focusOnSegment(segmentName);
+    }
+  });
+
+  document.getElementById('winter-warning').addEventListener('click', function() {
+    const winterResult = hasWinterSegments();
+    if (winterResult.hasWinter && winterResult.firstWinterSegment) {
+      focusOnSegment(winterResult.firstWinterSegment);
+    }
+  });
+
+  document.getElementById('segment-warning').addEventListener('click', function() {
+    const warningsResult = hasSegmentWarnings();
+    if (warningsResult.hasWarnings && warningsResult.firstWarningSegment) {
+      focusOnSegment(warningsResult.firstWarningSegment);
     }
   });
 
