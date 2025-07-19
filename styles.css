@@ -357,15 +357,19 @@ body::before {
 }
 
 .paved-trail {
-  background-color: rgb(2, 136, 209);
+  /* background-color: rgb(2, 136, 209); */
+  background-color: rgb(101, 170, 162);
 }
 
 .dirt-trail {
-  background-color: rgb(85, 139, 47);
+  /* background-color: rgb(85, 139, 47); */
+  background-color: rgb(174, 144, 103);
 }
 
 .road {
-  background-color: rgb(230, 238, 156);
+  /* background-color: rgb(230, 238, 156); */
+  /* background-color: rgb(186, 194, 200); */
+  background-color: rgb(138, 147, 158);
 }
 
 #error-message {

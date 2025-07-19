@@ -482,13 +482,15 @@ function shareToWhatsApp(url) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + decodeURIComponent(url))}`, '_blank');
 }
 
-function loadRouteFromUrl() {
+function getRouteParameter() {
   const urlParams = new URLSearchParams(window.location.search);
-  const routeParam = urlParams.get('route');
+  return urlParams.get('route');  
+}
+
+function loadRouteFromUrl() {
+  const routeParam = getRouteParameter();
   
   if (routeParam && segmentsData) {
-    // Show loading indication
-    showRouteLoadingIndicator();
     
     const decodedSegments = decodeRoute(routeParam);
     if (decodedSegments.length > 0) {
@@ -509,6 +511,12 @@ function loadRouteFromUrl() {
 }
 
 function showRouteLoadingIndicator() {
+  const routeParam = getRouteParameter();
+
+  if (!routeParam || !segmentsData) {
+    return;
+  }
+  
   // Remove existing indicator if any
   const existing = document.getElementById('route-loading-indicator');
   if (existing) {
@@ -544,6 +552,7 @@ async function loadSegmentsData() {
 async function loadKMLFile() {
   try {
     await loadSegmentsData();
+    showRouteLoadingIndicator();
     const response = await fetch('./bike_roads_v03.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
