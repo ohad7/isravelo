@@ -6,6 +6,11 @@ let redoStack = [];
 let kmlData = null;
 let segmentsData = null;
 
+const COLORS = {
+  WARNING_ORANGE: '#ff9800',
+  WARNING_RED: '#f44336',
+};
+
 // Save state for undo/redo
 function saveState() {
   undoStack.push([...selectedSegments]);
@@ -213,10 +218,10 @@ function initMap() {
         const segmentInfo = segmentsData[name];
         if (segmentInfo) {
           if (segmentInfo.winter === false) {
-            segmentDisplay.innerHTML += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>`;
           }
           if (segmentInfo.warning) {
-            segmentDisplay.innerHTML += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_RED}; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
           }
         }
 
@@ -716,10 +721,10 @@ function parseGeoJSON(geoJsonData) {
         const segmentInfo = segmentsData[name];
         if (segmentInfo) {
           if (segmentInfo.winter === false) {
-            segmentDisplay.innerHTML += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>`;
           }
           if (segmentInfo.warning) {
-            segmentDisplay.innerHTML += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_RED}; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
           }
         }
       });
@@ -852,6 +857,7 @@ function parseGeoJSON(geoJsonData) {
   } catch (error) {
     document.getElementById('error-message').style.display = 'block';
     document.getElementById('error-message').textContent = 'Error parsing GeoJSON file: ' + error.message;
+```javascript
   }
 }
 
@@ -1385,10 +1391,10 @@ function updateRouteListAndDescription() {
         const segmentInfo = segmentsData[segmentName];
         if (segmentInfo) {
           if (segmentInfo.winter === false) {
-            segmentDisplay.innerHTML += '<div style="color: #ff9800; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>';
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>`;
           }
           if (segmentInfo.warning) {
-            segmentDisplay.innerHTML += `<div style="color: #f44336; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_RED}; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
           }
         }
       }
