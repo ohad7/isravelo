@@ -524,7 +524,8 @@ body::before {
   box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
 }
 
-.share-modal {
+.share-modal,
+.reset-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -538,7 +539,8 @@ body::before {
   direction: rtl;
 }
 
-.share-modal-content {
+.share-modal-content,
+.reset-modal-content {
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -548,12 +550,18 @@ body::before {
   overflow: auto;
 }
 
-.share-modal-header {
+.share-modal-header,
+.reset-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 25px 10px;
   border-bottom: 1px solid #eee;
+}
+
+.reset-modal-header {
+  justify-content: center;
+  padding-bottom: 15px;
 }
 
 .share-modal-header h3 {
@@ -583,8 +591,72 @@ body::before {
   color: #333;
 }
 
-.share-modal-body {
+.share-modal-body,
+.reset-modal-body {
   padding: 20px 25px;
+}
+
+.reset-modal-body p {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.reset-warning {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  padding: 12px;
+  border-radius: 6px;
+  color: #856404;
+  font-weight: 600;
+  margin-bottom: 20px !important;
+}
+
+.reset-modal-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 25px;
+}
+
+.reset-confirm-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+.reset-confirm-btn:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.reset-cancel-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
+}
+
+.reset-cancel-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
 }
 
 .share-url-container {

@@ -444,6 +444,57 @@ function shareRoute() {
   showShareModal(shareUrl);
 }
 
+function showResetModal() {
+  // Create modal elements
+  const modal = document.createElement('div');
+  modal.className = 'reset-modal';
+  modal.innerHTML = `
+    <div class="reset-modal-content">
+      <div class="reset-modal-header">
+        <h3>🗑️ איפוס מסלול</h3>
+      </div>
+      <div class="reset-modal-body">
+        <p>האם אתה בטוח שברצונך לאפס את המסלול?</p>
+        <p class="reset-warning">פעולה זו תמחק את כל הקטעים שנבחרו (${selectedSegments.length} קטעים)</p>
+        <div class="reset-modal-buttons">
+          <button class="reset-confirm-btn">כן, אפס מסלול</button>
+          <button class="reset-cancel-btn">ביטול</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Add event listeners
+  const confirmBtn = modal.querySelector('.reset-confirm-btn');
+  const cancelBtn = modal.querySelector('.reset-cancel-btn');
+
+  confirmBtn.addEventListener('click', () => {
+    resetRoute();
+    document.body.removeChild(modal);
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+
+  // Add escape key listener
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+}
+
 function showShareModal(shareUrl) {
   // Create modal elements
   const modal = document.createElement('div');
@@ -1816,9 +1867,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Reset button
   document.getElementById('reset-btn').addEventListener('click', () => {
     if (selectedSegments.length > 0) {
-      if (confirm('האם אתה בטוח שברצונך לאפס את המסלול? פעולה זו תמחק את כל הקטעים שנבחרו.')) {
-        resetRoute();
-      }
+      showResetModal();
     } else {
       resetRoute();
     }
