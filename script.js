@@ -9,10 +9,10 @@ let segmentsData = null;
 const COLORS = {
   WARNING_ORANGE: '#ff9800',
   WARNING_RED: '#f44336',
-  SEGMENT_SELECTED: '#00ff00', // Green for selected segments
-  SEGMENT_HOVER: '#ff6600', // Orange for hovered segments
-  SEGMENT_HOVER_SELECTED: '#00dd00', // Brighter green when hovering over a selected segment
-  SEGMENT_SIDEBAR_HOVER: '#654321', // Brown when hovering a segment in the sidebar
+  SEGMENT_SELECTED: '#006699', // Green for selected segments
+  SEGMENT_HOVER: '#666633', // Orange for hovered segments
+  SEGMENT_HOVER_SELECTED: '#003399', // Brighter green when hovering over a selected segment
+  SEGMENT_SIDEBAR_HOVER: '#666633', // Brown when hovering a segment in the sidebar
   ELEVATION_MARKER: '#ff4444', // Red for the elevation marker
 };
 
@@ -1583,13 +1583,13 @@ function searchLocation() {
         const lon = parseFloat(result.lon);
 
         // Only pan to the location without showing markers or popups
-        const zoomLevel = result.type === 'city' ? 12 :
-          result.type === 'town' ? 13 :
-            result.type === 'village' ? 14 : 13;
+        // const zoomLevel = result.type === 'city' ? 12 :
+        //   result.type === 'town' ? 13 :
+        //     result.type === 'village' ? 14 : 13;
 
         map.flyTo({
           center: [lon, lat],
-          zoom: zoomLevel,
+          zoom: 11.5,
           duration: 1000
         });
 
