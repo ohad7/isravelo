@@ -1464,30 +1464,137 @@ function updateRouteListAndDescription() {
     totalDistance += getDistance(orderedCoords[i], orderedCoords[i + 1]);
   }
 
-  // Calculate actual elevation changes from coordinate data
+  // Calculate elevation changes considering route direction
   totalElevationGain = 0;
   totalElevationLoss = 0;
 
-  for (let i = 0; i < orderedCoords.length - 1; i++) {
-    let currentElevation, nextElevation;
+  // Calculate elevation for each selected segment in order
+  for (let segIndex = 0; segIndex < selectedSegments.length; segIndex++) {
+    const segmentName = selectedSegments[segIndex];
+    const polyline = routePolylines.find(p => p.segmentName === segmentName);
+    
+    if (!polyline) continue;
 
-    if (orderedCoords[i].elevation !== undefined) {
-      currentElevation = orderedCoords[i].elevation;
-    } else {
-      currentElevation = 200 + Math.sin(orderedCoords[i].lat * 10) * 100 + Math.cos(orderedCoords[i].lng * 8) * 50;
+    let segmentCoords = [...polyline.coordinates];
+
+    // Determine if this segment needs to be reversed based on connectivity
+    if (segIndex > 0) {
+      // Get the last point from previous segments
+      const prevSegmentName = selectedSegments[segIndex - 1];
+      const prevPolyline = routePolylines.find(p => p.segmentName === prevSegmentName);
+      
+      if (prevPolyline) {
+        let prevLastCoord;
+        
+        // Find what was the actual last coordinate used from previous segment
+        if (segIndex === 1) {
+          // For first segment, check if it was reversed
+          const prevCoords = [...prevPolyline.coordinates];
+          if (selectedSegments.length > 1) {
+            const nextSegmentName = selectedSegments[1];
+            const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
+            
+            if (nextPolyline) {
+              const nextCoords = nextPolyline.coordinates;
+              const prevStart = prevCoords[0];
+              const prevEnd = prevCoords[prevCoords.length - 1];
+              const nextStart = nextCoords[0];
+              const nextEnd = nextCoords[nextCoords.length - 1];
+
+              const distances = [
+                getDistance(prevEnd, nextStart),
+                getDistance(prevEnd, nextEnd),
+                getDistance(prevStart, nextStart),
+                getDistance(prevStart, nextEnd)
+              ];
+
+              const minIndex = distances.indexOf(Math.min(...distances));
+              
+              if (minIndex === 2 || minIndex === 3) {
+                prevLastCoord = prevCoords[0]; // First segment was reversed
+              } else {
+                prevLastCoord = prevCoords[prevCoords.length - 1];
+              }
+            } else {
+              prevLastCoord = prevCoords[prevCoords.length - 1];
+            }
+          } else {
+            prevLastCoord = prevCoords[prevCoords.length - 1];
+          }
+        } else {
+          // For subsequent segments, the last coordinate is determined by previous logic
+          const orderedSoFar = getOrderedCoordinates().slice(0, 
+            selectedSegments.slice(0, segIndex).reduce((sum, name) => {
+              const poly = routePolylines.find(p => p.segmentName === name);
+              return sum + (poly ? poly.coordinates.length : 0);
+            }, 0)
+          );
+          prevLastCoord = orderedSoFar[orderedSoFar.length - 1];
+        }
+
+        if (prevLastCoord) {
+          const segmentStart = segmentCoords[0];
+          const segmentEnd = segmentCoords[segmentCoords.length - 1];
+
+          const distanceToStart = getDistance(prevLastCoord, segmentStart);
+          const distanceToEnd = getDistance(prevLastCoord, segmentEnd);
+
+          // If end is closer, reverse the segment
+          if (distanceToEnd < distanceToStart) {
+            segmentCoords.reverse();
+          }
+        }
+      }
+    } else if (selectedSegments.length > 1) {
+      // For first segment, check orientation with second segment
+      const nextSegmentName = selectedSegments[1];
+      const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
+
+      if (nextPolyline) {
+        const nextCoords = nextPolyline.coordinates;
+        const firstStart = segmentCoords[0];
+        const firstEnd = segmentCoords[segmentCoords.length - 1];
+        const nextStart = nextCoords[0];
+        const nextEnd = nextCoords[nextCoords.length - 1];
+
+        const distances = [
+          getDistance(firstEnd, nextStart),
+          getDistance(firstEnd, nextEnd),
+          getDistance(firstStart, nextStart),
+          getDistance(firstStart, nextEnd)
+        ];
+
+        const minIndex = distances.indexOf(Math.min(...distances));
+        
+        // If best connection is from first start, reverse the first segment
+        if (minIndex === 2 || minIndex === 3) {
+          segmentCoords.reverse();
+        }
+      }
     }
 
-    if (orderedCoords[i + 1].elevation !== undefined) {
-      nextElevation = orderedCoords[i + 1].elevation;
-    } else {
-      nextElevation = 200 + Math.sin(orderedCoords[i + 1].lat * 10) * 100 + Math.cos(orderedCoords[i + 1].lng * 8) * 50;
-    }
+    // Calculate elevation changes for this segment in the correct direction
+    for (let i = 0; i < segmentCoords.length - 1; i++) {
+      let currentElevation, nextElevation;
 
-    const elevationChange = nextElevation - currentElevation;
-    if (elevationChange > 0) {
-      totalElevationGain += elevationChange;
-    } else {
-      totalElevationLoss += Math.abs(elevationChange);
+      if (segmentCoords[i].elevation !== undefined) {
+        currentElevation = segmentCoords[i].elevation;
+      } else {
+        currentElevation = 200 + Math.sin(segmentCoords[i].lat * 10) * 100 + Math.cos(segmentCoords[i].lng * 8) * 50;
+      }
+
+      if (segmentCoords[i + 1].elevation !== undefined) {
+        nextElevation = segmentCoords[i + 1].elevation;
+      } else {
+        nextElevation = 200 + Math.sin(segmentCoords[i + 1].lat * 10) * 100 + Math.cos(segmentCoords[i + 1].lng * 8) * 50;
+      }
+
+      const elevationChange = nextElevation - currentElevation;
+      if (elevationChange > 0) {
+        totalElevationGain += elevationChange;
+      } else {
+        totalElevationLoss += Math.abs(elevationChange);
+      }
     }
   }
 
