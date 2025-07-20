@@ -599,7 +599,7 @@ async function loadKMLFile() {
   try {
     await loadSegmentsData();
     showRouteLoadingIndicator();
-    const response = await fetch('./bike_roads_v03.geojson');
+    const response = await fetch('./bike_roads_v04.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
 
@@ -667,7 +667,7 @@ function parseGeoJSON(geoJsonData) {
       //let originalWeight = feature.properties['stroke-width'] || 3;
       //let originalOpacity = feature.properties['stroke-opacity'] || 0.8;
       let originalWeight = 3;
-      let originalOpacity = 0.9;
+      let originalOpacity = 1.0;
 
       const layerId = `route-${name.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
