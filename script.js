@@ -14,7 +14,38 @@ const COLORS = {
   SEGMENT_HOVER_SELECTED: '#003399', // Brighter green when hovering over a selected segment
   SEGMENT_SIDEBAR_HOVER: '#666633', // Brown when hovering a segment in the sidebar
   ELEVATION_MARKER: '#ff4444', // Red for the elevation marker
+  HIGHLIGHT_WHITE: '#ffffff', // White for highlighting all segments
 };
+
+// Function to highlight all segments in white and then return to original colors
+function highlightAllSegments() {
+  // First phase: highlight all segments in white
+  routePolylines.forEach(polylineData => {
+    const layerId = polylineData.layerId;
+    if (map.getLayer(layerId)) {
+      map.setPaintProperty(layerId, 'line-color', COLORS.HIGHLIGHT_WHITE);
+      map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 2);
+    }
+  });
+
+  // Second phase: return to original colors after 800ms
+  setTimeout(() => {
+    routePolylines.forEach(polylineData => {
+      const layerId = polylineData.layerId;
+      if (map.getLayer(layerId)) {
+        if (selectedSegments.includes(polylineData.segmentName)) {
+          // Return selected segments to green
+          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
+          map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 1);
+        } else {
+          // Return non-selected segments to original style
+          map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
+          map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight);
+        }
+      }
+    });
+  }, 800);
+}
 
 // Save state for undo/redo
 function saveState() {
@@ -145,6 +176,11 @@ function initMap() {
         ['literal', 'name']
       ]);
       loadKMLFile();
+      
+      // Highlight all segments when map finishes loading
+      setTimeout(() => {
+        highlightAllSegments();
+      }, 1500); // Wait for segments to load
     });
 
 
@@ -1592,6 +1628,11 @@ function searchLocation() {
           zoom: 11.5,
           duration: 1000
         });
+
+        // Highlight all segments after flyTo completes
+        setTimeout(() => {
+          highlightAllSegments();
+        }, 1200); // Wait for flyTo animation to complete (1000ms + buffer)
 
         searchInput.value = '';
       } else {
