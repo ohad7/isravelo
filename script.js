@@ -844,10 +844,10 @@ function parseGeoJSON(geoJsonData) {
       });
     });
 
-    // Fit map to show all route segments
-    if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 20 });
-    }
+    // Keep map at current position instead of auto-fitting to all segments
+    // if (!bounds.isEmpty()) {
+    //   map.fitBounds(bounds, { padding: 20 });
+    // }
 
   } catch (error) {
     document.getElementById('error-message').style.display = 'block';
