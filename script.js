@@ -9,6 +9,11 @@ let segmentsData = null;
 const COLORS = {
   WARNING_ORANGE: '#ff9800',
   WARNING_RED: '#f44336',
+  SEGMENT_SELECTED: '#00ff00', // Green for selected segments
+  SEGMENT_HOVER: '#ff6600', // Orange for hovered segments
+  SEGMENT_HOVER_SELECTED: '#00dd00', // Brighter green when hovering over a selected segment
+  SEGMENT_SIDEBAR_HOVER: '#654321', // Brown when hovering a segment in the sidebar
+  ELEVATION_MARKER: '#ff4444', // Red for the elevation marker
 };
 
 // Save state for undo/redo
@@ -101,7 +106,7 @@ function updateSegmentStyles() {
     // Check if layer exists before trying to set properties
     if (map.getLayer(layerId)) {
       if (selectedSegments.includes(polylineData.segmentName)) {
-        map.setPaintProperty(layerId, 'line-color', '#00ff00');
+        map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
         map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 1);
       } else {
         map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
@@ -177,7 +182,7 @@ function initMap() {
         const layerId = polylineData.layerId;
         if (selectedSegments.includes(polylineData.segmentName)) {
           // Keep selected segments green
-          map.setPaintProperty(layerId, 'line-color', '#00ff00');
+          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
           map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 1);
         } else {
           // Reset non-selected segments to original style
@@ -193,11 +198,11 @@ function initMap() {
 
         if (!selectedSegments.includes(closestSegment.segmentName)) {
           // Highlight non-selected segment
-          map.setPaintProperty(layerId, 'line-color', '#ff6600');
+          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_HOVER);
           map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 2);
         } else {
           // Make selected segment more prominent
-          map.setPaintProperty(layerId, 'line-color', '#00dd00');
+          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_HOVER_SELECTED);
           map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 3);
         }
 
@@ -270,7 +275,7 @@ function initMap() {
         if (!selectedSegments.includes(name)) {
           saveState();
           selectedSegments.push(name);
-          map.setPaintProperty(layerId, 'line-color', '#00ff00');
+          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
           map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 1);
 
           // Smart focusing logic (same as before)
@@ -815,7 +820,7 @@ function parseGeoJSON(geoJsonData) {
               el.style.cssText = `
                 width: 12px;
                 height: 12px;
-                background: #ff4444;
+                background: ${COLORS.ELEVATION_MARKER};
                 border: 3px solid white;
                 border-radius: 50%;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.4);
@@ -843,8 +848,7 @@ function parseGeoJSON(geoJsonData) {
 
         // Remove hover marker
         if (window.hoverMarker) {
-          window.hoverMarker.remove();
-          window.hoverMarker = null;
+          window.hoverMarker.remove();          window.hoverMarker = null;
         }
       });
     });
@@ -857,7 +861,6 @@ function parseGeoJSON(geoJsonData) {
   } catch (error) {
     document.getElementById('error-message').style.display = 'block';
     document.getElementById('error-message').textContent = 'Error parsing GeoJSON file: ' + error.message;
-```javascript
   }
 }
 
@@ -1109,7 +1112,7 @@ function focusOnSegment(segmentName) {
   // Reset after 2 seconds
   setTimeout(() => {
     if (selectedSegments.includes(segmentName)) {
-      map.setPaintProperty(layerId, 'line-color', '#00ff00');
+      map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
       map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
     } else {
       map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
@@ -1370,7 +1373,7 @@ function updateRouteListAndDescription() {
     segmentDiv.addEventListener('mouseenter', () => {
       const polyline = routePolylines.find(p => p.segmentName === segmentName);
       if (polyline) {
-        map.setPaintProperty(polyline.layerId, 'line-color', '#654321');
+        map.setPaintProperty(polyline.layerId, 'line-color', COLORS.SEGMENT_SIDEBAR_HOVER);
         map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 3);
 
         // Show segment summary in top right display
@@ -1403,7 +1406,7 @@ function updateRouteListAndDescription() {
     segmentDiv.addEventListener('mouseleave', () => {
       const polyline = routePolylines.find(p => p.segmentName === segmentName);
       if (polyline) {
-        map.setPaintProperty(polyline.layerId, 'line-color', '#00ff00');
+        map.setPaintProperty(polyline.layerId, 'line-color', COLORS.SEGMENT_SELECTED);
         map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 1);
 
         // Hide segment summary display
@@ -1502,7 +1505,7 @@ function updateRouteListAndDescription() {
           el.style.cssText = `
             width: 16px;
             height: 16px;
-            background: #ff0000;
+            background: ${COLORS.ELEVATION_MARKER};
             border: 3px solid white;
             border-radius: 50%;
             box-shadow: 0 2px 8px rgba(255, 0, 0, 0.6);
