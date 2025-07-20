@@ -114,7 +114,7 @@ function initMap() {
       container: 'map',
       style: 'mapbox://styles/mapbox/outdoors-v12',
       center: [35.617497, 33.183536], // Centered on the bike routes area
-      zoom: 14
+      zoom: 11.5
     });
 
     // Set Hebrew language after map loads
