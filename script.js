@@ -113,8 +113,8 @@ function initMap() {
     map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/outdoors-v12',
-      center: [35.6, 33.2], // Centered on the bike routes area
-      zoom: 11
+      center: [35.617497, 33.183536], // Centered on the bike routes area
+      zoom: 14
     });
 
     // Set Hebrew language after map loads
@@ -324,50 +324,50 @@ function initMap() {
 // Route sharing functions
 function encodeRoute(segmentNames) {
   if (!segmentNames || segmentNames.length === 0) return '';
-  
+
   // Convert segment names to IDs using segments data
   const segmentIds = segmentNames.map(name => {
     const segmentInfo = segmentsData[name];
     return segmentInfo ? segmentInfo.id : 0;
   }).filter(id => id > 0);
-  
+
   if (segmentIds.length === 0) return '';
-  
+
   // Convert to 16-bit binary representation
   const binaryData = new ArrayBuffer(segmentIds.length * 2);
   const view = new Uint16Array(binaryData);
-  
+
   segmentIds.forEach((id, index) => {
     view[index] = id;
   });
-  
+
   // Convert to base64
   const uint8Array = new Uint8Array(binaryData);
   let binaryString = '';
   for (let i = 0; i < uint8Array.length; i++) {
     binaryString += String.fromCharCode(uint8Array[i]);
   }
-  
+
   return btoa(binaryString);
 }
 
 function decodeRoute(routeString) {
   if (!routeString) return [];
-  
+
   try {
     // Decode from base64
     const binaryString = atob(routeString);
     const binaryData = new ArrayBuffer(binaryString.length);
     const uint8Array = new Uint8Array(binaryData);
-    
+
     for (let i = 0; i < binaryString.length; i++) {
       uint8Array[i] = binaryString.charCodeAt(i);
     }
-    
+
     // Convert back to 16-bit integers
     const view = new Uint16Array(binaryData);
     const segmentIds = Array.from(view);
-    
+
     // Convert IDs back to segment names
     const segmentNames = [];
     for (const segmentName in segmentsData) {
@@ -377,7 +377,7 @@ function decodeRoute(routeString) {
         segmentNames[index] = segmentName;
       }
     }
-    
+
     return segmentNames.filter(name => name); // Remove empty slots
   } catch (error) {
     console.error('Error decoding route:', error);
@@ -391,11 +391,11 @@ function shareRoute() {
     alert('אין מסלול לשיתוף. בחרו קטעים כדי ליצור מסלול.');
     return;
   }
-  
+
   const url = new URL(window.location);
   url.searchParams.set('route', routeId);
   const shareUrl = url.toString();
-  
+
   // Show share modal
   showShareModal(shareUrl);
 }
@@ -429,24 +429,24 @@ function showShareModal(shareUrl) {
       </div>
     </div>
   `;
-  
+
   document.body.appendChild(modal);
-  
+
   // Add event listeners
   const closeBtn = modal.querySelector('.share-modal-close');
   const copyBtn = modal.querySelector('.copy-url-btn');
   const urlInput = modal.querySelector('.share-url-input');
-  
+
   closeBtn.addEventListener('click', () => {
     document.body.removeChild(modal);
   });
-  
+
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       document.body.removeChild(modal);
     }
   });
-  
+
   copyBtn.addEventListener('click', () => {
     urlInput.select();
     navigator.clipboard.writeText(shareUrl).then(() => {
@@ -484,14 +484,14 @@ function shareToWhatsApp(url) {
 
 function getRouteParameter() {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('route');  
+  return urlParams.get('route');
 }
 
 function loadRouteFromUrl() {
   const routeParam = getRouteParameter();
-  
+
   if (routeParam && segmentsData) {
-    
+
     const decodedSegments = decodeRoute(routeParam);
     if (decodedSegments.length > 0) {
       selectedSegments = decodedSegments;
@@ -501,7 +501,7 @@ function loadRouteFromUrl() {
         updateRouteListAndDescription();
         hideRouteLoadingIndicator();
       }, 500);
-      
+
       return true;
     } else {
       hideRouteLoadingIndicator();
@@ -516,18 +516,18 @@ function showRouteLoadingIndicator() {
   if (!routeParam || !segmentsData) {
     return;
   }
-  
+
   // Remove existing indicator if any
   const existing = document.getElementById('route-loading-indicator');
   if (existing) {
     existing.remove();
   }
-  
+
   const indicator = document.createElement('div');
   indicator.id = 'route-loading-indicator';
   indicator.className = 'route-loading';
   indicator.innerHTML = '⏳ טוען מסלול...';
-  
+
   const legendContainer = document.querySelector('.legend-container');
   legendContainer.appendChild(indicator);
 }
@@ -556,7 +556,7 @@ async function loadKMLFile() {
     const response = await fetch('./bike_roads_v03.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
-    
+
     // Try to load route from URL after everything is loaded
     setTimeout(() => {
       loadRouteFromUrl();
@@ -607,18 +607,21 @@ function parseGeoJSON(geoJsonData) {
 
       // Extract style information from properties
       let originalColor = feature.properties.stroke || feature.properties['stroke-color'] || '#0288d1';
-      
+
       // Convert colors according to specification
       if (originalColor === '#0288d1' || originalColor === 'rgb(2, 136, 209)') {
         originalColor = 'rgb(101, 170, 162)';
-      } else if (originalColor === 'rgb(230, 238, 156)') {
+      } else if (originalColor == '#e6ee9c' || originalColor === 'rgb(230, 238, 156)') {
         originalColor = 'rgb(138, 147, 158)';
       } else {
         originalColor = 'rgb(174, 144, 103)';
       }
-      
-      let originalWeight = feature.properties['stroke-width'] || 3;
-      let originalOpacity = feature.properties['stroke-opacity'] || 0.8;
+
+      // temporarily overriding weight and opacity:
+      //let originalWeight = feature.properties['stroke-width'] || 3;
+      //let originalOpacity = feature.properties['stroke-opacity'] || 0.8;
+      let originalWeight = 3;
+      let originalOpacity = 0.9;
 
       const layerId = `route-${name.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
