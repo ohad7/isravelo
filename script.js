@@ -937,6 +937,47 @@ function getDistance(point1, point2) {
   return R * c;
 }
 
+// Function to smooth elevation values using a moving average
+function smoothElevations(coords, windowSize = 5) {
+  if (coords.length < windowSize) {
+    return coords;
+  }
+  
+  const smoothed = [];
+  const halfWin = Math.floor(windowSize / 2);
+  
+  for (let i = 0; i < coords.length; i++) {
+    const start = Math.max(0, i - halfWin);
+    const end = Math.min(coords.length, i + halfWin + 1);
+    
+    let totalElevation = 0;
+    let count = 0;
+    
+    for (let j = start; j < end; j++) {
+      let elevation;
+      if (coords[j].elevation !== undefined) {
+        elevation = coords[j].elevation;
+      } else {
+        // Fallback calculation if elevation is not available
+        elevation = 200 + Math.sin(coords[j].lat * 10) * 100 + Math.cos(coords[j].lng * 8) * 50;
+      }
+      totalElevation += elevation;
+      count++;
+    }
+    
+    const avgElevation = totalElevation / count;
+    
+    // Create new coordinate object with smoothed elevation
+    smoothed.push({
+      lat: coords[i].lat,
+      lng: coords[i].lng,
+      elevation: avgElevation
+    });
+  }
+  
+  return smoothed;
+}
+
 // Pre-calculate all segment metrics for fast access
 function preCalculateSegmentMetrics() {
   segmentMetrics = {};
@@ -951,27 +992,19 @@ function preCalculateSegmentMetrics() {
       distance += getDistance(coords[i], coords[i + 1]);
     }
     
-    // Calculate elevation gains and losses in both directions
+    // Apply elevation smoothing before calculating gains/losses
+    const smoothedCoords = smoothElevations(coords, 5);
+    
+    // Calculate elevation gains and losses in both directions using smoothed data
     let elevationGainForward = 0;
     let elevationLossForward = 0;
     let elevationGainReverse = 0;
     let elevationLossReverse = 0;
     
-    // Forward direction
-    for (let i = 0; i < coords.length - 1; i++) {
-      let currentElevation, nextElevation;
-      
-      if (coords[i].elevation !== undefined) {
-        currentElevation = coords[i].elevation;
-      } else {
-        currentElevation = 200 + Math.sin(coords[i].lat * 10) * 100 + Math.cos(coords[i].lng * 8) * 50;
-      }
-      
-      if (coords[i + 1].elevation !== undefined) {
-        nextElevation = coords[i + 1].elevation;
-      } else {
-        nextElevation = 200 + Math.sin(coords[i + 1].lat * 10) * 100 + Math.cos(coords[i + 1].lng * 8) * 50;
-      }
+    // Forward direction using smoothed elevations
+    for (let i = 0; i < smoothedCoords.length - 1; i++) {
+      const currentElevation = smoothedCoords[i].elevation;
+      const nextElevation = smoothedCoords[i + 1].elevation;
       
       const elevationChange = nextElevation - currentElevation;
       if (elevationChange > 0) {
@@ -998,7 +1031,8 @@ function preCalculateSegmentMetrics() {
         elevationLoss: Math.round(elevationLossReverse)
       },
       startPoint: coords[0],
-      endPoint: coords[coords.length - 1]
+      endPoint: coords[coords.length - 1],
+      smoothedCoords: smoothedCoords // Store smoothed coordinates for elevation profile
     };
   });
 }
@@ -1340,9 +1374,8 @@ function generateElevationProfile() {
   const profileWidth = 300; // pixels
   const elevationData = [];
 
-  // First, calculate elevation for all coordinates
-  const coordsWithElevation = orderedCoords.map((coord, index) => {
-    // Use actual elevation from coordinates if available, otherwise calculate
+  // First, apply smoothing to the entire route coordinates and calculate elevation for all coordinates
+  const routeWithElevation = orderedCoords.map(coord => {
     let elevation;
     if (coord.elevation !== undefined) {
       elevation = coord.elevation;
@@ -1350,12 +1383,18 @@ function generateElevationProfile() {
       // Fallback: calculate elevation based on position (simulated)
       elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
     }
+    return { ...coord, elevation };
+  });
 
-    const distance = index === 0 ? 0 : orderedCoords.slice(0, index + 1).reduce((total, c, idx) => {
+  // Apply smoothing to the entire route
+  const smoothedRouteCoords = smoothElevations(routeWithElevation, 7); // Slightly larger window for route-level smoothing
+
+  const coordsWithElevation = smoothedRouteCoords.map((coord, index) => {
+    const distance = index === 0 ? 0 : smoothedRouteCoords.slice(0, index + 1).reduce((total, c, idx) => {
       if (idx === 0) return 0;
-      return total + getDistance(orderedCoords[idx - 1], c);
+      return total + getDistance(smoothedRouteCoords[idx - 1], c);
     }, 0);
-    return { ...coord, elevation, distance };
+    return { ...coord, distance };
   });
 
   // Find min/max elevation
