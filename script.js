@@ -1001,16 +1001,22 @@ function preCalculateSegmentMetrics() {
     let elevationGainReverse = 0;
     let elevationLossReverse = 0;
     
-    // Forward direction using smoothed elevations
+    // Forward direction using smoothed elevations with minimum threshold
+    const minElevationChange = 1.0; // Ignore elevation changes smaller than 1 meter
+    
     for (let i = 0; i < smoothedCoords.length - 1; i++) {
       const currentElevation = smoothedCoords[i].elevation;
       const nextElevation = smoothedCoords[i + 1].elevation;
       
       const elevationChange = nextElevation - currentElevation;
-      if (elevationChange > 0) {
-        elevationGainForward += elevationChange;
-      } else {
-        elevationLossForward += Math.abs(elevationChange);
+      
+      // Only count elevation changes that meet the minimum threshold
+      if (Math.abs(elevationChange) >= minElevationChange) {
+        if (elevationChange > 0) {
+          elevationGainForward += elevationChange;
+        } else {
+          elevationLossForward += Math.abs(elevationChange);
+        }
       }
     }
     
