@@ -648,7 +648,7 @@ async function loadKMLFile() {
   try {
     await loadSegmentsData();
     showRouteLoadingIndicator();
-    const response = await fetch('./bike_roads_v04.geojson');
+    const response = await fetch('./bike_roads_v08.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
 
