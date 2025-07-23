@@ -937,45 +937,93 @@ function getDistance(point1, point2) {
   return R * c;
 }
 
-// Function to smooth elevation values using a moving average
-function smoothElevations(coords, windowSize = 5) {
-  if (coords.length < windowSize) {
+// Function to smooth elevation values using distance-based window smoothing
+function smoothElevations(coords, distanceWindow = 100) {
+  if (coords.length === 0) {
     return coords;
   }
 
-  const smoothed = [];
-  const halfWin = Math.floor(windowSize / 2);
-
-  for (let i = 0; i < coords.length; i++) {
-    const start = Math.max(0, i - halfWin);
-    const end = Math.min(coords.length, i + halfWin + 1);
-
-    let totalElevation = 0;
-    let count = 0;
-
-    for (let j = start; j < end; j++) {
-      let elevation;
-      if (coords[j].elevation !== undefined) {
-        elevation = coords[j].elevation;
-      } else {
-        // Fallback calculation if elevation is not available
-        elevation = 200 + Math.sin(coords[j].lat * 10) * 100 + Math.cos(coords[j].lng * 8) * 50;
-      }
-      totalElevation += elevation;
-      count++;
+  // Ensure all coordinates have elevation values
+  const coordsWithElevation = coords.map(coord => {
+    let elevation;
+    if (coord.elevation !== undefined) {
+      elevation = coord.elevation;
+    } else {
+      // Fallback calculation if elevation is not available
+      elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
     }
+    return {
+      lat: coord.lat,
+      lng: coord.lng,
+      elevation: elevation
+    };
+  });
 
-    const avgElevation = totalElevation / count;
+  // Apply distance-based window smoothing
+  const smoothedElevations = distanceWindowSmoothing(
+    coordsWithElevation,
+    distanceWindow,
+    (index) => coordsWithElevation[index].elevation,
+    (accumulated, start, end) => accumulated / (end - start + 1)
+  );
 
-    // Create new coordinate object with smoothed elevation
-    smoothed.push({
-      lat: coords[i].lat,
-      lng: coords[i].lng,
-      elevation: avgElevation
-    });
+  // Preserve original first and last elevations
+  if (coordsWithElevation.length > 0) {
+    smoothedElevations[0] = coordsWithElevation[0].elevation;
+    smoothedElevations[coordsWithElevation.length - 1] = coordsWithElevation[coordsWithElevation.length - 1].elevation;
   }
 
+  // Create smoothed coordinate objects
+  const smoothed = coordsWithElevation.map((coord, index) => ({
+    lat: coord.lat,
+    lng: coord.lng,
+    elevation: smoothedElevations[index]
+  }));
+
   return smoothed;
+}
+
+// Distance-based window smoothing algorithm
+function distanceWindowSmoothing(
+  points,
+  distanceWindow,
+  accumulate,
+  compute,
+  remove = null
+) {
+  let result = [];
+
+  let start = 0,
+      end = 0,
+      accumulated = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    // Remove points that are too far behind
+    while (
+      start + 1 < i &&
+      getDistance(points[start], points[i]) > distanceWindow
+    ) {
+      if (remove) {
+        accumulated -= remove(start);
+      } else {
+        accumulated -= accumulate(start);
+      }
+      start++;
+    }
+
+    // Add points that are within distance ahead
+    while (
+      end < points.length &&
+      getDistance(points[i], points[end]) <= distanceWindow
+    ) {
+      accumulated += accumulate(end);
+      end++;
+    }
+
+    result[i] = compute(accumulated, start, end - 1);
+  }
+
+  return result;
 }
 
 // Pre-calculate all segment metrics for fast access
