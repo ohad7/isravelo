@@ -177,7 +177,7 @@ function initMap() {
         ['literal', 'name']
       ]);
       loadKMLFile();
-      
+
       // Highlight all segments when map finishes loading
       setTimeout(() => {
         highlightAllSegments();
@@ -648,7 +648,7 @@ async function loadKMLFile() {
   try {
     await loadSegmentsData();
     showRouteLoadingIndicator();
-    const response = await fetch('./bike_roads_v08.geojson');
+    const response = await fetch('./bike_roads_v09.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
 
@@ -902,7 +902,7 @@ function parseGeoJSON(geoJsonData) {
 
         // Remove hover marker
         if (window.hoverMarker) {
-          window.hoverMarker.remove();          window.hoverMarker = null;
+          window.hoverMarker.remove(); window.hoverMarker = null;
         }
       });
     });
@@ -942,17 +942,17 @@ function smoothElevations(coords, windowSize = 5) {
   if (coords.length < windowSize) {
     return coords;
   }
-  
+
   const smoothed = [];
   const halfWin = Math.floor(windowSize / 2);
-  
+
   for (let i = 0; i < coords.length; i++) {
     const start = Math.max(0, i - halfWin);
     const end = Math.min(coords.length, i + halfWin + 1);
-    
+
     let totalElevation = 0;
     let count = 0;
-    
+
     for (let j = start; j < end; j++) {
       let elevation;
       if (coords[j].elevation !== undefined) {
@@ -964,9 +964,9 @@ function smoothElevations(coords, windowSize = 5) {
       totalElevation += elevation;
       count++;
     }
-    
+
     const avgElevation = totalElevation / count;
-    
+
     // Create new coordinate object with smoothed elevation
     smoothed.push({
       lat: coords[i].lat,
@@ -974,42 +974,42 @@ function smoothElevations(coords, windowSize = 5) {
       elevation: avgElevation
     });
   }
-  
+
   return smoothed;
 }
 
 // Pre-calculate all segment metrics for fast access
 function preCalculateSegmentMetrics() {
   segmentMetrics = {};
-  
+
   routePolylines.forEach(polylineData => {
     const coords = polylineData.coordinates;
     const segmentName = polylineData.segmentName;
-    
+
     // Calculate distance
     let distance = 0;
     for (let i = 0; i < coords.length - 1; i++) {
       distance += getDistance(coords[i], coords[i + 1]);
     }
-    
+
     // Apply elevation smoothing before calculating gains/losses
     const smoothedCoords = smoothElevations(coords, 5);
-    
+
     // Calculate elevation gains and losses in both directions using smoothed data
     let elevationGainForward = 0;
     let elevationLossForward = 0;
     let elevationGainReverse = 0;
     let elevationLossReverse = 0;
-    
+
     // Forward direction using smoothed elevations with minimum threshold
     const minElevationChange = 1.0; // Ignore elevation changes smaller than 1 meter
-    
+
     for (let i = 0; i < smoothedCoords.length - 1; i++) {
       const currentElevation = smoothedCoords[i].elevation;
       const nextElevation = smoothedCoords[i + 1].elevation;
-      
+
       const elevationChange = nextElevation - currentElevation;
-      
+
       // Only count elevation changes that meet the minimum threshold
       if (Math.abs(elevationChange) >= minElevationChange) {
         if (elevationChange > 0) {
@@ -1019,11 +1019,11 @@ function preCalculateSegmentMetrics() {
         }
       }
     }
-    
+
     // Reverse direction (just swap the gains and losses)
     elevationGainReverse = elevationLossForward;
     elevationLossReverse = elevationGainForward;
-    
+
     // Store pre-calculated metrics
     segmentMetrics[segmentName] = {
       distance: distance,
@@ -1602,7 +1602,7 @@ function updateRouteListAndDescription() {
   for (let segIndex = 0; segIndex < selectedSegments.length; segIndex++) {
     const segmentName = selectedSegments[segIndex];
     const metrics = segmentMetrics[segmentName];
-    
+
     if (!metrics) continue;
 
     let isReversed = false;
@@ -1612,7 +1612,7 @@ function updateRouteListAndDescription() {
       // Get connection info from previous segment
       const prevSegmentName = selectedSegments[segIndex - 1];
       const prevMetrics = segmentMetrics[prevSegmentName];
-      
+
       if (prevMetrics) {
         // Use pre-calculated endpoints to determine connectivity
         const prevStart = prevMetrics.startPoint;
@@ -1627,7 +1627,7 @@ function updateRouteListAndDescription() {
           if (selectedSegments.length > 1) {
             const nextSegmentName = selectedSegments[1];
             const nextMetrics = segmentMetrics[nextSegmentName];
-            
+
             if (nextMetrics) {
               const distances = [
                 getDistance(prevEnd, currentStart),
@@ -1635,7 +1635,7 @@ function updateRouteListAndDescription() {
                 getDistance(prevStart, currentStart),
                 getDistance(prevStart, currentEnd)
               ];
-              
+
               const minIndex = distances.indexOf(Math.min(...distances));
               prevLastPoint = (minIndex === 2 || minIndex === 3) ? prevStart : prevEnd;
             } else {
