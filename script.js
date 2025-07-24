@@ -380,10 +380,10 @@ function encodeRoute(segmentNames) {
   // Create binary data with version byte + segment IDs
   const binaryData = new ArrayBuffer(1 + segmentIds.length * 2);
   const uint8Array = new Uint8Array(binaryData);
-  
+
   // Write version as first byte
   uint8Array[0] = ROUTE_VERSION;
-  
+
   // Write segment IDs as 16-bit values
   const view = new Uint16Array(binaryData, 1);
   segmentIds.forEach((id, index) => {
@@ -420,7 +420,7 @@ function decodeRoute(routeString) {
 
     // Read version from first byte
     const version = uint8Array[0];
-    
+
     if (version !== ROUTE_VERSION) {
       console.warn(`Unsupported route version: ${version}. Expected version ${ROUTE_VERSION}.`);
       return [];
@@ -429,7 +429,7 @@ function decodeRoute(routeString) {
     // Parse segment data (skip version byte)
     const segmentDataOffset = 1;
     const segmentDataLength = binaryData.byteLength - segmentDataOffset;
-    
+
     if (segmentDataLength % 2 !== 0) {
       console.warn('Invalid route data: segment data length is not even');
       return [];
@@ -1925,6 +1925,108 @@ function scrollToSection(sectionId) {
   }
 }
 
+function showDownloadModal() {
+  // Create modal elements
+  const modal = document.createElement('div');
+  modal.className = 'download-modal';
+  modal.innerHTML = `
+    <div class="download-modal-content">
+      <div class="download-modal-header">
+        <h3>הורדת מסלול GPX</h3>
+        <button class="download-modal-close">&times;</button>
+      </div>
+      <div class="download-modal-body">
+        <h4>תיאור המסלול</h4>
+        <div id="download-route-description"></div>
+
+        <h4>אפשרויות נוספות</h4>
+        <button id="download-gpx-final" class="download-confirm-btn">הורדת GPX</button>
+        <button id="share-route" class="share-btn" title="שיתוף מסלול">שיתוף מסלול</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Populate route description
+  const downloadRouteDescription = modal.querySelector('#download-route-description');
+  downloadRouteDescription.innerHTML = document.getElementById('route-description').innerHTML;
+
+  // Add event listeners
+  const closeBtn = modal.querySelector('.download-modal-close');
+  const downloadBtn = modal.querySelector('#download-gpx-final');
+  const shareBtn = modal.querySelector('#share-route');
+
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    downloadGPX();
+    document.body.removeChild(modal);
+  });
+
+  shareBtn.addEventListener('click', () => {
+     shareRoute();
+     document.body.removeChild(modal);
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+
+  // Add escape key listener
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+}
+
+function downloadGPX() {
+  if (!kmlData) return;
+
+  const orderedCoords = getOrderedCoordinates();
+
+  let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="BikeRoutePlanner" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <trk>
+    <name>מסלול רכיבה מתוכנן</name>
+    <trkseg>`;
+
+  orderedCoords.forEach(coord => {
+    // Use actual elevation from coordinates if available, otherwise calculate
+    let elevation;
+    if (coord.elevation !== undefined) {
+      elevation = coord.elevation;
+    } else {
+      // Fallback: calculate elevation based on position (simulated)
+      elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
+    }
+    gpx += `
+      <trkpt lat="${coord.lat}" lon="${coord.lng}">
+        <ele>${Math.round(elevation)}</ele>
+      </trkpt>`;
+  });
+
+  gpx += `
+    </trkseg>
+  </trk>
+</gpx>`;
+
+  const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bike_route.gpx';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize the map when page loads
@@ -1932,43 +2034,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Download GPX functionality
   document.getElementById('download-gpx').addEventListener('click', () => {
-    if (!kmlData) return;
-
-    const orderedCoords = getOrderedCoordinates();
-
-    let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="BikeRoutePlanner" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
-  <trk>
-    <name>מסלול רכיבה מתוכנן</name>
-    <trkseg>`;
-
-    orderedCoords.forEach(coord => {
-      // Use actual elevation from coordinates if available, otherwise calculate
-      let elevation;
-      if (coord.elevation !== undefined) {
-        elevation = coord.elevation;
-      } else {
-        // Fallback: calculate elevation based on position (simulated)
-        elevation = 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50;
-      }
-      gpx += `
-      <trkpt lat="${coord.lat}" lon="${coord.lng}">
-        <ele>${Math.round(elevation)}</ele>
-      </trkpt>`;
-    });
-
-    gpx += `
-    </trkseg>
-  </trk>
-</gpx>`;
-
-    const blob = new Blob([gpx], { type: 'application/gpx+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'bike_route.gpx';
-    a.click();
-    URL.revokeObjectURL(url);
+    showDownloadModal();
   });
 
   // Search functionality
@@ -1991,9 +2057,6 @@ document.addEventListener('DOMContentLoaded', function() {
       resetRoute();
     }
   });
-
-  // Share route button
-  document.getElementById('share-route').addEventListener('click', shareRoute);
 
   // Legend toggle functionality
   document.getElementById('legend-toggle').addEventListener('click', function() {
