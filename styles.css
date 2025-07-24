@@ -1012,7 +1012,7 @@ body::before {
   left: 25px;
   z-index: 1000;
   display: flex;
-  gap: 8px;
+  gap: 0;
 }
 
 .top-controls {
@@ -1058,7 +1058,8 @@ body::before {
   flex: 1;
   padding: 12px;
   border: 2px solid #e0e0e0;
-  border-radius: 25px;
+  border-radius: 4px;
+  border-right: none;
   font-size: 14px;
   transition: border-color 0.2s;
   max-width: 200px; /* Limit width of the search box */
@@ -1072,9 +1073,10 @@ body::before {
 #search-btn {
   background: #4682B4;
   color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 25px;
+  border: 2px solid #4682B4;
+  border-left: none;
+  padding: 10px 12px;
+  border-radius: 0 4px 4px 0;
   cursor: pointer;
   font-size: 12px; /* Reduced search button size */
   font-weight: 600;
