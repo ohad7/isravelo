@@ -377,16 +377,20 @@ function encodeRoute(segmentNames) {
 
   if (segmentIds.length === 0) return '';
 
-  // Convert to 16-bit binary representation
-  const binaryData = new ArrayBuffer(segmentIds.length * 2);
-  const view = new Uint16Array(binaryData);
-
+  // Create binary data with version byte + segment IDs
+  const binaryData = new ArrayBuffer(1 + segmentIds.length * 2);
+  const uint8Array = new Uint8Array(binaryData);
+  
+  // Write version as first byte
+  uint8Array[0] = ROUTE_VERSION;
+  
+  // Write segment IDs as 16-bit values
+  const view = new Uint16Array(binaryData, 1);
   segmentIds.forEach((id, index) => {
     view[index] = id;
   });
 
   // Convert to base64
-  const uint8Array = new Uint8Array(binaryData);
   let binaryString = '';
   for (let i = 0; i < uint8Array.length; i++) {
     binaryString += String.fromCharCode(uint8Array[i]);
@@ -408,41 +412,43 @@ function decodeRoute(routeString) {
       uint8Array[i] = binaryString.charCodeAt(i);
     }
 
-    // Read version from first byte
+    // Check for empty data
     if (binaryData.byteLength === 0) {
       console.warn('Empty route data');
       return [];
     }
 
+    // Read version from first byte
     const version = uint8Array[0];
-    const segmentDataOffset = 1;
-
-    if (version === ROUTE_VERSION) {
-      // Current version: First byte is version, rest are 16-bit segment IDs
-      const segmentDataLength = binaryData.byteLength - segmentDataOffset;
-      if (segmentDataLength % 2 !== 0) {
-        console.warn('Invalid route data: segment data length is not even');
-        return [];
-      }
-
-      const view = new Uint16Array(binaryData, segmentDataOffset);
-      const segmentIds = Array.from(view);
-
-      // Convert IDs back to segment names
-      const segmentNames = [];
-      for (const segmentName in segmentsData) {
-        const segmentInfo = segmentsData[segmentName];
-        if (segmentInfo && segmentIds.includes(segmentInfo.id)) {
-          const index = segmentIds.indexOf(segmentInfo.id);
-          segmentNames[index] = segmentName;
-        }
-      }
-
-      return segmentNames.filter(name => name); // Remove empty slots
-    } else {
+    
+    if (version !== ROUTE_VERSION) {
       console.warn(`Unsupported route version: ${version}. Expected version ${ROUTE_VERSION}.`);
       return [];
     }
+
+    // Parse segment data (skip version byte)
+    const segmentDataOffset = 1;
+    const segmentDataLength = binaryData.byteLength - segmentDataOffset;
+    
+    if (segmentDataLength % 2 !== 0) {
+      console.warn('Invalid route data: segment data length is not even');
+      return [];
+    }
+
+    const view = new Uint16Array(binaryData, segmentDataOffset);
+    const segmentIds = Array.from(view);
+
+    // Convert IDs back to segment names
+    const segmentNames = [];
+    for (const segmentName in segmentsData) {
+      const segmentInfo = segmentsData[segmentName];
+      if (segmentInfo && segmentIds.includes(segmentInfo.id)) {
+        const index = segmentIds.indexOf(segmentInfo.id);
+        segmentNames[index] = segmentName;
+      }
+    }
+
+    return segmentNames.filter(name => name); // Remove empty slots
   } catch (error) {
     console.error('Error decoding route:', error);
     return [];
