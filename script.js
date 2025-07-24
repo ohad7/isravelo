@@ -378,14 +378,17 @@ function encodeRoute(segmentNames) {
   if (segmentIds.length === 0) return '';
 
   // Create binary data with version byte + segment IDs
-  const binaryData = new ArrayBuffer(1 + segmentIds.length * 2);
+  // Need to ensure proper alignment for Uint16Array (2-byte aligned)
+  const totalBytes = 2 + segmentIds.length * 2; // 2 bytes for version padding + segment data
+  const binaryData = new ArrayBuffer(totalBytes);
   const uint8Array = new Uint8Array(binaryData);
 
-  // Write version as first byte
+  // Write version as first byte, pad second byte to maintain alignment
   uint8Array[0] = ROUTE_VERSION;
+  uint8Array[1] = 0; // Padding byte for alignment
 
-  // Write segment IDs as 16-bit values
-  const view = new Uint16Array(binaryData, 1);
+  // Write segment IDs as 16-bit values starting from byte offset 2
+  const view = new Uint16Array(binaryData, 2);
   segmentIds.forEach((id, index) => {
     view[index] = id;
   });
@@ -426,8 +429,8 @@ function decodeRoute(routeString) {
       return [];
     }
 
-    // Parse segment data (skip version byte)
-    const segmentDataOffset = 1;
+    // Parse segment data (skip version and padding bytes)
+    const segmentDataOffset = 2;
     const segmentDataLength = binaryData.byteLength - segmentDataOffset;
 
     if (segmentDataLength % 2 !== 0) {
@@ -1692,7 +1695,8 @@ function updateRouteListAndDescription() {
         const prevStart = prevMetrics.startPoint;
         const prevEnd = prevMetrics.endPoint;
         const currentStart = metrics.startPoint;
-        const currentEnd = metrics.endPoint;
+        ```text
+const currentEnd = metrics.endPoint;
 
         // Check which connection makes more sense based on previous segment's orientation
         let prevLastPoint;
