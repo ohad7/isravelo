@@ -516,7 +516,6 @@ body::before {
   transition: all 0.2s;
   box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
   flex: 0 0 auto;
-  width: 60px;
 }
 
 .share-btn:hover {
