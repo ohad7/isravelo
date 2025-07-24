@@ -1345,22 +1345,30 @@ function canSegmentBeAddedAgain(segmentName) {
 
   if (!lastPolyline || !targetPolyline) return false;
 
-  // Get the end point of the current route
-  const lastCoords = lastPolyline.coordinates;
-  const routeEnd = lastCoords[lastCoords.length - 1];
+  // Get the actual end point of the current route considering directionality
+  const routeEndPoint = getRouteEndPoint();
+  if (!routeEndPoint) return false;
 
   // Check distance to both ends of the target segment
   const targetCoords = targetPolyline.coordinates;
   const targetStart = targetCoords[0];
   const targetEnd = targetCoords[targetCoords.length - 1];
 
-  const distanceToStart = getDistance(routeEnd, targetStart);
-  const distanceToEnd = getDistance(routeEnd, targetEnd);
+  const distanceToStart = getDistance(routeEndPoint, targetStart);
+  const distanceToEnd = getDistance(routeEndPoint, targetEnd);
   const tolerance = 100; // 100 meters tolerance
 
-  console.log(`Distance to start: ${distanceToStart}, Distance to end: ${distanceToEnd}`);
-
   return Math.min(distanceToStart, distanceToEnd) <= tolerance;
+}
+
+// Helper function to get the actual end point of the current route considering directionality
+function getRouteEndPoint() {
+  if (selectedSegments.length === 0) return null;
+
+  const orderedCoords = getOrderedCoordinates();
+  if (orderedCoords.length === 0) return null;
+
+  return orderedCoords[orderedCoords.length - 1];
 }
 
 // Function to show segment action dialog
