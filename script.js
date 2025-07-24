@@ -1041,7 +1041,7 @@ function preCalculateSegmentMetrics() {
     }
 
     // Apply elevation smoothing before calculating gains/losses
-    const smoothedCoords = smoothElevations(coords, 5);
+    const smoothedCoords = smoothElevations(coords, 100);
 
     // Calculate elevation gains and losses in both directions using smoothed data
     let elevationGainForward = 0;
@@ -1441,7 +1441,7 @@ function generateElevationProfile() {
   });
 
   // Apply smoothing to the entire route
-  const smoothedRouteCoords = smoothElevations(routeWithElevation, 7); // Slightly larger window for route-level smoothing
+  const smoothedRouteCoords = smoothElevations(routeWithElevation, 100); // Slightly larger window for route-level smoothing
 
   const coordsWithElevation = smoothedRouteCoords.map((coord, index) => {
     const distance = index === 0 ? 0 : smoothedRouteCoords.slice(0, index + 1).reduce((total, c, idx) => {
