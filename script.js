@@ -161,21 +161,21 @@ function initMap() {
 
     // Set Hebrew language after map loads
     map.on('load', () => {
-      map.setLayoutProperty('country-label', 'text-field', [
-        'get',
-        ['literal', 'name_he'],
-        ['literal', 'name']
-      ]);
-      map.setLayoutProperty('state-label', 'text-field', [
-        'get',
-        ['literal', 'name_he'],
-        ['literal', 'name']
-      ]);
-      map.setLayoutProperty('settlement-label', 'text-field', [
-        'get',
-        ['literal', 'name_he'],
-        ['literal', 'name']
-      ]);
+      // Try to set Hebrew labels, but handle errors gracefully
+      try {
+        const layers = ['country-label', 'state-label', 'settlement-label'];
+        layers.forEach(layerId => {
+          if (map.getLayer(layerId)) {
+            map.setLayoutProperty(layerId, 'text-field', [
+              'coalesce',
+              ['get', 'name_he'],
+              ['get', 'name']
+            ]);
+          }
+        });
+      } catch (error) {
+        console.warn('Could not set Hebrew labels:', error);
+      }
       loadKMLFile();
 
       // Highlight all segments when map finishes loading
