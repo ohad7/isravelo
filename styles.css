@@ -1129,8 +1129,9 @@ body::before {
     top: 10px;
     left: 10px;
     right: 10px;
-    flex-wrap: wrap;
-    gap: 5px;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
   }
 }
 
@@ -1139,9 +1140,23 @@ body::before {
   gap: 8px;
 }
 
+@media (max-width: 768px) {
+  .top-controls {
+    width: 100%;
+    order: 1;
+  }
+}
+
 .search-input-group {
   display: flex;
   gap: 0;
+}
+
+@media (max-width: 768px) {
+  .search-input-group {
+    width: 100%;
+    order: 2;
+  }
 }
 
 .control-buttons {
@@ -1152,7 +1167,8 @@ body::before {
 @media (max-width: 768px) {
   .control-buttons {
     gap: 4px;
-    order: 1;
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
@@ -1171,10 +1187,14 @@ body::before {
 
 @media (max-width: 768px) {
   .control-btn {
-    padding: 8px 12px;
+    padding: 8px 6px;
     font-size: 11px;
-    min-width: 36px;
+    flex: 1;
+    min-height: 44px;
     touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -1204,9 +1224,10 @@ body::before {
 
 @media (max-width: 768px) {
   #location-search {
-    max-width: 150px;
+    max-width: none;
     padding: 10px 8px;
     font-size: 13px;
+    min-height: 44px;
   }
 }
 
@@ -1233,9 +1254,13 @@ body::before {
 
 @media (max-width: 768px) {
   #search-btn {
-    padding: 10px;
-    min-width: 40px;
+    padding: 10px 16px;
+    min-width: 50px;
+    min-height: 44px;
     touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
