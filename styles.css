@@ -250,13 +250,13 @@ body::before {
 
 @media (max-width: 768px) {
   .segment-name-display {
-    top: 10px;
+    top: 50px;
     right: 10px;
-    left: 10px;
-    max-width: none;
+    left: auto;
+    max-width: 200px;
     font-size: 12px;
     padding: 8px 12px;
-    text-align: center;
+    text-align: right;
   }
 }
 
