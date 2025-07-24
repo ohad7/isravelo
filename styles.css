@@ -92,57 +92,7 @@ body::before {
 }
 
 .main-container {
-  height: calc(100vh - 80px); /* Full height minus header */
-  display: flex;
-  flex-direction: column;
-}
-
-.top-controls {
-  position: absolute;
-  top: 25px;
-  left: 25px;
-  right: 25px;
-  z-index: 1000;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  pointer-events: none;
-}
-
-.top-controls > * {
-  pointer-events: auto;
-}
-
-.control-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.control-btn {
-  background: #f8f8f8;
-  color: #333;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  min-width: 40px;
-}
-
-.control-btn:hover:not(:disabled) {
-  background: #e0e0e0;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.control-btn:disabled {
-  background: #f9f9f9;
-  color: #ccc;
-  cursor: not-allowed;
-  box-shadow: none;
+  padding: 20px;
 }
 
 .content-section {
@@ -168,11 +118,25 @@ body::before {
   color: #555;
 }
 
+.container {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  max-width: 1400px;
+  margin: 0 auto;
+  height: 600px;
+  flex-direction: row-reverse;
+}
+
 .map-container {
-  flex: 1;
+  flex: 2;
+  background: #F8F8F8;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 15px;
   position: relative;
-  width: 100%;
-  height: 100%;
+  height: 600px;
+  width: 100%; /* Adjusted to take full width */
 }
 
 .sidebar {
@@ -213,7 +177,7 @@ body::before {
 
 .legend-container {
   position: absolute;
-  top: 85px;
+  top: 25px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
@@ -998,20 +962,26 @@ body::before {
 }
 
 .elevation-profile {
-  margin-top: 8px;
-  padding: 8px;
+  margin-top: 15px;
+  padding: 15px;
   background: linear-gradient(135deg, #E6F3E6 0%, #B8D4B8 100%);
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #8FBC8F;
 }
 
+.elevation-profile h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 14px;
+  text-align: center;
+}
+
 .elevation-chart {
-  position: relative;
-  height: 60px;
+  position: relative;  height: 80px;
   background: linear-gradient(to top, #6B8E23 0%, #8FBC8F 20%, #E6F3E6 100%);
   border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 3px;
+  margin-bottom: 5px;
 }
 
 .elevation-point {
@@ -1037,17 +1007,22 @@ body::before {
 }
 
 .search-container {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  z-index: 1000;
   display: flex;
   gap: 8px;
 }
 
 #location-search {
-  padding: 10px 12px;
+  flex: 1;
+  padding: 12px;
   border: 2px solid #e0e0e0;
-  border-radius: 6px;
+  border-radius: 25px;
   font-size: 14px;
   transition: border-color 0.2s;
-  width: 200px;
+  max-width: 200px; /* Limit width of the search box */
 }
 
 #location-search:focus {
@@ -1059,19 +1034,19 @@ body::before {
   background: #4682B4;
   color: white;
   border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 6px 10px;
+  border-radius: 25px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 12px; /* Reduced search button size */
   font-weight: 600;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3);
+  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3); /* Reduced shadow */
 }
 
 #search-btn:hover {
   background: #5F9EA0;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4); /* Reduced shadow */
 }
 
 .leaflet-interactive {
@@ -1164,22 +1139,22 @@ h3 {
     text-align: center;
 }
 
-/* Bottom left route description panel */
+/* Bottom route description panel */
 .route-description-panel {
   position: absolute;
-  bottom: 15px;
-  left: 15px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
-  max-width: 350px;
-  max-height: 180px;
+  max-width: 400px;
+  max-height: 200px;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
-  padding: 8px 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  text-align: right;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  text-align: center;
   overflow-y: auto;
-  font-size: 13px;
 }
 
 /* Move the route list inside the download modal */

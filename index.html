@@ -26,59 +26,63 @@
   <div class="main-container">
     <div id="error-message"></div>
 
-    <div class="map-container">
-      <div class="segment-name-display" id="segment-name-display">No segment selected</div>
-      
-      <!-- Top controls container -->
-      <div class="top-controls">
-        <div class="search-container">
-          <input type="text" id="location-search" placeholder="שדה נחמיה" />
-          <button id="search-btn">🔍</button>
+    <div class="container">
+      <div class="map-container">
+        <div class="segment-name-display" id="segment-name-display">No segment selected</div>
+        
+        <!-- Top controls container -->
+        <div class="top-controls">
+          <div class="search-container">
+            <input type="text" id="location-search" placeholder="שדה נחמיה" />
+            <button id="search-btn">🔍</button>
+          </div>
+          <div class="control-buttons">
+            <button id="undo-btn" class="control-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
+            <button id="redo-btn" class="control-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
+            <button id="reset-btn" class="control-btn" title="איפוס מסלול">🗑️</button>
+            <button id="download-gpx" class="control-btn" disabled title="הורדת GPX">GPX</button>
+          </div>
         </div>
-        <div class="control-buttons">
-          <button id="undo-btn" class="control-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
-          <button id="redo-btn" class="control-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
-          <button id="reset-btn" class="control-btn" title="איפוס מסלול">🗑️</button>
-          <button id="download-gpx" class="control-btn" disabled title="הורדת GPX">GPX</button>
+
+        <div class="legend-container">
+          <button class="legend-toggle" id="legend-toggle">🗺️ מקרא</button>
+          <div class="legend-box open" id="legend-box">
+            <div class="legend-title">סוגי דרכים</div>
+            <div class="legend-item">
+              <div class="legend-color paved-trail"></div>
+              <div class="legend-label">שביל סלול</div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color dirt-trail"></div>
+              <div class="legend-label">שביל עפר</div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color road"></div>
+              <div class="legend-label">כביש</div>
+            </div>
+          </div>
+          <div class="route-warning" id="route-warning" style="display: none;">
+            ⚠️ מסלול שבור
+          </div>
+          <div class="winter-warning" id="winter-warning" style="display: none;">
+            ❄️ בוץ בחורף
+          </div>
+          <div class="segment-warning" id="segment-warning" style="display: none;">
+            ⚠️ אזהרות 
+          </div>
+        </div>
+        
+        <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none; position: absolute; top: 70px; left: 20px; z-index: 1001; background: white; padding: 5px; border-radius: 4px;"></div>
+        
+        <div id="map"></div>
+        
+        <!-- Bottom route description panel -->
+        <div class="route-description-panel" id="route-description-panel">
+          <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
         </div>
       </div>
 
-      <div class="legend-container">
-        <button class="legend-toggle" id="legend-toggle">🗺️ מקרא</button>
-        <div class="legend-box open" id="legend-box">
-          <div class="legend-title">סוגי דרכים</div>
-          <div class="legend-item">
-            <div class="legend-color paved-trail"></div>
-            <div class="legend-label">שביל סלול</div>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color dirt-trail"></div>
-            <div class="legend-label">שביל עפר</div>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color road"></div>
-            <div class="legend-label">כביש</div>
-          </div>
-        </div>
-        <div class="route-warning" id="route-warning" style="display: none;">
-          ⚠️ מסלול שבור
-        </div>
-        <div class="winter-warning" id="winter-warning" style="display: none;">
-          ❄️ בוץ בחורף
-        </div>
-        <div class="segment-warning" id="segment-warning" style="display: none;">
-          ⚠️ אזהרות 
-        </div>
-      </div>
       
-      <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none; position: absolute; top: 70px; left: 20px; z-index: 1001; background: white; padding: 5px; border-radius: 4px;"></div>
-      
-      <div id="map"></div>
-      
-      <!-- Bottom left route description panel -->
-      <div class="route-description-panel" id="route-description-panel">
-        <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
-      </div>
     </div>
 
     <div class="content-section" id="trails">

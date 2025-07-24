@@ -1311,7 +1311,7 @@ function handleSelectedSegmentClick(segmentName) {
 
   // Check if this segment can be added again at the end of the route
   const canAddAgain = canSegmentBeAddedAgain(segmentName);
-
+  
   if (canAddAgain) {
     // Show confirmation dialog
     showSegmentActionDialog(segmentName);
@@ -1579,6 +1579,7 @@ function generateElevationProfile() {
   if (orderedCoords.length === 0) return '';
 
   let elevationHtml = '<div class="elevation-profile">';
+  elevationHtml += '<h4>גרף גובה (Elevation Profile)</h4>';
   elevationHtml += '<div class="elevation-chart" id="elevation-chart" style="position: relative;">';
 
   const totalDistance = orderedCoords.reduce((total, coord, index) => {
@@ -2010,7 +2011,7 @@ function showDownloadModal() {
       <div class="download-modal-body">
         <h4>קטעי מסלול נבחרים</h4>
         <div id="route-segments-list"></div>
-
+        
         <h4>תיאור המסלול</h4>
         <div id="download-route-description"></div>
 
@@ -2132,120 +2133,89 @@ function downloadGPX() {
   URL.revokeObjectURL(url);
 }
 
-// Initialize the application
+// Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize the map when page loads
   initMap();
-  initializeControls();
-  loadRouteFromUrl();
-});
 
-// Add proper element existence checks for all event listeners
-function initializeControls() {
-  const undoBtn = document.getElementById('undo-btn');
-  const redoBtn = document.getElementById('redo-btn');
-  const resetBtn = document.getElementById('reset-btn');
-  const downloadBtn = document.getElementById('download-gpx');
-  const searchBtn = document.getElementById('search-btn');
-  const locationSearch = document.getElementById('location-search');
-  const legendToggle = document.getElementById('legend-toggle');
-  const routeWarning = document.getElementById('route-warning');
-  const winterWarning = document.getElementById('winter-warning');
-  const segmentWarning = document.getElementById('segment-warning');
-  const shareRouteBtn = document.getElementById('share-route');
+  // Download GPX functionality
+  document.getElementById('download-gpx').addEventListener('click', () => {
+    showDownloadModal();
+  });
 
-  if (undoBtn) {
-    undoBtn.addEventListener('click', undo);
-  }
+  // Search functionality
+  document.getElementById('search-btn').addEventListener('click', searchLocation);
+  document.getElementById('location-search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      searchLocation();
+    }
+  });
 
-  if (redoBtn) {
-    redoBtn.addEventListener('click', redo);
-  }
+  // Undo/redo buttons
+  document.getElementById('undo-btn').addEventListener('click', undo);
+  document.getElementById('redo-btn').addEventListener('click', redo);
 
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (selectedSegments.length > 0) {
-        showResetModal();
-      } else {
-        resetRoute();
-      }
-    });
-  }
+  // Reset button
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    if (selectedSegments.length > 0) {
+      showResetModal();
+    } else {
+      resetRoute();
+    }
+  });
 
-  if (downloadBtn) {
-    downloadBtn.addEventListener('click', () => {
-      showDownloadModal();
-    });
-  }
+  // Share button in main screen
+  document.getElementById('share-route').addEventListener('click', shareRoute);
 
-  if (searchBtn) {
-    searchBtn.addEventListener('click', searchLocation);
-  }
+  // Legend toggle functionality
+  document.getElementById('legend-toggle').addEventListener('click', function() {
+    const legendBox = document.getElementById('legend-box');
+    const isOpen = legendBox.classList.contains('open');
 
-  if (locationSearch) {
-    locationSearch.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        searchLocation();
-      }
-    });
-  }
+    if (isOpen) {
+      legendBox.classList.remove('open');
+      legendBox.classList.add('closed');
+    } else {
+      legendBox.classList.remove('closed');
+      legendBox.classList.add('open');
+    }
+  });
 
-  if (legendToggle) {
-    legendToggle.addEventListener('click', function() {
-      const legendBox = document.getElementById('legend-box');
-      const isOpen = legendBox.classList.contains('open');
+  // Warning box click handlers
+  document.getElementById('route-warning').addEventListener('click', function() {
+    const continuityResult = checkRouteContinuity();
+    if (!continuityResult.isContinuous && continuityResult.brokenSegmentIndex >= 0) {
+      const segmentName = selectedSegments[continuityResult.brokenSegmentIndex];
+      focusOnSegment(segmentName);
+    }
+  });
 
-      if (isOpen) {
-        legendBox.classList.remove('open');
-        legendBox.classList.add('closed');
-      } else {
-        legendBox.classList.remove('closed');
-        legendBox.classList.add('open');
-      }
-    });
-  }
+  document.getElementById('winter-warning').addEventListener('click', function() {
+    const winterResult = hasWinterSegments();
+    if (winterResult.hasWinter && winterResult.firstWinterSegment) {
+      focusOnSegment(winterResult.firstWinterSegment);
+    }
+  });
 
-   if (routeWarning) {
-    routeWarning.addEventListener('click', function() {
-      const continuityResult = checkRouteContinuity();
-      if (!continuityResult.isContinuous && continuityResult.brokenSegmentIndex >= 0) {
-        const segmentName = selectedSegments[continuityResult.brokenSegmentIndex];
-        focusOnSegment(segmentName);
-      }
-    });
-  }
-
-  if (winterWarning) {
-    winterWarning.addEventListener('click', function() {
-      const winterResult = hasWinterSegments();
-      if (winterResult.hasWinter && winterResult.firstWinterSegment) {
-        focusOnSegment(winterResult.firstWinterSegment);
-      }
-    });
-  }
-
-  if (segmentWarning) {
-    segmentWarning.addEventListener('click', function() {
-      const warningsResult = hasSegmentWarnings();
-      if (warningsResult.hasWarnings && warningsResult.firstWarningSegment) {
-        focusOnSegment(warningsResult.firstWarningSegment);
-      }
-    });
-  }
-   // Share button in main screen (check if exists)
-  if (shareRouteBtn) {
-    shareRouteBtn.addEventListener('click', shareRoute);
-  }
+  document.getElementById('segment-warning').addEventListener('click', function() {
+    const warningsResult = hasSegmentWarnings();
+    if (warningsResult.hasWarnings && warningsResult.firstWarningSegment) {
+      focusOnSegment(warningsResult.firstWarningSegment);
+    }
+  });
 
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
-        e.preventDefault();
-        redo();
-      }
-    });
-}
+    //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
+
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
+      e.preventDefault();
+      redo();
+    }
+  });
+});
 
 const ROUTE_VERSION = 1;
