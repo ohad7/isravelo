@@ -97,6 +97,54 @@ body::before {
   flex-direction: column;
 }
 
+.top-controls {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  right: 25px;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.top-controls > * {
+  pointer-events: auto;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  background: #f8f8f8;
+  color: #333;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  min-width: 40px;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:disabled {
+  background: #f9f9f9;
+  color: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .content-section {
   background: #F8F8F8;
   border-radius: 12px;
@@ -165,7 +213,7 @@ body::before {
 
 .legend-container {
   position: absolute;
-  top: 80px;
+  top: 85px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
@@ -989,22 +1037,17 @@ body::before {
 }
 
 .search-container {
-  position: absolute;
-  top: 25px;
-  left: 25px;
-  z-index: 1000;
   display: flex;
   gap: 8px;
 }
 
 #location-search {
-  flex: 1;
   padding: 10px 12px;
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
-  max-width: 200px; /* Limit width of the search box */
+  width: 200px;
 }
 
 #location-search:focus {
@@ -1016,19 +1059,19 @@ body::before {
   background: #4682B4;
   color: white;
   border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 12px; /* Reduced search button size */
+  font-size: 12px;
   font-weight: 600;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3); /* Reduced shadow */
+  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3);
 }
 
 #search-btn:hover {
   background: #5F9EA0;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4); /* Reduced shadow */
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
 }
 
 .leaflet-interactive {

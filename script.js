@@ -1311,7 +1311,7 @@ function handleSelectedSegmentClick(segmentName) {
 
   // Check if this segment can be added again at the end of the route
   const canAddAgain = canSegmentBeAddedAgain(segmentName);
-  
+
   if (canAddAgain) {
     // Show confirmation dialog
     showSegmentActionDialog(segmentName);
@@ -2010,7 +2010,7 @@ function showDownloadModal() {
       <div class="download-modal-body">
         <h4>קטעי מסלול נבחרים</h4>
         <div id="route-segments-list"></div>
-        
+
         <h4>תיאור המסלול</h4>
         <div id="download-route-description"></div>
 
@@ -2132,92 +2132,120 @@ function downloadGPX() {
   URL.revokeObjectURL(url);
 }
 
-// Event listeners
+// Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize the map when page loads
   initMap();
+  initializeControls();
+  loadRouteFromUrl();
+});
 
-  // Download GPX functionality
-  document.getElementById('download-gpx').addEventListener('click', () => {
-    showDownloadModal();
-  });
-
-  // Search functionality
-  document.getElementById('search-btn').addEventListener('click', searchLocation);
-  document.getElementById('location-search').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      searchLocation();
-    }
-  });
-
-  // Undo/redo buttons
-  document.getElementById('undo-btn').addEventListener('click', undo);
-  document.getElementById('redo-btn').addEventListener('click', redo);
-
-  // Reset button
-  document.getElementById('reset-btn').addEventListener('click', () => {
-    if (selectedSegments.length > 0) {
-      showResetModal();
-    } else {
-      resetRoute();
-    }
-  });
-
-  // Share button in main screen (check if exists)
+// Add proper element existence checks for all event listeners
+function initializeControls() {
+  const undoBtn = document.getElementById('undo-btn');
+  const redoBtn = document.getElementById('redo-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const downloadBtn = document.getElementById('download-gpx');
+  const searchBtn = document.getElementById('search-btn');
+  const locationSearch = document.getElementById('location-search');
+  const legendToggle = document.getElementById('legend-toggle');
+  const routeWarning = document.getElementById('route-warning');
+  const winterWarning = document.getElementById('winter-warning');
+  const segmentWarning = document.getElementById('segment-warning');
   const shareRouteBtn = document.getElementById('share-route');
+
+  if (undoBtn) {
+    undoBtn.addEventListener('click', undo);
+  }
+
+  if (redoBtn) {
+    redoBtn.addEventListener('click', redo);
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (selectedSegments.length > 0) {
+        showResetModal();
+      } else {
+        resetRoute();
+      }
+    });
+  }
+
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      showDownloadModal();
+    });
+  }
+
+  if (searchBtn) {
+    searchBtn.addEventListener('click', searchLocation);
+  }
+
+  if (locationSearch) {
+    locationSearch.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchLocation();
+      }
+    });
+  }
+
+  if (legendToggle) {
+    legendToggle.addEventListener('click', function() {
+      const legendBox = document.getElementById('legend-box');
+      const isOpen = legendBox.classList.contains('open');
+
+      if (isOpen) {
+        legendBox.classList.remove('open');
+        legendBox.classList.add('closed');
+      } else {
+        legendBox.classList.remove('closed');
+        legendBox.classList.add('open');
+      }
+    });
+  }
+
+   if (routeWarning) {
+    routeWarning.addEventListener('click', function() {
+      const continuityResult = checkRouteContinuity();
+      if (!continuityResult.isContinuous && continuityResult.brokenSegmentIndex >= 0) {
+        const segmentName = selectedSegments[continuityResult.brokenSegmentIndex];
+        focusOnSegment(segmentName);
+      }
+    });
+  }
+
+  if (winterWarning) {
+    winterWarning.addEventListener('click', function() {
+      const winterResult = hasWinterSegments();
+      if (winterResult.hasWinter && winterResult.firstWinterSegment) {
+        focusOnSegment(winterResult.firstWinterSegment);
+      }
+    });
+  }
+
+  if (segmentWarning) {
+    segmentWarning.addEventListener('click', function() {
+      const warningsResult = hasSegmentWarnings();
+      if (warningsResult.hasWarnings && warningsResult.firstWarningSegment) {
+        focusOnSegment(warningsResult.firstWarningSegment);
+      }
+    });
+  }
+   // Share button in main screen (check if exists)
   if (shareRouteBtn) {
     shareRouteBtn.addEventListener('click', shareRoute);
   }
 
-  // Legend toggle functionality
-  document.getElementById('legend-toggle').addEventListener('click', function() {
-    const legendBox = document.getElementById('legend-box');
-    const isOpen = legendBox.classList.contains('open');
-
-    if (isOpen) {
-      legendBox.classList.remove('open');
-      legendBox.classList.add('closed');
-    } else {
-      legendBox.classList.remove('closed');
-      legendBox.classList.add('open');
-    }
-  });
-
-  // Warning box click handlers
-  document.getElementById('route-warning').addEventListener('click', function() {
-    const continuityResult = checkRouteContinuity();
-    if (!continuityResult.isContinuous && continuityResult.brokenSegmentIndex >= 0) {
-      const segmentName = selectedSegments[continuityResult.brokenSegmentIndex];
-      focusOnSegment(segmentName);
-    }
-  });
-
-  document.getElementById('winter-warning').addEventListener('click', function() {
-    const winterResult = hasWinterSegments();
-    if (winterResult.hasWinter && winterResult.firstWinterSegment) {
-      focusOnSegment(winterResult.firstWinterSegment);
-    }
-  });
-
-  document.getElementById('segment-warning').addEventListener('click', function() {
-    const warningsResult = hasSegmentWarnings();
-    if (warningsResult.hasWarnings && warningsResult.firstWarningSegment) {
-      focusOnSegment(warningsResult.firstWarningSegment);
-    }
-  });
-
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
-    //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      undo();
-    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
-      e.preventDefault();
-      redo();
-    }
-  });
-});
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
+        e.preventDefault();
+        redo();
+      }
+    });
+}
 
 const ROUTE_VERSION = 1;
