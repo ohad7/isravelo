@@ -532,7 +532,8 @@ body::before {
 
 .share-modal,
 .reset-modal,
-.download-modal {
+.download-modal,
+.segment-action-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -548,7 +549,8 @@ body::before {
 
 .share-modal-content,
 .reset-modal-content,
-.download-modal-content {
+.download-modal-content,
+.segment-action-modal-content {
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -564,7 +566,8 @@ body::before {
 
 .share-modal-header,
 .reset-modal-header,
-.download-modal-header {
+.download-modal-header,
+.segment-action-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -577,7 +580,8 @@ body::before {
   padding-bottom: 15px;
 }
 
-.share-modal-header h3 {
+.share-modal-header h3,
+.segment-action-modal-header h3 {
   margin: 0;
   color: #333;
   font-size: 20px;
@@ -608,7 +612,8 @@ body::before {
 
 .share-modal-body,
 .reset-modal-body,
-.download-modal-body {
+.download-modal-body,
+.segment-action-modal-body {
   padding: 20px 25px;
 }
 
@@ -839,6 +844,71 @@ body::before {
 }
 
 .reset-cancel-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+}
+
+.segment-action-modal-body p {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.segment-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.segment-action-btn {
+  padding: 14px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.segment-action-btn.add-again-btn {
+  background: #4682B4;
+  color: white;
+  box-shadow: 0 2px 6px rgba(70, 130, 180, 0.3);
+}
+
+.segment-action-btn.add-again-btn:hover {
+  background: #5F9EA0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+}
+
+.segment-action-btn.remove-btn {
+  background: #dc3545;
+  color: white;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+.segment-action-btn.remove-btn:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.segment-action-btn.cancel-btn {
+  background: #6c757d;
+  color: white;
+  box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
+}
+
+.segment-action-btn.cancel-btn:hover {
   background: #5a6268;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);

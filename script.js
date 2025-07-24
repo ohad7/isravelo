@@ -349,11 +349,8 @@ function initMap() {
             }
           }
         } else {
-          saveState();
-          const index = selectedSegments.indexOf(name);
-          selectedSegments.splice(index, 1);
-          map.setPaintProperty(layerId, 'line-color', closestSegment.originalStyle.color);
-          map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight);
+          // Segment is already selected - check if we can add it again
+          handleSelectedSegmentClick(name);
         }
         updateRouteListAndDescription();
       }
@@ -1306,6 +1303,138 @@ function updateRouteWarning() {
   } else {
     segmentWarning.style.display = 'none';
   }
+}
+
+// Function to handle clicking on an already selected segment
+function handleSelectedSegmentClick(segmentName) {
+  if (selectedSegments.length === 0) return;
+
+  // Check if this segment can be added again at the end of the route
+  const canAddAgain = canSegmentBeAddedAgain(segmentName);
+  
+  if (canAddAgain) {
+    // Show confirmation dialog
+    showSegmentActionDialog(segmentName);
+  } else {
+    // Just remove the segment if it can't be added again
+    const index = selectedSegments.indexOf(segmentName);
+    if (index > -1) {
+      saveState();
+      selectedSegments.splice(index, 1);
+
+      // Reset polyline to original style
+      const polyline = routePolylines.find(p => p.segmentName === segmentName);
+      if (polyline) {
+        map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
+        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
+      }
+
+      updateSegmentStyles();
+      clearRouteFromUrl();
+    }
+  }
+}
+
+// Function to check if a segment can be added again at the end of the route
+function canSegmentBeAddedAgain(segmentName) {
+  if (selectedSegments.length === 0) return false;
+
+  const lastSegmentName = selectedSegments[selectedSegments.length - 1];
+  const lastPolyline = routePolylines.find(p => p.segmentName === lastSegmentName);
+  const targetPolyline = routePolylines.find(p => p.segmentName === segmentName);
+
+  if (!lastPolyline || !targetPolyline) return false;
+
+  // Get the end point of the current route
+  const lastCoords = lastPolyline.coordinates;
+  const routeEnd = lastCoords[lastCoords.length - 1];
+
+  // Check distance to both ends of the target segment
+  const targetCoords = targetPolyline.coordinates;
+  const targetStart = targetCoords[0];
+  const targetEnd = targetCoords[targetCoords.length - 1];
+
+  const distanceToStart = getDistance(routeEnd, targetStart);
+  const distanceToEnd = getDistance(routeEnd, targetEnd);
+  const tolerance = 100; // 100 meters tolerance
+
+  return Math.min(distanceToStart, distanceToEnd) <= tolerance;
+}
+
+// Function to show segment action dialog
+function showSegmentActionDialog(segmentName) {
+  const modal = document.createElement('div');
+  modal.className = 'segment-action-modal';
+  modal.innerHTML = `
+    <div class="segment-action-modal-content">
+      <div class="segment-action-modal-header">
+        <h3>פעולה על הקטע</h3>
+      </div>
+      <div class="segment-action-modal-body">
+        <p>הקטע "<strong>${segmentName}</strong>" כבר נמצא במסלול.</p>
+        <p>מה ברצונך לעשות?</p>
+        <div class="segment-action-buttons">
+          <button class="segment-action-btn add-again-btn">🔄 הוסף שוב לסוף המסלול</button>
+          <button class="segment-action-btn remove-btn">🗑️ הסר מהמסלול</button>
+          <button class="segment-action-btn cancel-btn">✖️ ביטול</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Add event listeners
+  const addAgainBtn = modal.querySelector('.add-again-btn');
+  const removeBtn = modal.querySelector('.remove-btn');
+  const cancelBtn = modal.querySelector('.cancel-btn');
+
+  addAgainBtn.addEventListener('click', () => {
+    saveState();
+    selectedSegments.push(segmentName);
+    updateSegmentStyles();
+    updateRouteListAndDescription();
+    clearRouteFromUrl();
+    document.body.removeChild(modal);
+  });
+
+  removeBtn.addEventListener('click', () => {
+    const index = selectedSegments.indexOf(segmentName);
+    if (index > -1) {
+      saveState();
+      selectedSegments.splice(index, 1);
+
+      // Reset polyline to original style
+      const polyline = routePolylines.find(p => p.segmentName === segmentName);
+      if (polyline) {
+        map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
+        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
+      }
+
+      updateSegmentStyles();
+      clearRouteFromUrl();
+    }
+    document.body.removeChild(modal);
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+
+  // Add escape key listener
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
 }
 
 // Function to focus map on a specific segment
