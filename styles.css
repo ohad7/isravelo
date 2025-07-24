@@ -1016,14 +1016,14 @@ body::before {
   align-items: center;
 }
 
-.search-input-group {
-  display: flex;
-  gap: 0;
-}
-
 .top-controls {
   display: flex;
   gap: 8px;
+}
+
+.search-input-group {
+  display: flex;
+  gap: 0;
 }
 
 .control-buttons {
@@ -1182,13 +1182,13 @@ h3 {
     text-align: center;
 }
 
-/* Left route description panel */
+/* Left bottom route description panel */
 .route-description-panel {
   position: absolute;
-  top: 160px;
+  bottom: 25px;
   left: 25px;
   width: 300px;
-  max-height: 400px;
+  max-height: 200px;
   z-index: 1000;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 4px;
