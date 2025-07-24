@@ -1579,7 +1579,6 @@ function generateElevationProfile() {
   if (orderedCoords.length === 0) return '';
 
   let elevationHtml = '<div class="elevation-profile">';
-  elevationHtml += '<h4>גרף גובה (Elevation Profile)</h4>';
   elevationHtml += '<div class="elevation-chart" id="elevation-chart" style="position: relative;">';
 
   const totalDistance = orderedCoords.reduce((total, coord, index) => {
@@ -2164,8 +2163,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Share button in main screen
-  document.getElementById('share-route').addEventListener('click', shareRoute);
+  // Share button in main screen (check if exists)
+  const shareRouteBtn = document.getElementById('share-route');
+  if (shareRouteBtn) {
+    shareRouteBtn.addEventListener('click', shareRoute);
+  }
 
   // Legend toggle functionality
   document.getElementById('legend-toggle').addEventListener('click', function() {

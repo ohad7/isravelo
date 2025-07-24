@@ -92,7 +92,9 @@ body::before {
 }
 
 .main-container {
-  padding: 20px;
+  height: calc(100vh - 80px); /* Full height minus header */
+  display: flex;
+  flex-direction: column;
 }
 
 .content-section {
@@ -118,25 +120,11 @@ body::before {
   color: #555;
 }
 
-.container {
-  display: flex;
-  gap: 20px;
-  align-items: stretch;
-  max-width: 1400px;
-  margin: 0 auto;
-  height: 600px;
-  flex-direction: row-reverse;
-}
-
 .map-container {
-  flex: 2;
-  background: #F8F8F8;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  padding: 15px;
+  flex: 1;
   position: relative;
-  height: 600px;
-  width: 100%; /* Adjusted to take full width */
+  width: 100%;
+  height: 100%;
 }
 
 .sidebar {
@@ -177,7 +165,7 @@ body::before {
 
 .legend-container {
   position: absolute;
-  top: 25px;
+  top: 80px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
@@ -962,26 +950,20 @@ body::before {
 }
 
 .elevation-profile {
-  margin-top: 15px;
-  padding: 15px;
+  margin-top: 8px;
+  padding: 8px;
   background: linear-gradient(135deg, #E6F3E6 0%, #B8D4B8 100%);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid #8FBC8F;
 }
 
-.elevation-profile h4 {
-  margin: 0 0 10px 0;
-  color: #333;
-  font-size: 14px;
-  text-align: center;
-}
-
 .elevation-chart {
-  position: relative;  height: 80px;
+  position: relative;
+  height: 60px;
   background: linear-gradient(to top, #6B8E23 0%, #8FBC8F 20%, #E6F3E6 100%);
   border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .elevation-point {
@@ -1017,9 +999,9 @@ body::before {
 
 #location-search {
   flex: 1;
-  padding: 12px;
+  padding: 10px 12px;
   border: 2px solid #e0e0e0;
-  border-radius: 25px;
+  border-radius: 8px;
   font-size: 14px;
   transition: border-color 0.2s;
   max-width: 200px; /* Limit width of the search box */
@@ -1035,7 +1017,7 @@ body::before {
   color: white;
   border: none;
   padding: 6px 10px;
-  border-radius: 25px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 12px; /* Reduced search button size */
   font-weight: 600;
@@ -1139,22 +1121,22 @@ h3 {
     text-align: center;
 }
 
-/* Bottom route description panel */
+/* Bottom left route description panel */
 .route-description-panel {
   position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 15px;
+  left: 15px;
   width: 100%;
-  max-width: 400px;
-  max-height: 200px;
+  max-width: 350px;
+  max-height: 180px;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  text-align: right;
   overflow-y: auto;
+  font-size: 13px;
 }
 
 /* Move the route list inside the download modal */
