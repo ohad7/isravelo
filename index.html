@@ -29,6 +29,21 @@
     <div class="container">
       <div class="map-container">
         <div class="segment-name-display" id="segment-name-display">No segment selected</div>
+        
+        <!-- Top controls container -->
+        <div class="top-controls">
+          <div class="search-container">
+            <input type="text" id="location-search" placeholder="שדה נחמיה" />
+            <button id="search-btn">🔍</button>
+          </div>
+          <div class="control-buttons">
+            <button id="undo-btn" class="control-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
+            <button id="redo-btn" class="control-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
+            <button id="reset-btn" class="control-btn" title="איפוס מסלול">🗑️</button>
+            <button id="download-gpx" class="control-btn" disabled title="הורדת GPX">GPX</button>
+          </div>
+        </div>
+
         <div class="legend-container">
           <button class="legend-toggle" id="legend-toggle">🗺️ מקרא</button>
           <div class="legend-box open" id="legend-box">
@@ -56,41 +71,18 @@
             ⚠️ אזהרות 
           </div>
         </div>
+        
+        <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none; position: absolute; top: 70px; left: 20px; z-index: 1001; background: white; padding: 5px; border-radius: 4px;"></div>
+        
         <div id="map"></div>
-      </div>
-
-      <div class="sidebar">
-        <h3>חיפוש מיקום</h3>
-        <div class="search-container">
-          <input type="text" id="location-search" placeholder="שדה נחמיה" />
-          <button id="search-btn">חיפוש</button>
-        </div>
-        <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none;"></div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h3 style="margin: 0;">קטעי מסלול נבחרים</h3>
-          <div style="display: flex; gap: 5px;">
-            <button id="undo-btn" class="reset-btn-subtle" disabled title="ביטול (Ctrl+Z)">↶</button>
-            <button id="redo-btn" class="reset-btn-subtle" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
-            <button id="reset-btn" class="reset-btn-subtle" title="איפוס מסלול">🗑️</button>
-          </div>
-        </div>
-        <div id="route-list">
-          <p style="color: #666; font-style: italic;">תכננו מסלול על ידי <b>לחיצה על קטע </b>והוספתו
-            למסלול.<br>
-            לחצו על <b>הסר</b> כדי
-            להסיר קטע ממסלול.<br> בסיום הורידו קובץ GPX כדי להעלות לאפליקציית הניווט שלכם.
-          </p>
-        </div>
-
-        <h3>תיאור המסלול</h3>
-        <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
-
-        <div class="action-buttons">
-          <button id="share-route" class="share-btn" disabled>שתף מסלול</button>
-          <button id="download-gpx" disabled>הורדת מסלול GPX</button>          
+        
+        <!-- Bottom route description panel -->
+        <div class="route-description-panel" id="route-description-panel">
+          <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
         </div>
       </div>
+
+      
     </div>
 
     <div class="content-section" id="trails">

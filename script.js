@@ -1719,86 +1719,15 @@ function generateElevationProfile() {
 }
 
 function updateRouteListAndDescription() {
-  const routeList = document.getElementById('route-list');
   const routeDescription = document.getElementById('route-description');
   const downloadButton = document.getElementById('download-gpx');
-  const shareButton = document.getElementById('share-route');
 
   if (selectedSegments.length === 0) {
-    routeList.innerHTML = '<p style="color: #666; font-style: italic;">תכננו מסלול על ידי לחיצה על קטע והוספתו למסלול. ליחצו על הסר כדי להסיר קטע ממסלול. בסיום הורידו קובץ GPX כדי להעלות לאפליקציית הניווט שלכם.</p>';
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
-    shareButton.disabled = true;
     updateRouteWarning();
     return;
   }
-
-  routeList.innerHTML = '';
-  selectedSegments.forEach((segmentName, index) => {
-    const segmentDiv = document.createElement('div');
-    segmentDiv.className = 'segment-item';
-
-    // Check for warnings
-    let warningIcons = '';
-    const segmentInfo = segmentsData[segmentName];
-    if (segmentInfo) {
-      if (segmentInfo.winter === false) {
-        warningIcons += ' ❄️';
-      }
-      if (segmentInfo.warning) {
-        warningIcons += ' ⚠️';
-      }
-    }
-
-    segmentDiv.innerHTML = `
-      <span><strong>${index + 1}.</strong> ${segmentName}${warningIcons}</span>
-      <button class="remove-btn" onclick="removeSegment('${segmentName}')">הסר</button>
-    `;
-
-    // Add hover effects for sidebar segments
-    segmentDiv.addEventListener('mouseenter', () => {
-      const polyline = routePolylines.find(p => p.segmentName === segmentName);
-      if (polyline) {
-        map.setPaintProperty(polyline.layerId, 'line-color', COLORS.SEGMENT_SIDEBAR_HOVER);
-        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 3);
-
-        // Show segment summary using pre-calculated data
-        const metrics = segmentMetrics[segmentName];
-        const segmentDistanceKm = metrics ? metrics.distanceKm : '0.0';
-        const segmentElevationGain = metrics ? metrics.forward.elevationGain : 0;
-        const segmentElevationLoss = metrics ? metrics.forward.elevationLoss : 0;
-
-        const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> <br> 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
-        segmentDisplay.style.display = 'block';
-
-        // Check for warnings in segments data and add to segment display
-        const segmentInfo = segmentsData[segmentName];
-        if (segmentInfo) {
-          if (segmentInfo.winter === false) {
-            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>`;
-          }
-          if (segmentInfo.warning) {
-            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_RED}; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
-          }
-        }
-      }
-    });
-
-    segmentDiv.addEventListener('mouseleave', () => {
-      const polyline = routePolylines.find(p => p.segmentName === segmentName);
-      if (polyline) {
-        map.setPaintProperty(polyline.layerId, 'line-color', COLORS.SEGMENT_SELECTED);
-        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 1);
-
-        // Hide segment summary display
-        const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.style.display = 'none';
-      }
-    });
-
-    routeList.appendChild(segmentDiv);
-  });
 
   // Calculate total distance using pre-calculated data
   let totalDistance = 0;
@@ -1920,7 +1849,6 @@ function updateRouteListAndDescription() {
   `;
 
   downloadButton.disabled = false;
-  shareButton.disabled = false;
   updateRouteWarning();
 
   // Add elevation profile hover functionality after DOM is updated
@@ -2081,6 +2009,9 @@ function showDownloadModal() {
         <button class="download-modal-close">&times;</button>
       </div>
       <div class="download-modal-body">
+        <h4>קטעי מסלול נבחרים</h4>
+        <div id="route-segments-list"></div>
+        
         <h4>תיאור המסלול</h4>
         <div id="download-route-description"></div>
 
@@ -2093,6 +2024,35 @@ function showDownloadModal() {
   `;
 
   document.body.appendChild(modal);
+
+  // Populate route segments list
+  const routeSegmentsList = modal.querySelector('#route-segments-list');
+  if (selectedSegments.length === 0) {
+    routeSegmentsList.innerHTML = '<p style="color: #666; font-style: italic;">אין קטעים נבחרים</p>';
+  } else {
+    let segmentsHtml = '<div class="modal-route-list">';
+    selectedSegments.forEach((segmentName, index) => {
+      // Check for warnings
+      let warningIcons = '';
+      const segmentInfo = segmentsData[segmentName];
+      if (segmentInfo) {
+        if (segmentInfo.winter === false) {
+          warningIcons += ' ❄️';
+        }
+        if (segmentInfo.warning) {
+          warningIcons += ' ⚠️';
+        }
+      }
+
+      segmentsHtml += `
+        <div class="modal-segment-item">
+          <span><strong>${index + 1}.</strong> ${segmentName}${warningIcons}</span>
+        </div>
+      `;
+    });
+    segmentsHtml += '</div>';
+    routeSegmentsList.innerHTML = segmentsHtml;
+  }
 
   // Populate route description
   const downloadRouteDescription = modal.querySelector('#download-route-description');

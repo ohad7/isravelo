@@ -136,6 +136,7 @@ body::before {
   padding: 15px;
   position: relative;
   height: 600px;
+  width: 100%; /* Adjusted to take full width */
 }
 
 .sidebar {
@@ -155,16 +156,6 @@ body::before {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-#route-list {
-  margin-top: 15px;
-  border: 1px solid #D1A980;
-  padding: 15px;
-  background: #E5E0D8;
-  border-radius: 8px;
-  max-height: 140px;
-  overflow-y: auto;
 }
 
 .segment-name-display {
@@ -417,38 +408,6 @@ body::before {
   background: #6B8E23;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(107, 142, 35, 0.4);
-}
-
-.action-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-#download-gpx {
-  background: #4682B4;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
-  flex: 1;
-}
-
-#download-gpx:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-#download-gpx:hover:not(:disabled) {
-  background: #5F9EA0;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
 }
 
 .undo-btn {
@@ -1024,8 +983,7 @@ body::before {
 }
 
 .elevation-chart {
-  position: relative;
-  height: 80px;
+  position: relative;  height: 80px;
   background: linear-gradient(to top, #6B8E23 0%, #8FBC8F 20%, #E6F3E6 100%);
   border-radius: 4px;
   overflow: hidden;
@@ -1055,9 +1013,12 @@ body::before {
 }
 
 .search-container {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  z-index: 1000;
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
 }
 
 #location-search {
@@ -1067,6 +1028,7 @@ body::before {
   border-radius: 25px;
   font-size: 14px;
   transition: border-color 0.2s;
+  max-width: 200px; /* Limit width of the search box */
 }
 
 #location-search:focus {
@@ -1078,19 +1040,19 @@ body::before {
   background: #4682B4;
   color: white;
   border: none;
-  padding: 12px 20px;
+  padding: 6px 10px;
   border-radius: 25px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px; /* Reduced search button size */
   font-weight: 600;
   transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
+  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3); /* Reduced shadow */
 }
 
 #search-btn:hover {
   background: #5F9EA0;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4); /* Reduced shadow */
 }
 
 .leaflet-interactive {
@@ -1140,3 +1102,48 @@ h3 {
 #kml-file:hover {
   border-color: #2196F3;
 }
+
+.supporting-buttons {
+    position: absolute;
+    top: 25px;
+    right: 250px; /* Adjust as needed */
+    z-index: 1000;
+    display: flex;
+    gap: 8px;
+}
+
+.supporting-buttons button {
+    background: #f8f8f8;
+    color: #333;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.supporting-buttons button:hover {
+    background: #e0e0e0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.elevation-and-description {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Move the route list inside the download modal */
+/* No CSS changes needed, just structural changes in the React component */
