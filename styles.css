@@ -518,7 +518,13 @@ body::before {
   flex: 0 0 auto;
 }
 
-.share-btn:hover {
+.share-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.share-btn:hover:not(:disabled) {
   background: #5F9EA0;
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);

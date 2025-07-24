@@ -1583,11 +1583,13 @@ function updateRouteListAndDescription() {
   const routeList = document.getElementById('route-list');
   const routeDescription = document.getElementById('route-description');
   const downloadButton = document.getElementById('download-gpx');
+  const shareButton = document.getElementById('share-route');
 
   if (selectedSegments.length === 0) {
     routeList.innerHTML = '<p style="color: #666; font-style: italic;">תכננו מסלול על ידי לחיצה על קטע והוספתו למסלול. ליחצו על הסר כדי להסיר קטע ממסלול. בסיום הורידו קובץ GPX כדי להעלות לאפליקציית הניווט שלכם.</p>';
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
+    shareButton.disabled = true;
     updateRouteWarning();
     return;
   }
@@ -1779,6 +1781,7 @@ function updateRouteListAndDescription() {
   `;
 
   downloadButton.disabled = false;
+  shareButton.disabled = false;
   updateRouteWarning();
 
   // Add elevation profile hover functionality after DOM is updated
