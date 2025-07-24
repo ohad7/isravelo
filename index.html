@@ -30,20 +30,22 @@
       <div class="map-container">
         <div class="segment-name-display" id="segment-name-display">No segment selected</div>
         
-        <!-- Search container -->
+        <!-- Search and controls container -->
         <div class="search-container">
-          <input type="text" id="location-search" placeholder="שדה נחמיה" />
-          <button id="search-btn">🔍</button>
-        </div>
-        
-        <!-- Top controls container -->
-        <div class="top-controls">
-          <div class="control-buttons">
-            <button id="undo-btn" class="control-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
-            <button id="redo-btn" class="control-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
-            <button id="reset-btn" class="control-btn" title="איפוס מסלול">🗑️</button>
-            <button id="download-gpx" class="control-btn" disabled title="הורדת GPX">GPX</button>
-            <button id="share-route" class="control-btn" disabled title="שיתוף מסלול">🔗</button>
+          <div class="search-input-group">
+            <input type="text" id="location-search" placeholder="שדה נחמיה" />
+            <button id="search-btn">🔍</button>
+          </div>
+          
+          <!-- Control buttons -->
+          <div class="top-controls">
+            <div class="control-buttons">
+              <button id="undo-btn" class="control-btn" disabled title="ביטול (Ctrl+Z)">↶</button>
+              <button id="redo-btn" class="control-btn" disabled title="חזרה (Ctrl+Shift+Z)">↷</button>
+              <button id="reset-btn" class="control-btn" title="איפוס מסלול">🗑️</button>
+              <button id="download-gpx" class="control-btn" disabled title="הורדת GPX">GPX</button>
+              <button id="share-route" class="control-btn" disabled title="שיתוף מסלול">🔗</button>
+            </div>
           </div>
         </div>
 

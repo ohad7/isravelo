@@ -1012,14 +1012,16 @@ body::before {
   left: 25px;
   z-index: 1000;
   display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input-group {
+  display: flex;
   gap: 0;
 }
 
 .top-controls {
-  position: absolute;
-  top: 25px;
-  right: 25px;
-  z-index: 1000;
   display: flex;
   gap: 8px;
 }
