@@ -113,7 +113,7 @@ body::before {
 
 @media (max-width: 768px) {
   .nav-links {
-    gap: 15px;
+    gap: 8px;
     flex-wrap: wrap;
     justify-content: center;
   }
@@ -126,6 +126,13 @@ body::before {
   font-weight: bold;
   transition: color 0.2s;
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .nav-link {
+    font-size: 14px;
+    padding: 4px 8px;
+  }
 }
 
 .nav-link:hover {
