@@ -963,27 +963,28 @@ body::before {
 }
 
 .elevation-profile {
-  margin-top: 15px;
-  padding: 15px;
+  margin-top: 8px;
+  padding: 8px;
   background: linear-gradient(135deg, #E6F3E6 0%, #B8D4B8 100%);
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid #8FBC8F;
 }
 
 .elevation-profile h4 {
-  margin: 0 0 10px 0;
+  margin: 0 0 4px 0;
   color: #333;
-  font-size: 14px;
+  font-size: 12px;
   text-align: center;
+  display: none;
 }
 
 .elevation-chart {
   position: relative;
-  height: 80px;
+  height: 60px;
   background: linear-gradient(to top, #6B8E23 0%, #8FBC8F 20%, #E6F3E6 100%);
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .elevation-point {
@@ -1003,9 +1004,9 @@ body::before {
 .elevation-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 10px;
   color: #666;
-  margin-top: 5px;
+  margin-top: 2px;
 }
 
 .search-container {
@@ -1199,7 +1200,7 @@ h3 {
   z-index: 1000;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 4px;
-  padding: 15px;
+  padding: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   text-align: right;
   overflow-y: auto;
