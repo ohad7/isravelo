@@ -251,7 +251,7 @@ function initMap() {
         const segmentElevationLoss = metrics ? metrics.forward.elevationLoss : 0;
 
         const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.innerHTML = `<strong>${name}</strong> <br> 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
 
         // Check for warnings in segments data and add to segment display
         const segmentInfo = segmentsData[name];
@@ -408,21 +408,41 @@ function decodeRoute(routeString) {
       uint8Array[i] = binaryString.charCodeAt(i);
     }
 
-    // Convert back to 16-bit integers
-    const view = new Uint16Array(binaryData);
-    const segmentIds = Array.from(view);
-
-    // Convert IDs back to segment names
-    const segmentNames = [];
-    for (const segmentName in segmentsData) {
-      const segmentInfo = segmentsData[segmentName];
-      if (segmentInfo && segmentIds.includes(segmentInfo.id)) {
-        const index = segmentIds.indexOf(segmentInfo.id);
-        segmentNames[index] = segmentName;
-      }
+    // Read version from first byte
+    if (binaryData.byteLength === 0) {
+      console.warn('Empty route data');
+      return [];
     }
 
-    return segmentNames.filter(name => name); // Remove empty slots
+    const version = uint8Array[0];
+    const segmentDataOffset = 1;
+
+    if (version === ROUTE_VERSION) {
+      // Current version: First byte is version, rest are 16-bit segment IDs
+      const segmentDataLength = binaryData.byteLength - segmentDataOffset;
+      if (segmentDataLength % 2 !== 0) {
+        console.warn('Invalid route data: segment data length is not even');
+        return [];
+      }
+
+      const view = new Uint16Array(binaryData, segmentDataOffset);
+      const segmentIds = Array.from(view);
+
+      // Convert IDs back to segment names
+      const segmentNames = [];
+      for (const segmentName in segmentsData) {
+        const segmentInfo = segmentsData[segmentName];
+        if (segmentInfo && segmentIds.includes(segmentInfo.id)) {
+          const index = segmentIds.indexOf(segmentInfo.id);
+          segmentNames[index] = segmentName;
+        }
+      }
+
+      return segmentNames.filter(name => name); // Remove empty slots
+    } else {
+      console.warn(`Unsupported route version: ${version}. Expected version ${ROUTE_VERSION}.`);
+      return [];
+    }
   } catch (error) {
     console.error('Error decoding route:', error);
     return [];
@@ -773,7 +793,7 @@ function parseGeoJSON(geoJsonData) {
 
         // Update segment name display with details
         const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${name}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.innerHTML = `<strong>${name}</strong> <br> 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
         segmentDisplay.style.display = 'block';
 
         // Check for warnings in segments data and add to segment display
@@ -994,8 +1014,8 @@ function distanceWindowSmoothing(
   let result = [];
 
   let start = 0,
-      end = 0,
-      accumulated = 0;
+    end = 0,
+    accumulated = 0;
 
   for (let i = 0; i < points.length; i++) {
     // Remove points that are too far behind
@@ -1599,7 +1619,7 @@ function updateRouteListAndDescription() {
         const segmentElevationLoss = metrics ? metrics.forward.elevationLoss : 0;
 
         const segmentDisplay = document.getElementById('segment-name-display');
-        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> • 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+        segmentDisplay.innerHTML = `<strong>${segmentName}</strong> <br> 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
         segmentDisplay.style.display = 'block';
 
         // Check for warnings in segments data and add to segment display
@@ -2019,3 +2039,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+
+const ROUTE_VERSION = 1;
