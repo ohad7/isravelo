@@ -649,12 +649,6 @@ body::before {
   border-bottom: none;
 }
 
-.segment-distance {
-  color: #6c757d;
-  font-size: 12px;
-  font-weight: 500;
-}
-
 .warnings-section {
   margin: 20px 0;
 }
@@ -1143,6 +1137,24 @@ h3 {
     padding: 15px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     text-align: center;
+}
+
+/* Bottom route description panel */
+.route-description-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 400px;
+  max-height: 200px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  overflow-y: auto;
 }
 
 /* Move the route list inside the download modal */
