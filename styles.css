@@ -728,11 +728,12 @@ body::before {
 }
 
 .download-final-btn,
-.share-final-btn {
+.share-final-btn,
+.download-confirm-btn {
   flex: 1;
   padding: 14px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: 25px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -741,30 +742,31 @@ body::before {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
 }
 
-.download-final-btn {
-  background: #28a745;
+.download-final-btn,
+.download-confirm-btn {
+  background: #4682B4;
   color: white;
-  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
 }
 
-.download-final-btn:hover {
-  background: #218838;
+.download-final-btn:hover,
+.download-confirm-btn:hover {
+  background: #5F9EA0;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+  box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
 }
 
 .share-final-btn {
   background: #4682B4;
   color: white;
-  box-shadow: 0 2px 6px rgba(70, 130, 180, 0.3);
 }
 
 .share-final-btn:hover:not(:disabled) {
   background: #5F9EA0;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+  box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
 }
 
 .share-final-btn:disabled {

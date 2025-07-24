@@ -1695,8 +1695,7 @@ function updateRouteListAndDescription() {
         const prevStart = prevMetrics.startPoint;
         const prevEnd = prevMetrics.endPoint;
         const currentStart = metrics.startPoint;
-        ```text
-const currentEnd = metrics.endPoint;
+        const currentEnd = metrics.endPoint;
 
         // Check which connection makes more sense based on previous segment's orientation
         let prevLastPoint;
@@ -1943,9 +1942,10 @@ function showDownloadModal() {
         <h4>תיאור המסלול</h4>
         <div id="download-route-description"></div>
 
-        <h4>אפשרויות נוספות</h4>
-        <button id="download-gpx-final" class="download-confirm-btn">הורדת GPX</button>
-        <button id="share-route" class="share-btn" title="שיתוף מסלול">שיתוף מסלול</button>
+        <div class="download-modal-actions">
+          <button id="download-gpx-final" class="download-confirm-btn">📥 הורדת GPX</button>
+          <button id="share-route-modal" class="share-final-btn" title="שיתוף מסלול">🔗 שיתוף מסלול</button>
+        </div>
       </div>
     </div>
   `;
@@ -1959,7 +1959,7 @@ function showDownloadModal() {
   // Add event listeners
   const closeBtn = modal.querySelector('.download-modal-close');
   const downloadBtn = modal.querySelector('#download-gpx-final');
-  const shareBtn = modal.querySelector('#share-route');
+  const shareBtn = modal.querySelector('#share-route-modal');
 
   closeBtn.addEventListener('click', () => {
     document.body.removeChild(modal);
