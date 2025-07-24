@@ -124,7 +124,7 @@ body::before {
   align-items: stretch;
   max-width: 1400px;
   margin: 0 auto;
-  height: 600px;
+  height: calc(100vh - 100px) !important;
   flex-direction: row-reverse;
 }
 
@@ -135,8 +135,9 @@ body::before {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   padding: 15px;
   position: relative;
-  height: 600px;
-  width: 100%; /* Adjusted to take full width */
+  /* height: 600px; */
+  width: 100%;
+  /* Adjusted to take full width */
 }
 
 .sidebar {
@@ -977,7 +978,8 @@ body::before {
 }
 
 .elevation-chart {
-  position: relative;  height: 80px;
+  position: relative;
+  height: 80px;
   background: linear-gradient(to top, #6B8E23 0%, #8FBC8F 20%, #E6F3E6 100%);
   border-radius: 4px;
   overflow: hidden;
@@ -1064,7 +1066,8 @@ body::before {
   border-right: none;
   font-size: 14px;
   transition: border-color 0.2s;
-  max-width: 200px; /* Limit width of the search box */
+  max-width: 200px;
+  /* Limit width of the search box */
 }
 
 #location-search:focus {
@@ -1080,16 +1083,19 @@ body::before {
   padding: 10px 12px;
   border-radius: 0 4px 4px 0;
   cursor: pointer;
-  font-size: 12px; /* Reduced search button size */
+  font-size: 12px;
+  /* Reduced search button size */
   font-weight: 600;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3); /* Reduced shadow */
+  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3);
+  /* Reduced shadow */
 }
 
 #search-btn:hover {
   background: #5F9EA0;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4); /* Reduced shadow */
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+  /* Reduced shadow */
 }
 
 .leaflet-interactive {
@@ -1141,45 +1147,46 @@ h3 {
 }
 
 .supporting-buttons {
-    position: absolute;
-    top: 25px;
-    right: 250px; /* Adjust as needed */
-    z-index: 1000;
-    display: flex;
-    gap: 8px;
+  position: absolute;
+  top: 25px;
+  right: 250px;
+  /* Adjust as needed */
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
 }
 
 .supporting-buttons button {
-    background: #f8f8f8;
-    color: #333;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: #f8f8f8;
+  color: #333;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .supporting-buttons button:hover {
-    background: #e0e0e0;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .elevation-and-description {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 500px;
-    z-index: 1000;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    text-align: center;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
 /* Left bottom route description panel */

@@ -29,7 +29,7 @@
     <div class="container">
       <div class="map-container">
         <div class="segment-name-display" id="segment-name-display">No segment selected</div>
-        
+
         <!-- Search and controls container -->
         <div class="search-container">
           <!-- Control buttons -->
@@ -42,10 +42,10 @@
               <button id="share-route" class="control-btn" disabled title="שיתוף מסלול">🔗</button>
             </div>
           </div>
-          
+
           <div class="search-input-group">
-            <input type="text" id="location-search" placeholder="שדה נחמיה" />
             <button id="search-btn">🔍</button>
+            <input type="text" id="location-search" placeholder="שדה נחמיה" />
           </div>
         </div>
 
@@ -73,21 +73,23 @@
             ❄️ בוץ בחורף
           </div>
           <div class="segment-warning" id="segment-warning" style="display: none;">
-            ⚠️ אזהרות 
+            ⚠️ אזהרות
           </div>
         </div>
-        
-        <div id="search-error" style="color: red; font-size: 12px; margin-top: 5px; display: none; position: absolute; top: 70px; left: 20px; z-index: 1001; background: white; padding: 5px; border-radius: 4px;"></div>
-        
+
+        <div id="search-error"
+          style="color: red; font-size: 12px; margin-top: 5px; display: none; position: absolute; top: 70px; left: 20px; z-index: 1001; background: white; padding: 5px; border-radius: 4px;">
+        </div>
+
         <div id="map"></div>
-        
+
         <!-- Bottom route description panel -->
         <div class="route-description-panel" id="route-description-panel">
           <div id="route-description">לחץ על קטעי מפה כדי לבנות את המסלול שלך.</div>
         </div>
       </div>
 
-      
+
     </div>
 
     <div class="content-section" id="trails">
