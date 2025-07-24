@@ -177,7 +177,7 @@ body::before {
 
 .legend-container {
   position: absolute;
-  top: 25px;
+  top: 80px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
@@ -1013,6 +1013,45 @@ body::before {
   z-index: 1000;
   display: flex;
   gap: 8px;
+}
+
+.top-controls {
+  position: absolute;
+  top: 25px;
+  right: 25px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  background: #f8f8f8;
+  color: #333;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.control-btn:hover:not(:disabled) {
+  background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 #location-search {
