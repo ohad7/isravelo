@@ -436,7 +436,7 @@ body::before {
   font-weight: 600;
   transition: all 0.2s;
   box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
-  width: 100%;
+  flex: 1;
 }
 
 #download-gpx:disabled {
@@ -508,14 +508,15 @@ body::before {
   background: #4682B4;
   color: white;
   border: none;
-  padding: 12px 16px;
+  padding: 12px 20px;
   border-radius: 25px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
   box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3);
-  min-width: 60px;
+  flex: 0 0 auto;
+  width: 60px;
 }
 
 .share-btn:hover {

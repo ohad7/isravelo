@@ -2062,6 +2062,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Share button in main screen
+  document.getElementById('share-route').addEventListener('click', shareRoute);
+
   // Legend toggle functionality
   document.getElementById('legend-toggle').addEventListener('click', function() {
     const legendBox = document.getElementById('legend-box');
