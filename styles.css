@@ -1118,9 +1118,8 @@ h3 {
 #route-description {
   background: #4682B4;
   color: white;
-  padding: 15px;
+  padding: 10px;
   border-radius: 8px;
-  margin-top: 15px;
   font-size: 14px;
   line-height: 1.4;
 }
