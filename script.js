@@ -1358,6 +1358,8 @@ function canSegmentBeAddedAgain(segmentName) {
   const distanceToEnd = getDistance(routeEnd, targetEnd);
   const tolerance = 100; // 100 meters tolerance
 
+  console.log(`Distance to start: ${distanceToStart}, Distance to end: ${distanceToEnd}`);
+
   return Math.min(distanceToStart, distanceToEnd) <= tolerance;
 }
 
