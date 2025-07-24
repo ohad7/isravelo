@@ -468,7 +468,7 @@ body::before {
   color: white;
   border: none;
   padding: 12px 20px;
-  border-radius: 25px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -697,7 +697,7 @@ body::before {
   flex: 1;
   padding: 14px 20px;
   border: none;
-  border-radius: 25px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -1036,7 +1036,7 @@ body::before {
   color: #333;
   border: none;
   padding: 6px 10px;
-  border-radius: 25px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
@@ -1182,22 +1182,21 @@ h3 {
     text-align: center;
 }
 
-/* Bottom route description panel */
+/* Left route description panel */
 .route-description-panel {
   position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 400px;
-  max-height: 200px;
+  top: 160px;
+  left: 25px;
+  width: 300px;
+  max-height: 400px;
   z-index: 1000;
   background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
+  border-radius: 4px;
   padding: 15px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  text-align: right;
   overflow-y: auto;
+  direction: rtl;
 }
 
 /* Move the route list inside the download modal */
