@@ -89,6 +89,7 @@ function redo() {
 function updateUndoRedoButtons() {
   document.getElementById('undo-btn').disabled = undoStack.length === 0;
   document.getElementById('redo-btn').disabled = redoStack.length === 0;
+  document.getElementById('reset-btn').disabled = selectedSegments.length === 0;
 }
 
 function resetRoute() {
@@ -1726,6 +1727,7 @@ function updateRouteListAndDescription() {
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
     updateRouteWarning();
+    updateUndoRedoButtons(); // Update reset button state
     return;
   }
 
@@ -1850,6 +1852,7 @@ function updateRouteListAndDescription() {
 
   downloadButton.disabled = false;
   updateRouteWarning();
+  updateUndoRedoButtons(); // Update reset button state
 
   // Add elevation profile hover functionality after DOM is updated
   setTimeout(() => {
