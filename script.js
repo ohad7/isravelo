@@ -1855,9 +1855,11 @@ function updateRouteListAndDescription() {
   setTimeout(() => {
     const elevationOverlay = document.querySelector('.elevation-hover-overlay');
     if (elevationOverlay && window.currentElevationData) {
-      elevationOverlay.addEventListener('mousemove', (e) => {
+      
+      // Common function to handle both mouse and touch events
+      const handleElevationInteraction = (clientX) => {
         const rect = elevationOverlay.getBoundingClientRect();
-        const x = e.clientX - rect.left;
+        const x = clientX - rect.left;
         const xPercent = (x / rect.width) * 100;
 
         // Find closest elevation data point
@@ -1900,9 +1902,9 @@ function updateRouteListAndDescription() {
           segmentDisplay.innerHTML = `📍 מרחק: ${(closestPoint.distance / 1000).toFixed(1)} ק"מ • גובה: ${Math.round(closestPoint.elevation)} מ'`;
           segmentDisplay.style.display = 'block';
         }
-      });
+      };
 
-      elevationOverlay.addEventListener('mouseleave', () => {
+      const handleElevationLeave = () => {
         // Remove elevation marker
         if (window.elevationMarker) {
           window.elevationMarker.remove();
@@ -1912,6 +1914,38 @@ function updateRouteListAndDescription() {
         // Hide segment display
         const segmentDisplay = document.getElementById('segment-name-display');
         segmentDisplay.style.display = 'none';
+      };
+
+      // Mouse events for desktop
+      elevationOverlay.addEventListener('mousemove', (e) => {
+        handleElevationInteraction(e.clientX);
+      });
+
+      elevationOverlay.addEventListener('mouseleave', handleElevationLeave);
+
+      // Touch events for mobile
+      elevationOverlay.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        handleElevationInteraction(touch.clientX);
+      });
+
+      elevationOverlay.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        handleElevationInteraction(touch.clientX);
+      });
+
+      elevationOverlay.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        // Don't hide immediately on touch end to allow viewing
+        // Instead, hide after a delay
+        setTimeout(handleElevationLeave, 2000);
+      });
+
+      elevationOverlay.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        handleElevationLeave();
       });
     }
   }, 100);
