@@ -1190,7 +1190,7 @@ body::before {
   padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 600;
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -1217,7 +1217,7 @@ body::before {
 }
 
 .control-btn:disabled {
-  background: #cccccc;
+  background: #dddddd;
   cursor: not-allowed;
   box-shadow: none;
 }
