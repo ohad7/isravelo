@@ -8,7 +8,7 @@
   button,
   .control-btn,
   .nav-link {
-    min-height: 44px;
+    color: red;
     touch-action: manipulation;
   }
 
@@ -131,6 +131,7 @@ body::before {
 @media (max-width: 768px) {
   .nav-link {
     font-size: 14px;
+    color: white;
     padding: 4px 8px;
   }
 }
