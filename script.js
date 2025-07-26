@@ -1518,7 +1518,7 @@ function focusOnSegmentByName(segmentName) {
     totalLat += coord.lat;
     totalLng += coord.lng;
   });
-  
+
   const centerLat = totalLat / coords.length;
   const centerLng = totalLng / coords.length;
 
@@ -1818,13 +1818,17 @@ function updateRouteListAndDescription() {
   const routeDescription = document.getElementById
 ('route-description');
   const downloadButton = document.getElementById('download-gpx');
+  const descriptionPanel = document.getElementById('route-description-panel');
 
   if (selectedSegments.length === 0) {
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
     updateRouteWarning();
     updateUndoRedoButtons(); // Update reset button state
+    descriptionPanel.style.display = 'none'; // Hide description panel
     return;
+  } else {
+    descriptionPanel.style.display = 'block'; // Ensure description panel is visible when segments are selected
   }
 
   // Calculate total distance using pre-calculated data
