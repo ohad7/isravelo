@@ -677,6 +677,11 @@ async function loadKMLFile() {
     // Try to load route from URL after everything is loaded
     setTimeout(() => {
       loadRouteFromUrl();
+      
+      // Initialize tutorial after everything is loaded
+      if (typeof initTutorial === 'function') {
+        initTutorial();
+      }
     }, 1000);
   } catch (error) {
     document.getElementById('error-message').style.display = 'block';
