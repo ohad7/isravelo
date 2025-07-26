@@ -2132,6 +2132,17 @@ function scrollToSection(sectionId) {
   }
 }
 
+// Function to return to starting map position
+function returnToStartingPosition() {
+  if (map) {
+    map.flyTo({
+      center: [35.617497, 33.183536], // Original centered position on the bike routes area
+      zoom: 11.5,
+      duration: 1000
+    });
+  }
+}
+
 function showDownloadModal() {
   // Create modal elements
   const modal = document.createElement('div');

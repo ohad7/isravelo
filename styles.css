@@ -96,6 +96,12 @@ body::before {
   font-weight: bold;
   color: #333;
   margin: 0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.site-title:hover {
+  color: #748873;
 }
 
 @media (max-width: 768px) {
