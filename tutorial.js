@@ -22,7 +22,7 @@ class Tutorial {
         title: 'בחירת קטעי מסלול',
         content: 'לחצו על קטעי המפה כדי להוסיף אותם למסלול שלכם. הקטעים הנבחרים יוצגו בירוק',
         target: '#map',
-        position: 'top',
+        position: 'left',
         highlight: 'segments'
       },
       {
@@ -159,7 +159,7 @@ class Tutorial {
     }
 
     // Add cutout if needed
-    if (step.target && step.target !== '#map') {
+    if (step.target) {
       const target = document.querySelector(step.target);
       if (target) {
         target.classList.add('tutorial-highlight');
@@ -202,15 +202,9 @@ class Tutorial {
     switch (step.position) {
       case 'top':
         // Position on left side for map
-        if (step.target === '#map') {
-          modal.style.left = '20px';
-          modal.style.top = `${targetRect.top + 20}px`;
-          modal.style.transform = 'none';
-        } else {
-          modal.style.left = `${targetRect.left + targetRect.width / 2}px`;
-          modal.style.top = `${targetRect.top - 20}px`;
-          modal.style.transform = 'translate(-50%, -100%)';
-        }
+        modal.style.left = `${targetRect.left + targetRect.width / 2}px`;
+        modal.style.top = `${targetRect.top - 20}px`;
+        modal.style.transform = 'translate(-50%, -100%)';
         break;
       case 'bottom':
         // Align left edge of modal with left edge of target
@@ -219,7 +213,7 @@ class Tutorial {
         modal.style.transform = 'none';
         break;
       case 'left':
-        modal.style.left = '20px';
+        modal.style.left = '30px';
         modal.style.top = `${targetRect.top + targetRect.height / 2}px`;
         modal.style.transform = 'translateY(-50%)';
         break;
@@ -356,120 +350,16 @@ class Tutorial {
   }
 
   createRouteBoundsCutout() {
-    // Calculate the bounds of all selected segments and create a cutout around it.
-    if (!map || !selectedSegments || selectedSegments.length === 0) return;
-
-    let bounds;
-
-    selectedSegments.forEach(segmentName => {
-      routePolylines.forEach(polylineData => {
-        if (polylineData.segmentName === segmentName) {
-          const coordinates = polylineData.coordinates;
-          if (!coordinates || coordinates.length === 0) return;
-
-          if (!bounds) {
-            // Initialize bounds with the first segment's coordinates
-            bounds = coordinates.reduce((acc, coord) => {
-              return acc.extend(coord);
-            }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
-          } else {
-            // Extend bounds with the current segment's coordinates
-            coordinates.forEach(coord => {
-              bounds.extend(coord);
-            });
-          }
-        }
-      });
-    });
-
-    if (!bounds) {
-      // If there are no selected segments, just create a cutout for the entire map.
-      const target = document.querySelector('#map');
-      if (target) {
-        this.createCutout(target);
-      }
-      return;
+    // This method used to do something special, now it's just a wrapper for createCutout
+    const target = document.querySelector('#map');
+    if (target) {
+      this.createCutout(target);
     }
 
     const overlay = document.getElementById('tutorial-overlay');
     if (!overlay) return;
 
     overlay.classList.add('has-cutout');
-
-    // Get the bounding box of the bounds
-    const ne = bounds.getNorthEast();
-    const sw = bounds.getSouthWest();
-
-    // Convert the bounds to pixel coordinates
-    const topLeft = map.project(sw);
-    const bottomRight = map.project(ne);
-
-    const padding = 20;
-
-    const cutoutLeft = topLeft.x - padding;
-    const cutoutTop = topLeft.y - padding;
-    const cutoutWidth = bottomRight.x - topLeft.x + (padding * 2);
-    const cutoutHeight = bottomRight.y - topLeft.y + (padding * 2);
-
-    // Create four overlay rectangles to surround the cutout area
-    const rectangles = [
-      // Top rectangle
-      {
-        left: 0,
-        top: 0,
-        width: window.innerWidth,
-        height: cutoutTop
-      },
-      // Bottom rectangle
-      {
-        left: 0,
-        top: cutoutTop + cutoutHeight,
-        width: window.innerWidth,
-        height: window.innerHeight - (cutoutTop + cutoutHeight)
-      },
-      // Left rectangle
-      {
-        left: 0,
-        top: cutoutTop,
-        width: cutoutLeft,
-        height: cutoutHeight
-      },
-      // Right rectangle
-      {
-        left: cutoutLeft + cutoutWidth,
-        top: cutoutTop,
-        width: window.innerWidth - (cutoutLeft + cutoutWidth),
-        height: cutoutHeight
-      }
-    ];
-
-    // Create and position the overlay rectangles
-    rectangles.forEach((rectData, index) => {
-      if (rectData.width > 0 && rectData.height > 0) {
-        const overlayRect = document.createElement('div');
-        overlayRect.className = 'tutorial-overlay-rect';
-        overlayRect.id = `tutorial-overlay-rect-${index}`;
-
-        overlayRect.style.left = `${rectData.left}px`;
-        overlayRect.style.top = `${rectData.top}px`;
-        overlayRect.style.width = `${rectData.width}px`;
-        overlayRect.style.height = `${rectData.height}px`;
-
-        document.body.appendChild(overlayRect);
-      }
-    });
-
-    // Create the highlight border around the cutout
-    const cutout = document.createElement('div');
-    cutout.className = 'tutorial-cutout';
-    cutout.id = 'tutorial-cutout';
-
-    cutout.style.left = `${cutoutLeft}px`;
-    cutout.style.top = `${cutoutTop}px`;
-    cutout.style.width = `${cutoutWidth}px`;
-    cutout.style.height = `${cutoutHeight}px`;
-
-    document.body.appendChild(cutout);
   }
 
   clearHighlights() {

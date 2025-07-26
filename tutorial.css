@@ -13,7 +13,7 @@
 /* Tutorial Modal */
 .tutorial-modal {
   position: fixed;
-  z-index: 10000;
+  z-index: 10003;
   pointer-events: auto;
   max-width: 350px;
   min-width: 280px;
