@@ -101,6 +101,12 @@ class Tutorial {
     const overlay = document.createElement('div');
     overlay.className = 'tutorial-overlay';
     overlay.id = 'tutorial-overlay';
+    
+    // Add click listener to cancel tutorial
+    overlay.addEventListener('click', () => {
+      this.finish();
+    });
+    
     document.body.appendChild(overlay);
 
     // Create tutorial modal
