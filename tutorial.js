@@ -158,6 +158,15 @@ class Tutorial {
       this.addHighlight(step);
     }
 
+    // Add cutout if needed
+    if (step.target && step.target !== '#map') {
+      const target = document.querySelector(step.target);
+      if (target) {
+        target.classList.add('tutorial-highlight');
+        this.createCutout(target);
+      }
+    }
+
     // Add event listeners
     this.addStepEventListeners(step);
   }
@@ -258,13 +267,7 @@ class Tutorial {
       }
     }
 
-    if (step.target && step.target !== '#map') {
-      const target = document.querySelector(step.target);
-      if (target) {
-        target.classList.add('tutorial-highlight');
-        this.createCutout(target);
-      }
-    }
+    // Note: cutout creation is now handled in showStep method
   }
 
   createCutout(element) {
