@@ -135,15 +135,10 @@ body::before {
 .help-tutorial-btn {
   background: transparent;
   color: black;
-  border: 2px solid black;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 12px;
   transition: all 0.2s;
   margin: 0 8px;
 }
@@ -155,7 +150,7 @@ body::before {
 }
 
 .help-tutorial-btn ion-icon {
-  font-size: 14px;
+  font-size: 24px;
 }
 
 @media (max-width: 768px) {
@@ -168,7 +163,7 @@ body::before {
   .help-tutorial-btn {
     font-size: 14px;
     color: white;
-    border: 2px solid white;
+    /* border: 2px solid white; */
     padding: 4px 8px;
   }
 
