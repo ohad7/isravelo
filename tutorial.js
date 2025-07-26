@@ -82,13 +82,13 @@ class Tutorial {
 
     this.isActive = true;
     this.originalSegments = [...selectedSegments];
-    
+
     // Load tutorial route
     this.loadTutorialRoute();
-    
+
     // Create tutorial overlay
     this.createTutorialOverlay();
-    
+
     // Show first step
     this.showStep(0);
   }
@@ -99,7 +99,7 @@ class Tutorial {
     if (decodedSegments.length > 0) {
       selectedSegments.length = 0;
       selectedSegments.push(...decodedSegments);
-      
+
       // Wait for map to be ready and update styles
       setTimeout(() => {
         updateSegmentStyles();
@@ -149,10 +149,10 @@ class Tutorial {
         </div>
         <div class="tutorial-footer">
           ${stepIndex > 0 ? '<button class="tutorial-btn tutorial-prev">הקודם</button>' : ''}
-          ${stepIndex < this.steps.length - 1 ? 
-            '<button class="tutorial-btn tutorial-next">הבא</button>' : 
-            '<button class="tutorial-btn tutorial-done">סיום</button>'
-          }
+          ${stepIndex < this.steps.length - 1 ?
+        '<button class="tutorial-btn tutorial-next">הבא</button>' :
+        '<button class="tutorial-btn tutorial-done">סיום</button>'
+      }
           <button class="tutorial-btn tutorial-skip">דלג על המדריך</button>
         </div>
       </div>
@@ -172,7 +172,7 @@ class Tutorial {
 
   positionModal(step) {
     const modal = document.getElementById('tutorial-modal');
-    
+
     if (!step.target || step.position === 'center') {
       modal.className = 'tutorial-modal tutorial-center';
       return;
@@ -234,7 +234,7 @@ class Tutorial {
           }
         });
         pulseCount++;
-        
+
         if (pulseCount >= 6) {
           clearInterval(pulseInterval);
           // Reset to normal selection style
@@ -304,7 +304,7 @@ class Tutorial {
             clientX: elevationChart.getBoundingClientRect().left + elevationChart.getBoundingClientRect().width / 2,
             clientY: elevationChart.getBoundingClientRect().top + elevationChart.getBoundingClientRect().height / 2
           });
-          
+
           const overlay = elevationChart.querySelector('.elevation-hover-overlay');
           if (overlay) {
             overlay.dispatchEvent(event);
@@ -316,16 +316,16 @@ class Tutorial {
 
   finish() {
     this.isActive = false;
-    
+
     // Mark tutorial as seen
     localStorage.setItem('bikeRouteTutorialSeen', 'true');
-    
+
     // Clear tutorial route and restore original route
     selectedSegments.length = 0;
     selectedSegments.push(...this.originalSegments);
     updateSegmentStyles();
     updateRouteListAndDescription();
-    
+
     // Remove tutorial modal if it exists
     const modal = document.getElementById('tutorial-modal');
     if (modal) {
@@ -337,10 +337,10 @@ class Tutorial {
     if (this.isActive) {
       return; // Already running
     }
-    
+
     // Save current route
     this.originalSegments = [...selectedSegments];
-    
+
     // Load tutorial route
     const decodedSegments = decodeRoute(this.tutorialRoute);
     if (decodedSegments.length > 0) {
@@ -349,30 +349,30 @@ class Tutorial {
       updateSegmentStyles();
       updateRouteListAndDescription();
     }
-    
+
     // Remove any existing tutorial elements
     const existingOverlay = document.getElementById('tutorial-overlay');
     const existingModal = document.getElementById('tutorial-modal');
-    
+
     if (existingOverlay) existingOverlay.remove();
     if (existingModal) existingModal.remove();
-    
+
     // Remove elevation marker if it exists
     if (window.elevationMarker) {
       window.elevationMarker.remove();
       window.elevationMarker = null;
     }
-    
+
     // Clear any highlights
     this.clearHighlights();
-    
+
     // Start tutorial
     this.isActive = true;
     this.currentStep = 0;
-    
+
     // Create tutorial overlay and modal
     this.createTutorialOverlay();
-    
+
     // Show first step
     this.showStep(0);
   }
@@ -388,7 +388,7 @@ let tutorial = null;
 
 function initTutorial() {
   tutorial = new Tutorial();
-  
+
   // Start tutorial after map is loaded and ready
   setTimeout(() => {
     if (tutorial.shouldShowTutorial()) {
