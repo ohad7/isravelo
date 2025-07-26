@@ -348,8 +348,20 @@ class Tutorial {
 
     document.body.appendChild(cutout);
 
-    // Ensure the target element appears above everything
-    element.style.position = 'relative';
+    // Update the ::before pseudo-element positioning for this specific element
+    const style = document.createElement('style');
+    style.id = 'tutorial-highlight-style';
+    style.textContent = `
+      .tutorial-highlight::before {
+        left: ${cutoutLeft}px !important;
+        top: ${cutoutTop}px !important;
+        width: ${rect.width + (padding * 2)}px !important;
+        height: ${rect.height + (padding * 2)}px !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Ensure the target element appears above everything without changing its position
     element.style.zIndex = '10002';
   }
 
@@ -357,7 +369,6 @@ class Tutorial {
     // Remove tutorial highlight class from all elements and reset z-index
     document.querySelectorAll('.tutorial-highlight').forEach(el => {
       el.classList.remove('tutorial-highlight');
-      el.style.position = '';
       el.style.zIndex = '';
     });
 
@@ -376,6 +387,12 @@ class Tutorial {
     const cutout = document.getElementById('tutorial-cutout');
     if (cutout) {
       cutout.remove();
+    }
+
+    // Remove dynamic highlight style
+    const highlightStyle = document.getElementById('tutorial-highlight-style');
+    if (highlightStyle) {
+      highlightStyle.remove();
     }
   }
 
