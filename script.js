@@ -1514,40 +1514,53 @@ function focusOnSegmentByName(segmentName) {
 
   returnToStartingPosition();
 
-  // Calculate the center point of the segment
-  let totalLat = 0, totalLng = 0;
+  // Calculate bounds for the segment
+  let minLat = coords[0].lat, maxLat = coords[0].lat;
+  let minLng = coords[0].lng, maxLng = coords[0].lng;
+
   coords.forEach(coord => {
-    totalLat += coord.lat;
-    totalLng += coord.lng;
+    minLat = Math.min(minLat, coord.lat);
+    maxLat = Math.max(maxLat, coord.lat);
+    minLng = Math.min(minLng, coord.lng);
+    maxLng = Math.max(maxLng, coord.lng);
   });
 
-  const centerLat = totalLat / coords.length;
-  const centerLng = totalLng / coords.length;
+  // Add some padding around the segment
+  const latPadding = (maxLat - minLat) * 0.3 || 0.005;
+  const lngPadding = (maxLng - minLng) * 0.3 || 0.005;
 
-  // Pan to the center of the segment
-  map.panTo([centerLng, centerLat], {
+  const bounds = new mapboxgl.LngLatBounds(
+    [minLng - lngPadding, minLat - latPadding],
+    [maxLng + lngPadding, maxLat + latPadding]
+  );
+
+  // Zoom to fit the segment bounds
+  map.fitBounds(bounds, {
+    padding: 50,
     duration: 1000
   });
 
-  // Briefly highlight the segment
-  const layerId = polyline.layerId;
-  const originalColor = map.getPaintProperty(layerId, 'line-color');
-  const originalWidth = map.getPaintProperty(layerId, 'line-width');
-
-  // Flash the segment with white color
-  map.setPaintProperty(layerId, 'line-color', COLORS.HIGHLIGHT_WHITE);
-  map.setPaintProperty(layerId, 'line-width', originalWidth + 4);
-
-  // Reset after 1.5 seconds
+  // Highlight the segment after a short delay to allow map to zoom
   setTimeout(() => {
-    if (selectedSegments.includes(segmentName)) {
-      map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
-      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
-    } else {
-      map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
-      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
-    }
-  }, 1500);
+    const layerId = polyline.layerId;
+    const originalColor = map.getPaintProperty(layerId, 'line-color');
+    const originalWidth = map.getPaintProperty(layerId, 'line-width');
+
+    // Flash the segment with white color
+    map.setPaintProperty(layerId, 'line-color', COLORS.HIGHLIGHT_WHITE);
+    map.setPaintProperty(layerId, 'line-width', originalWidth + 4);
+
+    // Reset after 3 seconds
+    setTimeout(() => {
+      if (selectedSegments.includes(segmentName)) {
+        map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
+        map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
+      } else {
+        map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
+        map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
+      }
+    }, 3000);
+  }, 200);
 }
 
 // Function to load route from encoding and select segments (with undo stack management)
