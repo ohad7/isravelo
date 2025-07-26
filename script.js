@@ -178,11 +178,6 @@ function initMap() {
         console.warn('Could not set Hebrew labels:', error);
       }
       loadKMLFile();
-
-      // Highlight all segments when map finishes loading
-      setTimeout(() => {
-        highlightAllSegments();
-      }, 1500); // Wait for segments to load
     });
 
 
@@ -2009,10 +2004,7 @@ function searchLocation() {
           duration: 1000
         });
 
-        // Highlight all segments after flyTo completes
-        setTimeout(() => {
-          highlightAllSegments();
-        }, 1200); // Wait for flyTo animation to complete (1000ms + buffer)
+        
 
         searchInput.value = '';
       } else {
