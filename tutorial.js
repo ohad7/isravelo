@@ -172,15 +172,22 @@ class Tutorial {
 
   positionModal(step) {
     const modal = document.getElementById('tutorial-modal');
+    if (!modal) return;
 
     if (!step.target || step.position === 'center') {
       modal.className = 'tutorial-modal tutorial-center';
+      modal.style.left = '';
+      modal.style.top = '';
+      modal.style.transform = '';
       return;
     }
 
     const target = document.querySelector(step.target);
     if (!target) {
       modal.className = 'tutorial-modal tutorial-center';
+      modal.style.left = '';
+      modal.style.top = '';
+      modal.style.transform = '';
       return;
     }
 
@@ -190,24 +197,32 @@ class Tutorial {
     // Position based on target and direction
     switch (step.position) {
       case 'top':
-        modal.style.left = `${targetRect.left + targetRect.width / 2}px`;
-        modal.style.top = `${targetRect.top - 20}px`;
-        modal.style.transform = 'translate(-50%, -100%)';
+        // Position on left side for map
+        if (step.target === '#map') {
+          modal.style.left = '20px';
+          modal.style.top = `${targetRect.top + 20}px`;
+          modal.style.transform = 'none';
+        } else {
+          modal.style.left = `${targetRect.left + targetRect.width / 2}px`;
+          modal.style.top = `${targetRect.top - 20}px`;
+          modal.style.transform = 'translate(-50%, -100%)';
+        }
         break;
       case 'bottom':
-        modal.style.left = `${targetRect.left + targetRect.width / 2}px`;
+        // Align left edge of modal with left edge of target
+        modal.style.left = `${targetRect.left}px`;
         modal.style.top = `${targetRect.bottom + 20}px`;
-        modal.style.transform = 'translate(-50%, 0)';
+        modal.style.transform = 'none';
         break;
       case 'left':
-        modal.style.left = `${targetRect.left - 20}px`;
+        modal.style.left = '20px';
         modal.style.top = `${targetRect.top + targetRect.height / 2}px`;
-        modal.style.transform = 'translate(-100%, -50%)';
+        modal.style.transform = 'translateY(-50%)';
         break;
       case 'right':
         modal.style.left = `${targetRect.right + 20}px`;
         modal.style.top = `${targetRect.top + targetRect.height / 2}px`;
-        modal.style.transform = 'translate(0, -50%)';
+        modal.style.transform = 'translateY(-50%)';
         break;
     }
   }
@@ -215,40 +230,70 @@ class Tutorial {
   addHighlight(step) {
     if (step.highlight === 'segments') {
       // Highlight all selected segments with a pulsing effect
-      routePolylines.forEach(polylineData => {
-        if (selectedSegments.includes(polylineData.segmentName)) {
-          const layerId = polylineData.layerId;
-          map.setPaintProperty(layerId, 'line-color', '#ffff00');
-          map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 3);
-        }
-      });
-
-      // Animate the highlight
-      let pulseCount = 0;
-      const pulseInterval = setInterval(() => {
+      if (typeof routePolylines !== 'undefined' && typeof selectedSegments !== 'undefined' && typeof map !== 'undefined') {
         routePolylines.forEach(polylineData => {
           if (selectedSegments.includes(polylineData.segmentName)) {
             const layerId = polylineData.layerId;
-            const isHighlighted = pulseCount % 2 === 0;
-            map.setPaintProperty(layerId, 'line-color', isHighlighted ? '#ffff00' : '#006699');
+            if (map.getLayer && map.getLayer(layerId)) {
+              map.setPaintProperty(layerId, 'line-color', '#ffff00');
+              map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 3);
+            }
           }
         });
-        pulseCount++;
 
-        if (pulseCount >= 6) {
-          clearInterval(pulseInterval);
-          // Reset to normal selection style
-          updateSegmentStyles();
-        }
-      }, 500);
+        // Animate the highlight
+        let pulseCount = 0;
+        const pulseInterval = setInterval(() => {
+          routePolylines.forEach(polylineData => {
+            if (selectedSegments.includes(polylineData.segmentName)) {
+              const layerId = polylineData.layerId;
+              if (map.getLayer && map.getLayer(layerId)) {
+                const isHighlighted = pulseCount % 2 === 0;
+                map.setPaintProperty(layerId, 'line-color', isHighlighted ? '#ffff00' : '#006699');
+              }
+            }
+          });
+          pulseCount++;
+
+          if (pulseCount >= 6) {
+            clearInterval(pulseInterval);
+            // Reset to normal selection style
+            if (typeof updateSegmentStyles === 'function') {
+              updateSegmentStyles();
+            }
+          }
+        }, 500);
+      }
     }
 
     if (step.target && step.target !== '#map') {
       const target = document.querySelector(step.target);
       if (target) {
         target.classList.add('tutorial-highlight');
+        this.createCutout(target);
       }
     }
+  }
+
+  createCutout(element) {
+    const overlay = document.getElementById('tutorial-overlay');
+    if (!overlay || !element) return;
+
+    // Add cutout class to overlay
+    overlay.classList.add('has-cutout');
+
+    // Create cutout element
+    const cutout = document.createElement('div');
+    cutout.className = 'tutorial-cutout';
+    cutout.id = 'tutorial-cutout';
+
+    const rect = element.getBoundingClientRect();
+    cutout.style.left = `${rect.left - 5}px`;
+    cutout.style.top = `${rect.top - 5}px`;
+    cutout.style.width = `${rect.width + 10}px`;
+    cutout.style.height = `${rect.height + 10}px`;
+
+    document.body.appendChild(cutout);
   }
 
   clearHighlights() {
@@ -256,6 +301,18 @@ class Tutorial {
     document.querySelectorAll('.tutorial-highlight').forEach(el => {
       el.classList.remove('tutorial-highlight');
     });
+
+    // Remove cutout overlay
+    const overlay = document.getElementById('tutorial-overlay');
+    if (overlay) {
+      overlay.classList.remove('has-cutout');
+    }
+
+    // Remove cutout element
+    const cutout = document.getElementById('tutorial-cutout');
+    if (cutout) {
+      cutout.remove();
+    }
   }
 
   addStepEventListeners(step) {
@@ -321,15 +378,37 @@ class Tutorial {
     localStorage.setItem('bikeRouteTutorialSeen', 'true');
 
     // Clear tutorial route and restore original route
-    selectedSegments.length = 0;
-    selectedSegments.push(...this.originalSegments);
-    updateSegmentStyles();
-    updateRouteListAndDescription();
+    if (typeof selectedSegments !== 'undefined') {
+      selectedSegments.length = 0;
+      selectedSegments.push(...this.originalSegments);
+      
+      if (typeof updateSegmentStyles === 'function') {
+        updateSegmentStyles();
+      }
+      if (typeof updateRouteListAndDescription === 'function') {
+        updateRouteListAndDescription();
+      }
+    }
 
-    // Remove tutorial modal if it exists
+    // Clear highlights
+    this.clearHighlights();
+
+    // Remove tutorial overlay
+    const overlay = document.getElementById('tutorial-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+
+    // Remove tutorial modal
     const modal = document.getElementById('tutorial-modal');
     if (modal) {
       modal.remove();
+    }
+
+    // Remove elevation marker if it exists
+    if (window.elevationMarker) {
+      window.elevationMarker.remove();
+      window.elevationMarker = null;
     }
   }
 

@@ -25,6 +25,10 @@
   transform: translate(-50%, -50%);
 }
 
+.tutorial-modal.tutorial-left {
+  left: 20px;
+}
+
 .tutorial-content {
   background: white;
   border-radius: 12px;
@@ -125,7 +129,8 @@
 /* Tutorial Highlight */
 .tutorial-highlight {
   position: relative;
-  z-index: 9998;
+  z-index: 10001;
+  background: transparent;
 }
 
 .tutorial-highlight::before {
@@ -141,6 +146,31 @@
   animation: tutorialPulse 2s infinite;
   pointer-events: none;
   z-index: -1;
+}
+
+/* Cutout overlay for highlighted elements */
+.tutorial-overlay.has-cutout {
+  background: transparent;
+}
+
+.tutorial-overlay.has-cutout::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1;
+}
+
+.tutorial-cutout {
+  position: absolute;
+  background: transparent;
+  z-index: 10001;
+  border: 2px solid #4682B4;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
 }
 
 /* Tutorial arrow indicators */
@@ -161,16 +191,12 @@
 
 .tutorial-modal.tutorial-bottom::after {
   top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
   border-bottom-color: white;
 }
 
 .tutorial-modal.tutorial-left::after {
-  right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-left-color: white;
+  display: none;
 }
 
 .tutorial-modal.tutorial-right::after {

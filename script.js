@@ -2238,11 +2238,14 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Help tutorial button
-  document.getElementById('help-tutorial-btn').addEventListener('click', () => {
-    if (typeof tutorial !== 'undefined') {
-      tutorial.startManually();
-    }
-  });
+  const helpTutorialBtn = document.getElementById('help-tutorial-btn');
+  if (helpTutorialBtn) {
+    helpTutorialBtn.addEventListener('click', () => {
+      if (typeof tutorial !== 'undefined' && tutorial && typeof tutorial.startManually === 'function') {
+        tutorial.startManually();
+      }
+    });
+  }
 
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
