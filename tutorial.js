@@ -101,12 +101,12 @@ class Tutorial {
     const overlay = document.createElement('div');
     overlay.className = 'tutorial-overlay';
     overlay.id = 'tutorial-overlay';
-    
+
     // Add click listener to cancel tutorial
     overlay.addEventListener('click', () => {
       this.finish();
     });
-    
+
     document.body.appendChild(overlay);
 
     // Create tutorial modal
@@ -250,7 +250,7 @@ class Tutorial {
           if (selectedSegments.includes(polylineData.segmentName)) {
             const layerId = polylineData.layerId;
             if (map.getLayer && map.getLayer(layerId)) {
-              map.setPaintProperty(layerId, 'line-color', '#ffff00');
+              map.setPaintProperty(layerId, 'line-color', '#ffffff');
               map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight + 3);
             }
           }
@@ -264,7 +264,7 @@ class Tutorial {
               const layerId = polylineData.layerId;
               if (map.getLayer && map.getLayer(layerId)) {
                 const isHighlighted = pulseCount % 2 === 0;
-                map.setPaintProperty(layerId, 'line-color', isHighlighted ? '#ffff00' : '#006699');
+                map.setPaintProperty(layerId, 'line-color', isHighlighted ? '#ffffff' : '#006699');
               }
             }
           });
