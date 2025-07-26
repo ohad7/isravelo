@@ -233,6 +233,7 @@
     transform: translate(-50%, -50%);
   }
 
+  /* Default mobile positioning for most steps */
   .tutorial-modal.tutorial-top,
   .tutorial-modal.tutorial-bottom,
   .tutorial-modal.tutorial-left,
@@ -241,6 +242,15 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+  }
+
+  /* Special mobile positioning for stage 3 (map step) */
+  .tutorial-modal.tutorial-left {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    top: auto;
+    transform: translateX(-50%);
   }
 
   .tutorial-modal::after {

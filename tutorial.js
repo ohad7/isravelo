@@ -35,7 +35,8 @@ class Tutorial {
         title: 'הורדת קובץ GPX',
         content: 'לחצו על כפתור GPX כדי לשתף או להוריד את המסלול ולהשתמש בו באפליקציות ניווט',
         target: '#download-gpx',
-        position: 'bottom'
+        position: 'bottom',
+        positionMobile: 'center'
       },
       {
         title: 'זהו! אתם מוכנים לתכנן מסלולים',
@@ -178,7 +179,11 @@ class Tutorial {
     const modal = document.getElementById('tutorial-modal');
     if (!modal) return;
 
-    if (!step.target || step.position === 'center') {
+    // Check if we're on mobile and step has mobile positioning
+    const isMobile = window.innerWidth <= 768;
+    const position = (isMobile && step.positionMobile) ? step.positionMobile : step.position;
+
+    if (!step.target || position === 'center') {
       modal.className = 'tutorial-modal tutorial-center';
       modal.style.left = '';
       modal.style.top = '';
@@ -196,10 +201,10 @@ class Tutorial {
     }
 
     const targetRect = target.getBoundingClientRect();
-    modal.className = `tutorial-modal tutorial-${step.position}`;
+    modal.className = `tutorial-modal tutorial-${position}`;
 
     // Position based on target and direction
-    switch (step.position) {
+    switch (position) {
       case 'top':
         // Position on left side for map
         modal.style.left = `${targetRect.left + targetRect.width / 2}px`;
