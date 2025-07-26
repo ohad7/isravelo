@@ -1,4 +1,3 @@
-
 // Tutorial system for bike route planner
 class Tutorial {
   constructor() {
@@ -118,7 +117,7 @@ class Tutorial {
     this.currentStep = stepIndex;
     const step = this.steps[stepIndex];
     const modal = document.getElementById('tutorial-modal');
-    
+
     if (!modal) {
       console.error('Tutorial modal not found');
       return;
@@ -276,13 +275,13 @@ class Tutorial {
 
     const rect = element.getBoundingClientRect();
     const padding = 8;
-    
+
     // Calculate the cutout area
     const cutoutLeft = rect.left - padding;
     const cutoutTop = rect.top - padding;
     const cutoutRight = rect.right + padding;
     const cutoutBottom = rect.bottom + padding;
-    
+
     // Create four overlay rectangles to surround the cutout area
     const rectangles = [
       // Top rectangle
@@ -321,12 +320,12 @@ class Tutorial {
         const overlayRect = document.createElement('div');
         overlayRect.className = 'tutorial-overlay-rect';
         overlayRect.id = `tutorial-overlay-rect-${index}`;
-        
+
         overlayRect.style.left = `${rectData.left}px`;
         overlayRect.style.top = `${rectData.top}px`;
         overlayRect.style.width = `${rectData.width}px`;
         overlayRect.style.height = `${rectData.height}px`;
-        
+
         document.body.appendChild(overlayRect);
       }
     });
@@ -335,7 +334,7 @@ class Tutorial {
     const cutout = document.createElement('div');
     cutout.className = 'tutorial-cutout';
     cutout.id = 'tutorial-cutout';
-    
+
     cutout.style.left = `${cutoutLeft}px`;
     cutout.style.top = `${cutoutTop}px`;
     cutout.style.width = `${rect.width + (padding * 2)}px`;
