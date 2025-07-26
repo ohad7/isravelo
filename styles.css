@@ -1423,11 +1423,6 @@ h3 {
   direction: rtl;
 }
 
-/* Hide panel when no segments are selected */
-.route-description-panel.empty {
-  display: none;
-}
-
 @media (max-width: 768px) {
   .route-description-panel {
     bottom: 10px;
