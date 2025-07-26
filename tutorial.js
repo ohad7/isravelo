@@ -153,6 +153,7 @@ class Tutorial {
     this.positionModal(step);
 
     // Add highlights if needed
+    console.log('Step:', step);
     if (step.highlight) {
       this.addHighlight(step);
     }
