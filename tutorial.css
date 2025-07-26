@@ -151,26 +151,36 @@
 /* Cutout overlay for highlighted elements */
 .tutorial-overlay.has-cutout {
   background: transparent;
+  pointer-events: none;
 }
 
 .tutorial-overlay.has-cutout::before {
   content: '';
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.7);
-  z-index: 1;
+  z-index: 9998;
+  pointer-events: none;
 }
 
 .tutorial-cutout {
-  position: absolute;
+  position: fixed;
   background: transparent;
   z-index: 10001;
   border: 2px solid #4682B4;
   border-radius: 8px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+/* Make highlighted elements appear above the overlay */
+.tutorial-highlight {
+  position: relative;
+  z-index: 10002 !important;
+  background: transparent;
 }
 
 /* Tutorial arrow indicators */

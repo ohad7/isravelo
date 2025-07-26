@@ -677,7 +677,7 @@ async function loadKMLFile() {
     // Try to load route from URL after everything is loaded
     setTimeout(() => {
       loadRouteFromUrl();
-      
+
       // Initialize tutorial after everything is loaded
       if (typeof initTutorial === 'function') {
         initTutorial();
@@ -1312,7 +1312,7 @@ function handleSelectedSegmentClick(segmentName) {
 
   // Check if this segment can be added again at the end of the route
   const canAddAgain = canSegmentBeAddedAgain(segmentName);
-  
+
   if (canAddAgain) {
     // Show confirmation dialog
     showSegmentActionDialog(segmentName);
@@ -1720,7 +1720,8 @@ function generateElevationProfile() {
 }
 
 function updateRouteListAndDescription() {
-  const routeDescription = document.getElementById('route-description');
+  const routeDescription = document.getElementById
+('route-description');
   const downloadButton = document.getElementById('download-gpx');
 
   if (selectedSegments.length === 0) {
@@ -1858,7 +1859,7 @@ function updateRouteListAndDescription() {
   setTimeout(() => {
     const elevationOverlay = document.querySelector('.elevation-hover-overlay');
     if (elevationOverlay && window.currentElevationData) {
-      
+
       // Common function to handle both mouse and touch events
       const handleElevationInteraction = (clientX) => {
         const rect = elevationOverlay.getBoundingClientRect();
@@ -2009,7 +2010,7 @@ function searchLocation() {
           duration: 1000
         });
 
-        
+
 
         searchInput.value = '';
       } else {
@@ -2045,7 +2046,7 @@ function showDownloadModal() {
       <div class="download-modal-body">
         <h4>קטעי מסלול נבחרים</h4>
         <div id="route-segments-list"></div>
-        
+
         <h4>תיאור המסלול</h4>
         <div id="download-route-description"></div>
 
@@ -2198,7 +2199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  
+
 
   // Legend toggle functionality
   document.getElementById('legend-toggle').addEventListener('click', function() {
@@ -2238,10 +2239,10 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Help tutorial button
-  const helpTutorialBtn = document.getElementById('help-tutorial-btn');
-  if (helpTutorialBtn) {
-    helpTutorialBtn.addEventListener('click', () => {
-      if (typeof tutorial !== 'undefined' && tutorial && typeof tutorial.startManually === 'function') {
+  const helpBtn = document.getElementById('help-tutorial-btn');
+  if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+      if (typeof tutorial !== 'undefined' && tutorial) {
         tutorial.startManually();
       }
     });

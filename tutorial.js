@@ -118,6 +118,11 @@ class Tutorial {
     this.currentStep = stepIndex;
     const step = this.steps[stepIndex];
     const modal = document.getElementById('tutorial-modal');
+    
+    if (!modal) {
+      console.error('Tutorial modal not found');
+      return;
+    }
 
     // Clear previous highlights
     this.clearHighlights();
@@ -269,24 +274,32 @@ class Tutorial {
     // Add cutout class to overlay
     overlay.classList.add('has-cutout');
 
-    // Create cutout element
+    // Create cutout element that creates a "hole" in the overlay
     const cutout = document.createElement('div');
     cutout.className = 'tutorial-cutout';
     cutout.id = 'tutorial-cutout';
 
     const rect = element.getBoundingClientRect();
-    cutout.style.left = `${rect.left - 5}px`;
-    cutout.style.top = `${rect.top - 5}px`;
-    cutout.style.width = `${rect.width + 10}px`;
-    cutout.style.height = `${rect.height + 10}px`;
+    const padding = 5;
+    
+    cutout.style.left = `${rect.left - padding}px`;
+    cutout.style.top = `${rect.top - padding}px`;
+    cutout.style.width = `${rect.width + (padding * 2)}px`;
+    cutout.style.height = `${rect.height + (padding * 2)}px`;
 
     document.body.appendChild(cutout);
+
+    // Ensure the target element appears above everything
+    element.style.position = 'relative';
+    element.style.zIndex = '10002';
   }
 
   clearHighlights() {
-    // Remove tutorial highlight class from all elements
+    // Remove tutorial highlight class from all elements and reset z-index
     document.querySelectorAll('.tutorial-highlight').forEach(el => {
       el.classList.remove('tutorial-highlight');
+      el.style.position = '';
+      el.style.zIndex = '';
     });
 
     // Remove cutout overlay
