@@ -233,25 +233,9 @@
     transform: translate(-50%, -50%);
   }
 
-  /* Stage 3: Map step - position at bottom */
-  .tutorial-modal.tutorial-left {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    top: auto;
-    transform: translateX(-50%);
-  }
-
-  /* Stage 5: GPX download step - keep on screen */
-  .tutorial-modal.tutorial-bottom {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    top: auto;
-    transform: translateX(-50%);
-  }
-
   .tutorial-modal.tutorial-top,
+  .tutorial-modal.tutorial-bottom,
+  .tutorial-modal.tutorial-left,
   .tutorial-modal.tutorial-right {
     position: fixed;
     top: 50%;
