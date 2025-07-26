@@ -857,7 +857,7 @@ function parseGeoJSON(geoJsonData) {
 
               // Add distance from previous segments
               for (let i = 0; i < selectedSegments.length; i++) {
-                const segName = selectedSegments[i];
+                const segName= selectedSegments[i];
                 if (segName === name) break;
 
                 const prevPolyline = routePolylines.find(p => p.segmentName === segName);
@@ -2242,8 +2242,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const helpBtn = document.getElementById('help-tutorial-btn');
   if (helpBtn) {
     helpBtn.addEventListener('click', () => {
-      if (typeof tutorial !== 'undefined' && tutorial) {
+      if (typeof tutorial !== 'undefined' && tutorial !== null && typeof tutorial.startManually === 'function') {
         tutorial.startManually();
+      } else {
+        console.warn('Tutorial not available');
       }
     });
   }

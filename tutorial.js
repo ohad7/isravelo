@@ -274,16 +274,70 @@ class Tutorial {
     // Add cutout class to overlay
     overlay.classList.add('has-cutout');
 
-    // Create cutout element that creates a "hole" in the overlay
+    const rect = element.getBoundingClientRect();
+    const padding = 8;
+    
+    // Calculate the cutout area
+    const cutoutLeft = rect.left - padding;
+    const cutoutTop = rect.top - padding;
+    const cutoutRight = rect.right + padding;
+    const cutoutBottom = rect.bottom + padding;
+    
+    // Create four overlay rectangles to surround the cutout area
+    const rectangles = [
+      // Top rectangle
+      {
+        left: 0,
+        top: 0,
+        width: window.innerWidth,
+        height: cutoutTop
+      },
+      // Bottom rectangle
+      {
+        left: 0,
+        top: cutoutBottom,
+        width: window.innerWidth,
+        height: window.innerHeight - cutoutBottom
+      },
+      // Left rectangle
+      {
+        left: 0,
+        top: cutoutTop,
+        width: cutoutLeft,
+        height: cutoutBottom - cutoutTop
+      },
+      // Right rectangle
+      {
+        left: cutoutRight,
+        top: cutoutTop,
+        width: window.innerWidth - cutoutRight,
+        height: cutoutBottom - cutoutTop
+      }
+    ];
+
+    // Create and position the overlay rectangles
+    rectangles.forEach((rectData, index) => {
+      if (rectData.width > 0 && rectData.height > 0) {
+        const overlayRect = document.createElement('div');
+        overlayRect.className = 'tutorial-overlay-rect';
+        overlayRect.id = `tutorial-overlay-rect-${index}`;
+        
+        overlayRect.style.left = `${rectData.left}px`;
+        overlayRect.style.top = `${rectData.top}px`;
+        overlayRect.style.width = `${rectData.width}px`;
+        overlayRect.style.height = `${rectData.height}px`;
+        
+        document.body.appendChild(overlayRect);
+      }
+    });
+
+    // Create the highlight border around the cutout
     const cutout = document.createElement('div');
     cutout.className = 'tutorial-cutout';
     cutout.id = 'tutorial-cutout';
-
-    const rect = element.getBoundingClientRect();
-    const padding = 5;
     
-    cutout.style.left = `${rect.left - padding}px`;
-    cutout.style.top = `${rect.top - padding}px`;
+    cutout.style.left = `${cutoutLeft}px`;
+    cutout.style.top = `${cutoutTop}px`;
     cutout.style.width = `${rect.width + (padding * 2)}px`;
     cutout.style.height = `${rect.height + (padding * 2)}px`;
 
@@ -307,6 +361,11 @@ class Tutorial {
     if (overlay) {
       overlay.classList.remove('has-cutout');
     }
+
+    // Remove all overlay rectangles
+    document.querySelectorAll('.tutorial-overlay-rect').forEach(rect => {
+      rect.remove();
+    });
 
     // Remove cutout element
     const cutout = document.getElementById('tutorial-cutout');
@@ -392,6 +451,11 @@ class Tutorial {
 
     // Clear highlights
     this.clearHighlights();
+
+    // Remove all overlay rectangles
+    document.querySelectorAll('.tutorial-overlay-rect').forEach(rect => {
+      rect.remove();
+    });
 
     // Remove tutorial overlay
     const overlay = document.getElementById('tutorial-overlay');
