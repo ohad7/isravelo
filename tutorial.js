@@ -268,10 +268,11 @@ class Tutorial {
 
   createCutout(element) {
     const overlay = document.getElementById('tutorial-overlay');
+    console.log(overlay);
     if (!overlay || !element) return;
+    console.log('Made it through');
 
-    // Show the overlay and add cutout class
-    overlay.style.display = 'block';
+    // Add cutout class to overlay
     overlay.classList.add('has-cutout');
 
     const rect = element.getBoundingClientRect();
@@ -356,10 +357,9 @@ class Tutorial {
       el.style.zIndex = '';
     });
 
-    // Hide and reset cutout overlay
+    // Remove cutout overlay
     const overlay = document.getElementById('tutorial-overlay');
     if (overlay) {
-      overlay.style.display = 'none';
       overlay.classList.remove('has-cutout');
     }
 
