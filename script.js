@@ -1512,6 +1512,8 @@ function focusOnSegmentByName(segmentName) {
   const coords = polyline.coordinates;
   if (coords.length === 0) return;
 
+  returnToStartingPosition();
+
   // Calculate the center point of the segment
   let totalLat = 0, totalLng = 0;
   coords.forEach(coord => {
