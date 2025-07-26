@@ -268,7 +268,9 @@ class Tutorial {
 
   createCutout(element) {
     const overlay = document.getElementById('tutorial-overlay');
+    console.log(overlay);
     if (!overlay || !element) return;
+    console.log('Made it through');
 
     // Add cutout class to overlay
     overlay.classList.add('has-cutout');
