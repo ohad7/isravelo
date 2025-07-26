@@ -1546,20 +1546,41 @@ function focusOnSegmentByName(segmentName) {
     const originalColor = map.getPaintProperty(layerId, 'line-color');
     const originalWidth = map.getPaintProperty(layerId, 'line-width');
 
-    // Flash the segment with white color
-    map.setPaintProperty(layerId, 'line-color', COLORS.HIGHLIGHT_WHITE);
-    map.setPaintProperty(layerId, 'line-width', originalWidth + 4);
-
-    // Reset after 3 seconds
-    setTimeout(() => {
-      if (selectedSegments.includes(segmentName)) {
-        map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
-        map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
+    let blinkCount = 0;
+    const maxBlinks = 4; // 2 complete blinks (on-off-on-off)
+    
+    const blinkInterval = setInterval(() => {
+      if (blinkCount % 2 === 0) {
+        // Blink on - highlight with white
+        map.setPaintProperty(layerId, 'line-color', COLORS.HIGHLIGHT_WHITE);
+        map.setPaintProperty(layerId, 'line-width', originalWidth + 4);
       } else {
-        map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
-        map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
+        // Blink off - return to original/selected color
+        if (selectedSegments.includes(segmentName)) {
+          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
+          map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
+        } else {
+          map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
+          map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
+        }
       }
-    }, 3000);
+      
+      blinkCount++;
+      
+      // Stop blinking after maxBlinks and ensure final state is correct
+      if (blinkCount >= maxBlinks) {
+        clearInterval(blinkInterval);
+        
+        // Final state - ensure it's in the correct color
+        if (selectedSegments.includes(segmentName)) {
+          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
+          map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
+        } else {
+          map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
+          map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
+        }
+      }
+    }, 250); // 250ms intervals = 4 blinks in 1 second
   }, 200);
 }
 
