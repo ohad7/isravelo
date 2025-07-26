@@ -33,21 +33,8 @@ class Tutorial {
         position: 'top'
       },
       {
-        title: 'גרף הגובה האינטראקטיבי',
-        content: 'העבירו את העכבר על גרף הגובה כדי לראות את הגובה בנקודות שונות במסלול',
-        target: '.elevation-chart',
-        position: 'top',
-        action: 'hover-elevation'
-      },
-      {
-        title: 'כפתורי ניהול המסלול',
-        content: 'השתמשו בכפתורים האלה כדי לבטל פעולות, לאפס את המסלול או להוריד קובץ GPX',
-        target: '.top-controls',
-        position: 'bottom'
-      },
-      {
         title: 'הורדת קובץ GPX',
-        content: 'לחצו על כפתור GPX כדי להוריד את המסלול ולהשתמש בו באפליקציות ניווט',
+        content: 'לחצו על כפתור GPX כדי לשתף או להוריד את המסלול ולהשתמש בו באפליקציות ניווט',
         target: '#download-gpx',
         position: 'bottom'
       },
@@ -147,12 +134,12 @@ class Tutorial {
         <div class="tutorial-body">
           <p>${step.content}</p>
         </div>
-        <div class="tutorial-footer">
-          ${stepIndex > 0 ? '<button class="tutorial-btn tutorial-prev">הקודם</button>' : ''}
+        <div class="tutorial-footer">          
           ${stepIndex < this.steps.length - 1 ?
         '<button class="tutorial-btn tutorial-next">הבא</button>' :
         '<button class="tutorial-btn tutorial-done">סיום</button>'
       }
+      ${stepIndex > 0 ? '<button class="tutorial-btn tutorial-prev">הקודם</button>' : ''}
           <button class="tutorial-btn tutorial-skip">דלג על המדריך</button>
         </div>
       </div>
@@ -381,7 +368,7 @@ class Tutorial {
     if (typeof selectedSegments !== 'undefined') {
       selectedSegments.length = 0;
       selectedSegments.push(...this.originalSegments);
-      
+
       if (typeof updateSegmentStyles === 'function') {
         updateSegmentStyles();
       }
