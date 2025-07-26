@@ -857,6 +857,7 @@ function parseGeoJSON(geoJsonData) {
 
               // Add distance from previous segments
               for (let i = 0; i < selectedSegments.length; i++) {
+                ```text
                 const segName= selectedSegments[i];
                 if (segName === name) break;
 
@@ -1518,7 +1519,7 @@ function focusOnSegmentByName(segmentName) {
     totalLat += coord.lat;
     totalLng += coord.lng;
   });
-  
+
   const centerLat = totalLat / coords.length;
   const centerLng = totalLng / coords.length;
 
@@ -1815,17 +1816,21 @@ function generateElevationProfile() {
 }
 
 function updateRouteListAndDescription() {
-  const routeDescription = document.getElementById
-('route-description');
+  const routeDescription = document.getElementById('route-description');
+  const routePanel = document.getElementById('route-description-panel');
   const downloadButton = document.getElementById('download-gpx');
 
   if (selectedSegments.length === 0) {
     routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
+    routePanel.classList.add('empty');
     downloadButton.disabled = true;
     updateRouteWarning();
     updateUndoRedoButtons(); // Update reset button state
     return;
   }
+
+  // Remove empty class when segments are selected
+  routePanel.classList.remove('empty');
 
   // Calculate total distance using pre-calculated data
   let totalDistance = 0;
