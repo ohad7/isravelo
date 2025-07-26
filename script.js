@@ -2237,6 +2237,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Help tutorial button
+  document.getElementById('help-tutorial-btn').addEventListener('click', () => {
+    if (typeof tutorial !== 'undefined') {
+      tutorial.startManually();
+    }
+  });
+
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
     //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)

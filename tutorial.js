@@ -320,11 +320,40 @@ class Tutorial {
     // Mark tutorial as seen
     localStorage.setItem('bikeRouteTutorialSeen', 'true');
     
-    // Clear tutorial route
+    // Clear tutorial route and restore original route
     selectedSegments.length = 0;
     selectedSegments.push(...this.originalSegments);
     updateSegmentStyles();
     updateRouteListAndDescription();
+    
+    // Remove tutorial modal if it exists
+    const modal = document.getElementById('tutorial-modal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  startManually() {
+    if (this.isActive) {
+      return; // Already running
+    }
+    
+    // Save current route
+    this.originalSegments = [...selectedSegments];
+    
+    // Load tutorial route
+    const decodedSegments = decodeRoute(this.tutorialRoute);
+    if (decodedSegments.length > 0) {
+      selectedSegments.length = 0;
+      selectedSegments.push(...decodedSegments);
+      updateSegmentStyles();
+      updateRouteListAndDescription();
+    }
+    
+    // Start tutorial
+    this.isActive = true;
+    this.currentStep = 0;
+    this.showStep(0);
     
     // Remove tutorial elements
     this.clearHighlights();

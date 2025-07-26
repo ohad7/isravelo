@@ -1060,6 +1060,32 @@ body::before {
   background: #128C7E;
 }
 
+.help-tutorial-btn {
+  background: transparent;
+  color: #4682B4;
+  border: 2px solid #4682B4;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  margin: 0 8px;
+}
+
+.help-tutorial-btn:hover {
+  background: #4682B4;
+  color: white;
+  transform: scale(1.1);
+}
+
+.help-tutorial-btn ion-icon {
+  font-size: 18px;
+}
+
 .mapboxgl-popup.segment-tooltip .mapboxgl-popup-content {
   background-color: rgba(0, 0, 0, 0.9);
   color: white;
