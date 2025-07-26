@@ -346,11 +346,6 @@ class Tutorial {
         overlayRect.style.width = `${rectData.width}px`;
         overlayRect.style.height = `${rectData.height}px`;
 
-        // Add click listener to cancel tutorial
-        overlayRect.addEventListener('click', () => {
-          this.finish();
-        });
-
         document.body.appendChild(overlayRect);
       }
     });
