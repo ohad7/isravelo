@@ -349,7 +349,6 @@ class Tutorial {
     document.body.appendChild(cutout);
 
     // Ensure the target element appears above everything
-    element.style.position = 'relative';
     element.style.zIndex = '10002';
   }
 
