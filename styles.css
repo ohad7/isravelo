@@ -128,16 +128,53 @@ body::before {
   cursor: pointer;
 }
 
+.nav-link:hover {
+  color: #748873;
+}
+
+.help-tutorial-btn {
+  background: transparent;
+  color: black;
+  border: 2px solid black;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  margin: 0 8px;
+}
+
+.help-tutorial-btn:hover {
+  background: #4682B4;
+  color: white;
+  transform: scale(1.1);
+}
+
+.help-tutorial-btn ion-icon {
+  font-size: 14px;
+}
+
 @media (max-width: 768px) {
   .nav-link {
     font-size: 14px;
     color: white;
     padding: 4px 8px;
   }
-}
 
-.nav-link:hover {
-  color: #748873;
+  .help-tutorial-btn {
+    font-size: 14px;
+    color: white;
+    border: 2px solid white;
+    padding: 4px 8px;
+  }
+
+  .help-tutorial-btn:hover {
+    color: #748873;
+  }
 }
 
 .main-container {
@@ -1058,32 +1095,6 @@ body::before {
 
 .share-btn-social.whatsapp:hover {
   background: #128C7E;
-}
-
-.help-tutorial-btn {
-  background: transparent;
-  color: black;
-  border: 2px solid black;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-  margin: 0 8px;
-}
-
-.help-tutorial-btn:hover {
-  background: #4682B4;
-  color: white;
-  transform: scale(1.1);
-}
-
-.help-tutorial-btn ion-icon {
-  font-size: 14px;
 }
 
 .mapboxgl-popup.segment-tooltip .mapboxgl-popup-content {

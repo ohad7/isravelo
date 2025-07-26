@@ -9,7 +9,7 @@ class Tutorial {
       {
         title: 'ברוכים הבאים למתכנן מסלולי הרכיבה!',
         content: 'בואו נלמד יחד איך להשתמש במפה כדי לתכנן מסלולי רכיבה מותאמים אישית',
-        target: null,
+        target: '.help-tutorial-btn',
         position: 'center'
       },
       {
@@ -214,8 +214,13 @@ class Tutorial {
         break;
       case 'bottom':
         // Align left edge of modal with left edge of target
-        modal.style.left = `${targetRect.left}px`;
-        modal.style.top = `${targetRect.bottom + 20}px`;
+        if (step.target === '#map') {
+          modal.style.left = `${targetRect.left + 20}px`;
+          modal.style.top = `${targetRect.bottom - 300}px`;
+        } else {
+          modal.style.left = `${targetRect.left}px`;
+          modal.style.top = `${targetRect.bottom + 20}px`;
+        }
         modal.style.transform = 'none';
         break;
       case 'left':
