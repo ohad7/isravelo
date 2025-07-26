@@ -165,12 +165,6 @@ class Tutorial {
         target.classList.add('tutorial-highlight');
         this.createCutout(target);
       }
-    } else if (step.target === '#map' && step.highlight === 'segments') {
-      // For map with segments highlight, create cutout around map area
-      const target = document.querySelector(step.target);
-      if (target) {
-        this.createCutout(target);
-      }
     }
 
     // Add event listeners
@@ -209,11 +203,6 @@ class Tutorial {
           modal.style.left = '20px';
           modal.style.top = `${targetRect.top + 20}px`;
           modal.style.transform = 'none';
-        } else if (step.target === '.route-description-panel') {
-          // Position above and to the right of route description panel
-          modal.style.left = `${targetRect.right + 20}px`;
-          modal.style.top = `${targetRect.top - 20}px`;
-          modal.style.transform = 'translateY(-100%)';
         } else {
           modal.style.left = `${targetRect.left + targetRect.width / 2}px`;
           modal.style.top = `${targetRect.top - 20}px`;
