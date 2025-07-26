@@ -350,25 +350,31 @@ class Tutorial {
       updateRouteListAndDescription();
     }
     
-    // Start tutorial
-    this.isActive = true;
-    this.currentStep = 0;
-    this.showStep(0);
+    // Remove any existing tutorial elements
+    const existingOverlay = document.getElementById('tutorial-overlay');
+    const existingModal = document.getElementById('tutorial-modal');
     
-    // Remove tutorial elements
-    this.clearHighlights();
-    
-    const overlay = document.getElementById('tutorial-overlay');
-    const modal = document.getElementById('tutorial-modal');
-    
-    if (overlay) overlay.remove();
-    if (modal) modal.remove();
+    if (existingOverlay) existingOverlay.remove();
+    if (existingModal) existingModal.remove();
     
     // Remove elevation marker if it exists
     if (window.elevationMarker) {
       window.elevationMarker.remove();
       window.elevationMarker = null;
     }
+    
+    // Clear any highlights
+    this.clearHighlights();
+    
+    // Start tutorial
+    this.isActive = true;
+    this.currentStep = 0;
+    
+    // Create tutorial overlay and modal
+    this.createTutorialOverlay();
+    
+    // Show first step
+    this.showStep(0);
   }
 
   // Method to reset tutorial (for testing purposes)
