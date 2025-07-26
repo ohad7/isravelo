@@ -128,24 +128,24 @@
 
 /* Tutorial Highlight */
 .tutorial-highlight {
+  position: relative;
   z-index: 10001;
   background: transparent;
 }
 
-/* Only apply position: relative if element doesn't already have positioning */
-.tutorial-highlight:not([style*="position"]) {
-  position: relative;
-}
-
 .tutorial-highlight::before {
   content: '';
-  position: fixed;
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
   background: rgba(70, 130, 180, 0.3);
   border: 2px solid #4682B4;
   border-radius: 8px;
   animation: tutorialPulse 2s infinite;
   pointer-events: none;
-  z-index: 10000;
+  z-index: -1;
 }
 
 /* Four-rectangle overlay system for cutout effect */
