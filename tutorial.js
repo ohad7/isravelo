@@ -23,6 +23,7 @@ class Tutorial {
         content: 'לחצו על קטעי המפה כדי להוסיף אותם למסלול שלכם. הקטעים הנבחרים יוצגו בירוק',
         target: '#map',
         position: 'left',
+        positionMobile: 'bottom',
         highlight: 'segments'
       },
       {
