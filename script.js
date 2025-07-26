@@ -1501,6 +1501,101 @@ function focusOnSegment(segmentName) {
   }, 2000);
 }
 
+// Function to focus map on a segment by name and highlight it briefly
+function focusOnSegmentByName(segmentName) {
+  const polyline = routePolylines.find(p => p.segmentName === segmentName);
+  if (!polyline) {
+    console.warn(`Segment "${segmentName}" not found`);
+    return;
+  }
+
+  const coords = polyline.coordinates;
+  if (coords.length === 0) return;
+
+  // Calculate the center point of the segment
+  let totalLat = 0, totalLng = 0;
+  coords.forEach(coord => {
+    totalLat += coord.lat;
+    totalLng += coord.lng;
+  });
+  
+  const centerLat = totalLat / coords.length;
+  const centerLng = totalLng / coords.length;
+
+  // Pan to the center of the segment
+  map.panTo([centerLng, centerLat], {
+    duration: 1000
+  });
+
+  // Briefly highlight the segment
+  const layerId = polyline.layerId;
+  const originalColor = map.getPaintProperty(layerId, 'line-color');
+  const originalWidth = map.getPaintProperty(layerId, 'line-width');
+
+  // Flash the segment with white color
+  map.setPaintProperty(layerId, 'line-color', COLORS.HIGHLIGHT_WHITE);
+  map.setPaintProperty(layerId, 'line-width', originalWidth + 4);
+
+  // Reset after 1.5 seconds
+  setTimeout(() => {
+    if (selectedSegments.includes(segmentName)) {
+      map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
+      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
+    } else {
+      map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
+      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
+    }
+  }, 1500);
+}
+
+// Function to load route from encoding and select segments (with undo stack management)
+function loadRouteFromEncoding(routeEncoding) {
+  if (!routeEncoding || !segmentsData) {
+    console.warn('Invalid route encoding or segments data not loaded');
+    return false;
+  }
+
+  try {
+    const decodedSegments = decodeRoute(routeEncoding);
+    if (decodedSegments.length === 0) {
+      console.warn('No segments decoded from route encoding');
+      return false;
+    }
+
+    // Save current state for undo if there are currently selected segments
+    if (selectedSegments.length > 0) {
+      saveState();
+    }
+
+    // Clear existing selections
+    selectedSegments = [];
+
+    // Reset all segment styles to original
+    routePolylines.forEach(polylineData => {
+      const layerId = polylineData.layerId;
+      if (map.getLayer && map.getLayer(layerId)) {
+        map.setPaintProperty(layerId, 'line-color', polylineData.originalStyle.color);
+        map.setPaintProperty(layerId, 'line-width', polylineData.originalStyle.weight);
+      }
+    });
+
+    // Add decoded segments to selection
+    selectedSegments = [...decodedSegments];
+
+    // Update visual styles and UI
+    updateSegmentStyles();
+    updateRouteListAndDescription();
+    updateUndoRedoButtons();
+
+    console.log(`Loaded route with ${selectedSegments.length} segments`);
+    return true;
+
+  } catch (error) {
+    console.error('Error loading route from encoding:', error);
+    return false;
+  }
+}
+
 // Function to order coordinates based on route connectivity
 function getOrderedCoordinates() {
   if (selectedSegments.length === 0) return [];
