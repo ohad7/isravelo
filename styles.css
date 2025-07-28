@@ -67,8 +67,11 @@ body::before {
 @media (max-width: 768px) {
   .header {
     padding: 5px 10px;
-    flex-direction: column;
-    gap: 5px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    position: relative;
   }
 }
 
@@ -81,6 +84,23 @@ body::before {
   bottom: 0;
   background: rgba(248, 248, 248, 0.2);
   z-index: 1;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #333;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  z-index: 1001;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .logo-section {
@@ -107,7 +127,8 @@ body::before {
 @media (max-width: 768px) {
   .site-title {
     font-size: 18px;
-    text-align: center;
+    text-align: right;
+    flex: 1;
   }
 }
 
@@ -119,10 +140,60 @@ body::before {
 }
 
 @media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: block;
+  }
+
   .nav-links {
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
+    position: fixed;
+    top: 55px;
+    left: 0;
+    right: 0;
+    background: #F8F8F8;
+    background-image: url('./attached_assets/image_1752711191787.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    flex-direction: column;
+    gap: 0;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease-in-out;
+    z-index: 1000;
+  }
+
+  .nav-links::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(248, 248, 248, 0.95);
+    z-index: 1;
+  }
+
+  .nav-links.active {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-links .nav-link {
+    position: relative;
+    z-index: 2;
+    display: block;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    text-align: center;
+    font-size: 16px;
+  }
+
+  .nav-links .nav-link:last-child {
+    border-bottom: none;
   }
 }
 

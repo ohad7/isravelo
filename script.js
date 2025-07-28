@@ -2438,6 +2438,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Mobile menu toggle
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  const navLinks = document.getElementById('nav-links');
+  
+  if (mobileMenuBtn && navLinks) {
+    mobileMenuBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+    });
+
+    // Close menu when clicking on a nav link
+    const navLinkItems = navLinks.querySelectorAll('.nav-link');
+    navLinkItems.forEach(link => {
+      link.addEventListener('click', () => {
+        navLinks.classList.remove('active');
+      });
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!mobileMenuBtn.contains(e.target) && !navLinks.contains(e.target)) {
+        navLinks.classList.remove('active');
+      }
+    });
+  }
+
   // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
     //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
