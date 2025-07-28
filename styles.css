@@ -97,7 +97,7 @@ body::before {
   padding: 5px;
   border-radius: 4px;
   transition: background-color 0.2s;
-  z-index: 1002;
+  z-index: 10000;
   order: 1;
 }
 
@@ -173,7 +173,7 @@ body::before {
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease-in-out;
-    z-index: 1100;
+    z-index: 9999;
     direction: rtl;
   }
 
