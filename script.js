@@ -434,13 +434,77 @@ function decodeRoute(routeString) {
     const view = new Uint16Array(binaryData, segmentDataOffset);
     const segmentIds = Array.from(view);
 
-    // Convert IDs back to segment names
+    // Convert IDs back to segment names, handling splits
     const segmentNames = [];
-    for (const segmentName in segmentsData) {
-      const segmentInfo = segmentsData[segmentName];
-      if (segmentInfo && segmentIds.includes(segmentInfo.id)) {
-        const index = segmentIds.indexOf(segmentInfo.id);
-        segmentNames[index] = segmentName;
+    
+    for (let i = 0; i < segmentIds.length; i++) {
+      const segmentId = segmentIds[i];
+      let foundSegment = null;
+      
+      // Find segment by ID
+      for (const segmentName in segmentsData) {
+        const segmentInfo = segmentsData[segmentName];
+        if (segmentInfo && segmentInfo.id === segmentId) {
+          foundSegment = { name: segmentName, info: segmentInfo };
+          break;
+        }
+      }
+      
+      if (foundSegment) {
+        // Check if this segment has split property
+        if (foundSegment.info.split && Array.isArray(foundSegment.info.split)) {
+          // Replace with split segments
+          const splitSegmentIds = foundSegment.info.split;
+          
+          // Find the actual segment names for the split IDs
+          const splitSegmentNames = [];
+          for (const splitId of splitSegmentIds) {
+            for (const segmentName in segmentsData) {
+              const segmentInfo = segmentsData[segmentName];
+              if (segmentInfo && segmentInfo.id === splitId) {
+                splitSegmentNames.push(segmentName);
+                break;
+              }
+            }
+          }
+          
+          // Determine directionality based on route context
+          if (splitSegmentNames.length > 0) {
+            // Check if we need to reverse the split segments based on connectivity
+            let shouldReverse = false;
+            
+            if (segmentNames.length > 0) {
+              // Get the last segment in our current route
+              const lastSegmentName = segmentNames[segmentNames.length - 1];
+              const lastPolyline = routePolylines.find(p => p.segmentName === lastSegmentName);
+              
+              if (lastPolyline && splitSegmentNames.length > 0) {
+                // Get the first split segment
+                const firstSplitPolyline = routePolylines.find(p => p.segmentName === splitSegmentNames[0]);
+                
+                if (firstSplitPolyline) {
+                  const lastSegmentEnd = lastPolyline.coordinates[lastPolyline.coordinates.length - 1];
+                  const firstSplitStart = firstSplitPolyline.coordinates[0];
+                  const firstSplitEnd = firstSplitPolyline.coordinates[firstSplitPolyline.coordinates.length - 1];
+                  
+                  // Check distances to determine correct orientation
+                  const distanceToStart = getDistance(lastSegmentEnd, firstSplitStart);
+                  const distanceToEnd = getDistance(lastSegmentEnd, firstSplitEnd);
+                  
+                  // If the end of the split segment is closer, we should reverse
+                  shouldReverse = distanceToEnd < distanceToStart;
+                }
+              }
+            }
+            
+            // Add split segments in the correct order
+            const orderedSplitSegments = shouldReverse ? [...splitSegmentNames].reverse() : splitSegmentNames;
+            segmentNames.push(...orderedSplitSegments);
+          }
+        } else {
+          // Regular segment, add it
+          segmentNames.push(foundSegment.name);
+        }
       }
     }
 
