@@ -163,13 +163,13 @@ body::before {
 @media (max-width: 768px) {
   .nav-link {
     font-size: 14px;
-    color: white;
+    color: #333;
     padding: 4px 8px;
   }
 
   .help-tutorial-btn {
     font-size: 14px;
-    color: white;
+    color: #333;
     /* border: 2px solid white; */
     padding: 4px 8px;
   }
@@ -181,7 +181,8 @@ body::before {
 
 .main-container {
   padding: 10px;
-  margin-top: 55px; /* Account for fixed header height */
+  margin-top: 55px;
+  /* Account for fixed header height */
 }
 
 @media (max-width: 768px) {
