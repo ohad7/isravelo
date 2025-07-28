@@ -468,38 +468,10 @@ function decodeRoute(routeString) {
             }
           }
           
-          // Determine directionality based on route context
+          // Wait for routePolylines to be available before processing connectivity
           if (splitSegmentNames.length > 0) {
-            // Check if we need to reverse the split segments based on connectivity
-            let shouldReverse = false;
-            
-            if (segmentNames.length > 0) {
-              // Get the last segment in our current route
-              const lastSegmentName = segmentNames[segmentNames.length - 1];
-              const lastPolyline = routePolylines.find(p => p.segmentName === lastSegmentName);
-              
-              if (lastPolyline && splitSegmentNames.length > 0) {
-                // Get the first split segment
-                const firstSplitPolyline = routePolylines.find(p => p.segmentName === splitSegmentNames[0]);
-                
-                if (firstSplitPolyline) {
-                  const lastSegmentEnd = lastPolyline.coordinates[lastPolyline.coordinates.length - 1];
-                  const firstSplitStart = firstSplitPolyline.coordinates[0];
-                  const firstSplitEnd = firstSplitPolyline.coordinates[firstSplitPolyline.coordinates.length - 1];
-                  
-                  // Check distances to determine correct orientation
-                  const distanceToStart = getDistance(lastSegmentEnd, firstSplitStart);
-                  const distanceToEnd = getDistance(lastSegmentEnd, firstSplitEnd);
-                  
-                  // If the end of the split segment is closer, we should reverse
-                  shouldReverse = distanceToEnd < distanceToStart;
-                }
-              }
-            }
-            
-            // Add split segments in the correct order
-            const orderedSplitSegments = shouldReverse ? [...splitSegmentNames].reverse() : splitSegmentNames;
-            segmentNames.push(...orderedSplitSegments);
+            // For now, just add them in order - connectivity will be handled later by getOrderedCoordinates
+            segmentNames.push(...splitSegmentNames);
           }
         } else {
           // Regular segment, add it
@@ -723,9 +695,14 @@ function hideRouteLoadingIndicator() {
 async function loadSegmentsData() {
   try {
     const response = await fetch('./segments.json');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
     segmentsData = await response.json();
+    console.log('Successfully loaded segments.json with', Object.keys(segmentsData).length, 'segments');
   } catch (error) {
     console.warn('Could not load segments.json:', error);
+    // Initialize with empty object to prevent errors
     segmentsData = {};
   }
 }
@@ -1756,12 +1733,16 @@ function getOrderedCoordinates() {
         coords.reverse();
       }
 
-      // Add coordinates (skip first point to avoid duplication if they're very close)
+      // Add coordinates with better duplication handling
       const firstPoint = coords[0];
-      if (getDistance(lastPoint, firstPoint) > 10) { // 10 meters threshold
-        orderedCoords.push(...coords);
-      } else {
+      const connectionDistance = getDistance(lastPoint, firstPoint);
+      
+      // If segments are well connected (within 50 meters), skip first point to avoid duplication
+      // If segments are far apart (gap > 50 meters), include all points to show the gap
+      if (connectionDistance <= 50) {
         orderedCoords.push(...coords.slice(1));
+      } else {
+        orderedCoords.push(...coords);
       }
     }
   }
