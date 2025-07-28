@@ -670,7 +670,7 @@ async function loadKMLFile() {
   try {
     await loadSegmentsData();
     showRouteLoadingIndicator();
-    const response = await fetch('./bike_roads_v09.geojson');
+    const response = await fetch('./bike_roads_v10.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
 
@@ -857,7 +857,7 @@ function parseGeoJSON(geoJsonData) {
 
               // Add distance from previous segments
               for (let i = 0; i < selectedSegments.length; i++) {
-                const segName= selectedSegments[i];
+                const segName = selectedSegments[i];
                 if (segName === name) break;
 
                 const prevPolyline = routePolylines.find(p => p.segmentName === segName);
@@ -1548,7 +1548,7 @@ function focusOnSegmentByName(segmentName) {
 
     let blinkCount = 0;
     const maxBlinks = 4; // 2 complete blinks (on-off-on-off)
-    
+
     const blinkInterval = setInterval(() => {
       if (blinkCount % 2 === 0) {
         // Blink on - highlight with white
@@ -1564,13 +1564,13 @@ function focusOnSegmentByName(segmentName) {
           map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
         }
       }
-      
+
       blinkCount++;
-      
+
       // Stop blinking after maxBlinks and ensure final state is correct
       if (blinkCount >= maxBlinks) {
         clearInterval(blinkInterval);
-        
+
         // Final state - ensure it's in the correct color
         if (selectedSegments.includes(segmentName)) {
           map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
@@ -1852,7 +1852,7 @@ function generateElevationProfile() {
 
 function updateRouteListAndDescription() {
   const routeDescription = document.getElementById
-('route-description');
+    ('route-description');
   const downloadButton = document.getElementById('download-gpx');
   const descriptionPanel = document.getElementById('route-description-panel');
 
@@ -2251,8 +2251,8 @@ function showDownloadModal() {
   });
 
   shareBtn.addEventListener('click', () => {
-     shareRoute();
-     document.body.removeChild(modal);
+    shareRoute();
+    document.body.removeChild(modal);
   });
 
   modal.addEventListener('click', (e) => {
