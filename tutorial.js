@@ -512,6 +512,33 @@ class Tutorial {
       return; // Already running
     }
 
+    // Close mobile menu if it's open
+    const navLinks = document.getElementById('nav-links');
+    if (navLinks && navLinks.classList.contains('active')) {
+      navLinks.classList.remove('active');
+      
+      // Also restore z-index for search and legend containers
+      const searchContainer = document.querySelector('.search-container');
+      const legendContainer = document.querySelector('.legend-container');
+      
+      if (searchContainer && searchContainer.dataset.originalZIndex) {
+        if (searchContainer.dataset.originalZIndex === 'auto') {
+          searchContainer.style.zIndex = '';
+        } else {
+          searchContainer.style.zIndex = searchContainer.dataset.originalZIndex;
+        }
+        delete searchContainer.dataset.originalZIndex;
+      }
+      if (legendContainer && legendContainer.dataset.originalZIndex) {
+        if (legendContainer.dataset.originalZIndex === 'auto') {
+          legendContainer.style.zIndex = '';
+        } else {
+          legendContainer.style.zIndex = legendContainer.dataset.originalZIndex;
+        }
+        delete legendContainer.dataset.originalZIndex;
+      }
+    }
+
     // Save current route
     this.originalSegments = [...selectedSegments];
 
