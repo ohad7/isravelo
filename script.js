@@ -1253,7 +1253,13 @@ function checkRouteContinuity() {
   if (selectedSegments.length <= 1) return { isContinuous: true, brokenSegmentIndex: -1 };
 
   const tolerance = 100; // 100 meters tolerance
+  const orderedCoords = getOrderedCoordinates();
+  
+  if (orderedCoords.length === 0) return { isContinuous: true, brokenSegmentIndex: -1 };
 
+  // Check gaps in the ordered coordinates by looking at distances between consecutive segments
+  let coordIndex = 0;
+  
   for (let i = 0; i < selectedSegments.length - 1; i++) {
     const currentSegmentName = selectedSegments[i];
     const nextSegmentName = selectedSegments[i + 1];
@@ -1263,30 +1269,30 @@ function checkRouteContinuity() {
 
     if (!currentPolyline || !nextPolyline) continue;
 
-    const currentCoords = currentPolyline.coordinates;
-    const nextCoords = nextPolyline.coordinates;
-
-    // Get endpoints of current segment
-    const currentStart = currentCoords[0];
-    const currentEnd = currentCoords[currentCoords.length - 1];
-
-    // Get endpoints of next segment
-    const nextStart = nextCoords[0];
-    const nextEnd = nextCoords[nextCoords.length - 1];
-
-    // Check all possible connections
-    const distances = [
-      getDistance(currentEnd, nextStart),
-      getDistance(currentEnd, nextEnd),
-      getDistance(currentStart, nextStart),
-      getDistance(currentStart, nextEnd)
-    ];
-
-    const minDistance = Math.min(...distances);
-
-    // If minimum distance is greater than tolerance, route is broken
-    if (minDistance > tolerance) {
+    // Find where current segment ends in ordered coordinates
+    const currentSegmentLength = currentPolyline.coordinates.length;
+    const currentSegmentEndIndex = coordIndex + currentSegmentLength - 1;
+    
+    // Check if we have enough coordinates
+    if (currentSegmentEndIndex >= orderedCoords.length - 1) {
       return { isContinuous: false, brokenSegmentIndex: i };
+    }
+
+    const currentEnd = orderedCoords[currentSegmentEndIndex];
+    const nextStart = orderedCoords[currentSegmentEndIndex + 1];
+
+    const distance = getDistance(currentEnd, nextStart);
+
+    // If distance is greater than tolerance, route is broken
+    if (distance > tolerance) {
+      return { isContinuous: false, brokenSegmentIndex: i };
+    }
+
+    // Move to next segment in ordered coordinates
+    // Skip first coordinate of next segment if segments are well connected to avoid duplication
+    coordIndex += currentSegmentLength;
+    if (distance <= 50) { // Well connected segments
+      coordIndex -= 1; // Account for coordinate that was skipped in getOrderedCoordinates
     }
   }
 
