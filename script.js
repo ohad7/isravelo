@@ -2443,8 +2443,38 @@ document.addEventListener('DOMContentLoaded', function() {
   const navLinks = document.getElementById('nav-links');
   
   if (mobileMenuBtn && navLinks) {
+    // Function to manage z-index when menu opens/closes
+    const manageZIndex = (isMenuOpen) => {
+      const searchContainer = document.querySelector('.search-container');
+      const legendContainer = document.querySelector('.legend-container');
+      
+      if (isMenuOpen) {
+        // Store original z-index values and remove them
+        if (searchContainer) {
+          searchContainer.dataset.originalZIndex = searchContainer.style.zIndex || '1000';
+          searchContainer.style.zIndex = '';
+        }
+        if (legendContainer) {
+          legendContainer.dataset.originalZIndex = legendContainer.style.zIndex || '1000';
+          legendContainer.style.zIndex = '';
+        }
+      } else {
+        // Restore original z-index values
+        if (searchContainer && searchContainer.dataset.originalZIndex) {
+          searchContainer.style.zIndex = searchContainer.dataset.originalZIndex;
+          delete searchContainer.dataset.originalZIndex;
+        }
+        if (legendContainer && legendContainer.dataset.originalZIndex) {
+          legendContainer.style.zIndex = legendContainer.dataset.originalZIndex;
+          delete legendContainer.dataset.originalZIndex;
+        }
+      }
+    };
+
     mobileMenuBtn.addEventListener('click', () => {
+      const isMenuOpen = !navLinks.classList.contains('active');
       navLinks.classList.toggle('active');
+      manageZIndex(isMenuOpen);
     });
 
     // Close menu when clicking on a nav link
@@ -2452,13 +2482,17 @@ document.addEventListener('DOMContentLoaded', function() {
     navLinkItems.forEach(link => {
       link.addEventListener('click', () => {
         navLinks.classList.remove('active');
+        manageZIndex(false);
       });
     });
 
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {
       if (!mobileMenuBtn.contains(e.target) && !navLinks.contains(e.target)) {
-        navLinks.classList.remove('active');
+        if (navLinks.classList.contains('active')) {
+          navLinks.classList.remove('active');
+          manageZIndex(false);
+        }
       }
     });
   }
