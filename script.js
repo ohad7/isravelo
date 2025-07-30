@@ -1250,20 +1250,14 @@ function getClosestPointOnLineSegment(point, lineStart, lineEnd) {
 
 // Function to check if route is continuous and find first broken segment
 function checkRouteContinuity() {
-  console.log('🔍 checkRouteContinuity: Starting with', selectedSegments.length, 'segments:', selectedSegments);
-  
   if (selectedSegments.length <= 1) {
-    console.log('✅ checkRouteContinuity: <= 1 segment, returning continuous');
     return { isContinuous: true, brokenSegmentIndex: -1 };
   }
 
   const tolerance = 100; // 100 meters tolerance
   const orderedCoords = getOrderedCoordinates();
   
-  console.log('📊 checkRouteContinuity: Got', orderedCoords.length, 'ordered coordinates');
-  
   if (orderedCoords.length === 0) {
-    console.log('⚠️ checkRouteContinuity: No ordered coordinates, returning continuous');
     return { isContinuous: true, brokenSegmentIndex: -1 };
   }
 
@@ -1274,13 +1268,10 @@ function checkRouteContinuity() {
     const currentSegmentName = selectedSegments[i];
     const nextSegmentName = selectedSegments[i + 1];
 
-    console.log(`🔗 checkRouteContinuity: Checking connection ${i}: "${currentSegmentName}" -> "${nextSegmentName}"`);
-
     const currentPolyline = routePolylines.find(p => p.segmentName === currentSegmentName);
     const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
 
     if (!currentPolyline || !nextPolyline) {
-      console.log('❌ checkRouteContinuity: Missing polyline data, skipping');
       continue;
     }
 
@@ -1288,26 +1279,18 @@ function checkRouteContinuity() {
     const currentSegmentLength = currentPolyline.coordinates.length;
     const currentSegmentEndIndex = coordIndex + currentSegmentLength - 1;
     
-    console.log(`📍 checkRouteContinuity: coordIndex=${coordIndex}, segmentLength=${currentSegmentLength}, endIndex=${currentSegmentEndIndex}, orderedCoords.length=${orderedCoords.length}`);
-    
     // Check if we have enough coordinates
     if (currentSegmentEndIndex >= orderedCoords.length - 1) {
-      console.log('❌ checkRouteContinuity: Not enough coordinates, breaking at segment', i);
       return { isContinuous: false, brokenSegmentIndex: i };
     }
 
     const currentEnd = orderedCoords[currentSegmentEndIndex];
     const nextStart = orderedCoords[currentSegmentEndIndex + 1];
 
-    console.log(`🎯 checkRouteContinuity: currentEnd=[${currentEnd.lat.toFixed(6)}, ${currentEnd.lng.toFixed(6)}], nextStart=[${nextStart.lat.toFixed(6)}, ${nextStart.lng.toFixed(6)}]`);
-
     const distance = getDistance(currentEnd, nextStart);
-
-    console.log(`📏 checkRouteContinuity: Distance between segments = ${distance.toFixed(1)}m (tolerance: ${tolerance}m)`);
 
     // If distance is greater than tolerance, route is broken
     if (distance > tolerance) {
-      console.log(`💥 checkRouteContinuity: BROKEN ROUTE! Distance ${distance.toFixed(1)}m > tolerance ${tolerance}m at segment ${i}`);
       return { isContinuous: false, brokenSegmentIndex: i };
     }
 
@@ -1316,13 +1299,9 @@ function checkRouteContinuity() {
     coordIndex += currentSegmentLength;
     if (distance <= 50) { // Well connected segments
       coordIndex -= 1; // Account for coordinate that was skipped in getOrderedCoordinates
-      console.log(`🔗 checkRouteContinuity: Well connected (${distance.toFixed(1)}m), adjusting coordIndex to ${coordIndex}`);
-    } else {
-      console.log(`⚠️ checkRouteContinuity: Gap detected (${distance.toFixed(1)}m), keeping coordIndex at ${coordIndex}`);
     }
   }
 
-  console.log('✅ checkRouteContinuity: Route is continuous!');
   return { isContinuous: true, brokenSegmentIndex: -1 };
 }
 
@@ -1708,35 +1687,24 @@ function loadRouteFromEncoding(routeEncoding) {
 
 // Function to order coordinates based on route connectivity
 function getOrderedCoordinates() {
-  console.log('🗂️ getOrderedCoordinates: Starting with', selectedSegments.length, 'segments');
-  
   if (selectedSegments.length === 0) {
-    console.log('⚠️ getOrderedCoordinates: No selected segments, returning empty array');
     return [];
   }
 
   let orderedCoords = [];
-  let segmentBoundaries = []; // Track where each segment starts and ends in orderedCoords
 
   for (let i = 0; i < selectedSegments.length; i++) {
     const segmentName = selectedSegments[i];
     const polyline = routePolylines.find(p => p.segmentName === segmentName);
 
-    console.log(`🔄 getOrderedCoordinates: Processing segment ${i}: "${segmentName}"`);
-
     if (!polyline) {
-      console.log(`❌ getOrderedCoordinates: No polyline found for "${segmentName}", skipping`);
       continue;
     }
 
     let coords = [...polyline.coordinates];
-    console.log(`📊 getOrderedCoordinates: Segment has ${coords.length} coordinates`);
-
-    const segmentStartIndex = orderedCoords.length;
 
     // For the first segment, check if we need to orient it correctly
     if (i === 0) {
-      console.log('🥇 getOrderedCoordinates: Processing first segment');
       // If there's a second segment, orient the first segment to connect better
       if (selectedSegments.length > 1) {
         const nextSegmentName = selectedSegments[1];
@@ -1757,32 +1725,16 @@ function getOrderedCoordinates() {
             getDistance(firstStart, nextEnd)     // first start to next end
           ];
 
-          console.log(`🔗 getOrderedCoordinates: Connection distances: [${distances.map(d => d.toFixed(1)).join(', ')}]m`);
-
           const minDistance = Math.min(...distances);
           const minIndex = distances.indexOf(minDistance);
 
-          console.log(`🎯 getOrderedCoordinates: Best connection at index ${minIndex} with distance ${minDistance.toFixed(1)}m`);
-
           // If the best connection is from first start, reverse the first segment
           if (minIndex === 2 || minIndex === 3) {
-            console.log('🔄 getOrderedCoordinates: Reversing first segment for better connectivity');
             coords.reverse();
           }
         }
       }
       orderedCoords = [...coords];
-      console.log(`📍 getOrderedCoordinates: Initial orderedCoords length: ${orderedCoords.length}`);
-      segmentBoundaries.push({
-        segmentIndex: i,
-        segmentName: segmentName,
-        startIndex: segmentStartIndex,
-        endIndex: orderedCoords.length - 1,
-        originalLength: coords.length,
-        addedLength: coords.length,
-        wasReversed: false,
-        skippedFirst: false
-      });
     } else {
       // For subsequent segments, determine which end connects better
       const lastPoint = orderedCoords[orderedCoords.length - 1];
@@ -1792,59 +1744,25 @@ function getOrderedCoordinates() {
       const distanceToStart = getDistance(lastPoint, segmentStart);
       const distanceToEnd = getDistance(lastPoint, segmentEnd);
 
-      console.log(`🔗 getOrderedCoordinates: Connection options: start=${distanceToStart.toFixed(1)}m, end=${distanceToEnd.toFixed(1)}m`);
-
-      let wasReversed = false;
       // If the end is closer, reverse the coordinates
       if (distanceToEnd < distanceToStart) {
-        console.log('🔄 getOrderedCoordinates: Reversing segment for better connectivity');
         coords.reverse();
-        wasReversed = true;
       }
 
       // Add coordinates with better duplication handling
       const firstPoint = coords[0];
       const connectionDistance = getDistance(lastPoint, firstPoint);
       
-      console.log(`🔗 getOrderedCoordinates: Connection distance: ${connectionDistance.toFixed(1)}m`);
-      
-      let skippedFirst = false;
-      let addedCoords;
-      
       // If segments are well connected (within 50 meters), skip first point to avoid duplication
       // If segments are far apart (gap > 50 meters), include all points to show the gap
       if (connectionDistance <= 50) {
-        console.log('✂️ getOrderedCoordinates: Well connected, skipping first coordinate to avoid duplication');
-        addedCoords = coords.slice(1);
-        skippedFirst = true;
+        orderedCoords.push(...coords.slice(1));
       } else {
-        console.log('⚠️ getOrderedCoordinates: Gap detected, including all coordinates');
-        addedCoords = coords;
+        orderedCoords.push(...coords);
       }
-      
-      orderedCoords.push(...addedCoords);
-      console.log(`📍 getOrderedCoordinates: orderedCoords length now: ${orderedCoords.length}`);
-      
-      segmentBoundaries.push({
-        segmentIndex: i,
-        segmentName: segmentName,
-        startIndex: segmentStartIndex,
-        endIndex: orderedCoords.length - 1,
-        originalLength: coords.length,
-        addedLength: addedCoords.length,
-        wasReversed: wasReversed,
-        skippedFirst: skippedFirst,
-        connectionDistance: connectionDistance
-      });
     }
   }
 
-  console.log(`📋 getOrderedCoordinates: Segment boundaries:`, segmentBoundaries);
-  console.log(`✅ getOrderedCoordinates: Returning ${orderedCoords.length} total coordinates`);
-  
-  // Store boundaries globally for debugging
-  window.debugSegmentBoundaries = segmentBoundaries;
-  
   return orderedCoords;
 }
 
