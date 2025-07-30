@@ -156,8 +156,8 @@ body::before {
   }
 
   .nav-links {
-    position: fixed;
-    top: 55px;
+    position: absolute;
+    top: 100%;
     left: 0;
     right: 0;
     background: #F8F8F8;
