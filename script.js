@@ -2445,32 +2445,37 @@ document.addEventListener('DOMContentLoaded', function() {
   if (mobileMenuBtn && navLinks) {
     // Function to manage z-index when menu opens/closes
     const manageZIndex = (isMenuOpen) => {
-      console.log('manageZIndex called with isMenuOpen:', isMenuOpen);
       const searchContainer = document.querySelector('.search-container');
       const legendContainer = document.querySelector('.legend-container');
       
       if (isMenuOpen) {
-        // Store original z-index values and remove them
+        // Store original z-index values and set to lower values
         if (searchContainer) {
-          searchContainer.dataset.originalZIndex = searchContainer.style.zIndex || '1000';
-          searchContainer.style.zIndex = '';
+          searchContainer.dataset.originalZIndex = getComputedStyle(searchContainer).zIndex;
+          searchContainer.style.zIndex = '100';
         }
         if (legendContainer) {
-          legendContainer.dataset.originalZIndex = legendContainer.style.zIndex || '1000';
-          legendContainer.style.zIndex = '';
+          legendContainer.dataset.originalZIndex = getComputedStyle(legendContainer).zIndex;
+          legendContainer.style.zIndex = '100';
         }
-        console.log('Menu opened, z-indexes managed')
       } else {
         // Restore original z-index values
         if (searchContainer && searchContainer.dataset.originalZIndex) {
-          searchContainer.style.zIndex = searchContainer.dataset.originalZIndex;
+          if (searchContainer.dataset.originalZIndex === 'auto') {
+            searchContainer.style.zIndex = '';
+          } else {
+            searchContainer.style.zIndex = searchContainer.dataset.originalZIndex;
+          }
           delete searchContainer.dataset.originalZIndex;
         }
         if (legendContainer && legendContainer.dataset.originalZIndex) {
-          legendContainer.style.zIndex = legendContainer.dataset.originalZIndex;
+          if (legendContainer.dataset.originalZIndex === 'auto') {
+            legendContainer.style.zIndex = '';
+          } else {
+            legendContainer.style.zIndex = legendContainer.dataset.originalZIndex;
+          }
           delete legendContainer.dataset.originalZIndex;
         }
-        console.log('Menu closed, z-indexes restored')
       }
     };
 
