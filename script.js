@@ -1716,6 +1716,7 @@ function getOrderedCoordinates() {
   }
 
   let orderedCoords = [];
+  let segmentBoundaries = []; // Track where each segment starts and ends in orderedCoords
 
   for (let i = 0; i < selectedSegments.length; i++) {
     const segmentName = selectedSegments[i];
@@ -1730,6 +1731,8 @@ function getOrderedCoordinates() {
 
     let coords = [...polyline.coordinates];
     console.log(`📊 getOrderedCoordinates: Segment has ${coords.length} coordinates`);
+
+    const segmentStartIndex = orderedCoords.length;
 
     // For the first segment, check if we need to orient it correctly
     if (i === 0) {
@@ -1770,6 +1773,16 @@ function getOrderedCoordinates() {
       }
       orderedCoords = [...coords];
       console.log(`📍 getOrderedCoordinates: Initial orderedCoords length: ${orderedCoords.length}`);
+      segmentBoundaries.push({
+        segmentIndex: i,
+        segmentName: segmentName,
+        startIndex: segmentStartIndex,
+        endIndex: orderedCoords.length - 1,
+        originalLength: coords.length,
+        addedLength: coords.length,
+        wasReversed: false,
+        skippedFirst: false
+      });
     } else {
       // For subsequent segments, determine which end connects better
       const lastPoint = orderedCoords[orderedCoords.length - 1];
@@ -1781,10 +1794,12 @@ function getOrderedCoordinates() {
 
       console.log(`🔗 getOrderedCoordinates: Connection options: start=${distanceToStart.toFixed(1)}m, end=${distanceToEnd.toFixed(1)}m`);
 
+      let wasReversed = false;
       // If the end is closer, reverse the coordinates
       if (distanceToEnd < distanceToStart) {
         console.log('🔄 getOrderedCoordinates: Reversing segment for better connectivity');
         coords.reverse();
+        wasReversed = true;
       }
 
       // Add coordinates with better duplication handling
@@ -1793,21 +1808,43 @@ function getOrderedCoordinates() {
       
       console.log(`🔗 getOrderedCoordinates: Connection distance: ${connectionDistance.toFixed(1)}m`);
       
+      let skippedFirst = false;
+      let addedCoords;
+      
       // If segments are well connected (within 50 meters), skip first point to avoid duplication
       // If segments are far apart (gap > 50 meters), include all points to show the gap
       if (connectionDistance <= 50) {
         console.log('✂️ getOrderedCoordinates: Well connected, skipping first coordinate to avoid duplication');
-        orderedCoords.push(...coords.slice(1));
+        addedCoords = coords.slice(1);
+        skippedFirst = true;
       } else {
         console.log('⚠️ getOrderedCoordinates: Gap detected, including all coordinates');
-        orderedCoords.push(...coords);
+        addedCoords = coords;
       }
       
+      orderedCoords.push(...addedCoords);
       console.log(`📍 getOrderedCoordinates: orderedCoords length now: ${orderedCoords.length}`);
+      
+      segmentBoundaries.push({
+        segmentIndex: i,
+        segmentName: segmentName,
+        startIndex: segmentStartIndex,
+        endIndex: orderedCoords.length - 1,
+        originalLength: coords.length,
+        addedLength: addedCoords.length,
+        wasReversed: wasReversed,
+        skippedFirst: skippedFirst,
+        connectionDistance: connectionDistance
+      });
     }
   }
 
+  console.log(`📋 getOrderedCoordinates: Segment boundaries:`, segmentBoundaries);
   console.log(`✅ getOrderedCoordinates: Returning ${orderedCoords.length} total coordinates`);
+  
+  // Store boundaries globally for debugging
+  window.debugSegmentBoundaries = segmentBoundaries;
+  
   return orderedCoords;
 }
 
