@@ -166,8 +166,8 @@ class Tutorial {
       this.addHighlight(step);
     }
 
-    // Add cutout if needed
-    if (step.target) {
+    // Add cutout if needed (but not for center-positioned steps)
+    if (step.target && position !== 'center') {
       const target = document.querySelector(step.target);
       if (target) {
         target.classList.add('tutorial-highlight');
