@@ -2445,6 +2445,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (mobileMenuBtn && navLinks) {
     // Function to manage z-index when menu opens/closes
     const manageZIndex = (isMenuOpen) => {
+      console.log('manageZIndex called with isMenuOpen:', isMenuOpen);
       const searchContainer = document.querySelector('.search-container');
       const legendContainer = document.querySelector('.legend-container');
       
@@ -2458,6 +2459,7 @@ document.addEventListener('DOMContentLoaded', function() {
           legendContainer.dataset.originalZIndex = legendContainer.style.zIndex || '1000';
           legendContainer.style.zIndex = '';
         }
+        console.log('Menu opened, z-indexes managed')
       } else {
         // Restore original z-index values
         if (searchContainer && searchContainer.dataset.originalZIndex) {
@@ -2468,6 +2470,7 @@ document.addEventListener('DOMContentLoaded', function() {
           legendContainer.style.zIndex = legendContainer.dataset.originalZIndex;
           delete legendContainer.dataset.originalZIndex;
         }
+        console.log('Menu closed, z-indexes restored')
       }
     };
 
