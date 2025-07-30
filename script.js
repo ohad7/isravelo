@@ -436,11 +436,11 @@ function decodeRoute(routeString) {
 
     // Convert IDs back to segment names, handling splits
     const segmentNames = [];
-    
+
     for (let i = 0; i < segmentIds.length; i++) {
       const segmentId = segmentIds[i];
       let foundSegment = null;
-      
+
       // Find segment by ID
       for (const segmentName in segmentsData) {
         const segmentInfo = segmentsData[segmentName];
@@ -449,13 +449,13 @@ function decodeRoute(routeString) {
           break;
         }
       }
-      
+
       if (foundSegment) {
         // Check if this segment has split property
         if (foundSegment.info.split && Array.isArray(foundSegment.info.split)) {
           // Replace with split segments
           const splitSegmentIds = foundSegment.info.split;
-          
+
           // Find the actual segment names for the split IDs
           const splitSegmentNames = [];
           for (const splitId of splitSegmentIds) {
@@ -467,7 +467,7 @@ function decodeRoute(routeString) {
               }
             }
           }
-          
+
           // Wait for routePolylines to be available before processing connectivity
           if (splitSegmentNames.length > 0) {
             // For now, just add them in order - connectivity will be handled later by getOrderedCoordinates
@@ -711,7 +711,7 @@ async function loadKMLFile() {
   try {
     await loadSegmentsData();
     showRouteLoadingIndicator();
-    const response = await fetch('./bike_roads_v10.geojson');
+    const response = await fetch('./bike_roads_v11.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
 
@@ -1256,14 +1256,14 @@ function checkRouteContinuity() {
 
   const tolerance = 100; // 100 meters tolerance
   const orderedCoords = getOrderedCoordinates();
-  
+
   if (orderedCoords.length === 0) {
     return { isContinuous: true, brokenSegmentIndex: -1 };
   }
 
   // Check gaps in the ordered coordinates by looking at distances between consecutive segments
   let coordIndex = 0;
-  
+
   for (let i = 0; i < selectedSegments.length - 1; i++) {
     const currentSegmentName = selectedSegments[i];
     const nextSegmentName = selectedSegments[i + 1];
@@ -1278,7 +1278,7 @@ function checkRouteContinuity() {
     // Find where current segment ends in ordered coordinates
     const currentSegmentLength = currentPolyline.coordinates.length;
     const currentSegmentEndIndex = coordIndex + currentSegmentLength - 1;
-    
+
     // Check if we have enough coordinates
     if (currentSegmentEndIndex >= orderedCoords.length - 1) {
       return { isContinuous: false, brokenSegmentIndex: i };
@@ -1752,7 +1752,7 @@ function getOrderedCoordinates() {
       // Add coordinates with better duplication handling
       const firstPoint = coords[0];
       const connectionDistance = getDistance(lastPoint, firstPoint);
-      
+
       // If segments are well connected (within 50 meters), skip first point to avoid duplication
       // If segments are far apart (gap > 50 meters), include all points to show the gap
       if (connectionDistance <= 50) {
@@ -2457,13 +2457,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Mobile menu toggle
   const mobileMenuBtn = document.getElementById('mobile-menu-btn');
   const navLinks = document.getElementById('nav-links');
-  
+
   if (mobileMenuBtn && navLinks) {
     // Function to manage z-index when menu opens/closes
     const manageZIndex = (isMenuOpen) => {
       const searchContainer = document.querySelector('.search-container');
       const legendContainer = document.querySelector('.legend-container');
-      
+
       if (isMenuOpen) {
         // Store original z-index values and set to lower values
         if (searchContainer) {
