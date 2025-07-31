@@ -396,7 +396,7 @@ body::before {
 
 .legend-container {
   position: absolute;
-  bottom: 25px;
+  top: 25px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
