@@ -367,36 +367,31 @@ body::before {
 }
 
 .segment-name-display {
-  position: absolute;
-  top: 25px;
-  left: 25px;
   background: rgba(70, 130, 180, 0.9);
   color: white;
   padding: 10px 15px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
-  z-index: 1000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   max-width: 250px;
   word-wrap: break-word;
   display: none;
+  margin-bottom: 8px;
 }
 
 @media (max-width: 768px) {
   .segment-name-display {
-    top: 15px;
-    left: 15px;
-    right: auto;
     font-size: 12px;
     padding: 8px 12px;
     text-align: right;
+    margin-bottom: 6px;
   }
 }
 
 .legend-container {
   position: absolute;
-  top: 25px;
+  bottom: 25px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
