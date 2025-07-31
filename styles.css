@@ -375,6 +375,7 @@ body::before {
   font-size: 14px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   max-width: 250px;
+  min-height: 50px;
   word-wrap: break-word;
   display: none;
   margin-bottom: 8px;
@@ -391,7 +392,7 @@ body::before {
 
 .legend-container {
   position: absolute;
-  bottom: 25px;
+  top: 25px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
@@ -400,31 +401,15 @@ body::before {
 
 @media (max-width: 768px) {
   .legend-container {
-    bottom: 15px;
+    top: 15px;
     left: 15px;
     right: auto;
     width: auto;
   }
 }
 
-.legend-toggle {
-  background: #F8F8F8;
-  border: none;
-  padding: 4px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s;
-  margin-bottom: 2px;
-  display: block;
-  width: auto;
-  min-width: 100px;
-}
-
-.legend-toggle:hover {
-  background: #e0e0e0;
-  transform: translateY(-1px);
+.issue-warning {
+  margin-bottom: 5px;
 }
 
 .legend-box {
@@ -439,14 +424,10 @@ body::before {
   transform-origin: top;
 }
 
-.legend-box.closed {
-  max-height: 0;
-  padding: 0 6px;
-  opacity: 0;
-  transform: scaleY(0);
-}
-
 .legend-box.open {
+  position: absolute;
+  left: 0px;
+  width: 80px;
   max-height: 150px;
   opacity: 1;
   transform: scaleY(1);
@@ -1296,6 +1277,8 @@ body::before {
   .search-input-group {
     position: absolute;
     right: 0px;
+    top: 0px;
+    width: 200px;
   }
 }
 
