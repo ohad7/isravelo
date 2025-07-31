@@ -1260,6 +1260,7 @@ body::before {
   flex-direction: column;
   gap: 8px;
   align-items: flex-end;
+  width: auto;
 }
 
 @media (max-width: 768px) {
@@ -1268,6 +1269,10 @@ body::before {
     right: 15px;
     gap: 6px;
   }
+  
+  .search-input-group {
+    width: 160px;
+  }
 }
 
 .top-controls {
@@ -1275,6 +1280,7 @@ body::before {
   flex-direction: column;
   gap: 8px;
   align-items: flex-end;
+  width: auto;
 }
 
 @media (max-width: 768px) {
@@ -1286,7 +1292,8 @@ body::before {
 .search-input-group {
   display: flex;
   gap: 0;
-  max-width: 250px;
+  width: 250px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
@@ -1300,6 +1307,7 @@ body::before {
   flex-direction: column;
   gap: 8px;
   align-items: flex-end;
+  width: auto;
 }
 
 @media (max-width: 768px) {
