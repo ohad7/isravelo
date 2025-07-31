@@ -2205,6 +2205,29 @@ function isPointWithinBounds(lat, lng, bounds) {
          lng >= bounds.minLng && lng <= bounds.maxLng;
 }
 
+// Function to zoom out and show all segments
+function zoomToShowAllSegments() {
+  if (!routePolylines || routePolylines.length === 0) {
+    return;
+  }
+
+  let bounds = new mapboxgl.LngLatBounds();
+
+  // Add all segment coordinates to bounds
+  routePolylines.forEach(polylineData => {
+    polylineData.coordinates.forEach(coord => {
+      bounds.extend([coord.lng, coord.lat]);
+    });
+  });
+
+  if (!bounds.isEmpty()) {
+    map.fitBounds(bounds, {
+      padding: 50,
+      duration: 1000
+    });
+  }
+}
+
 // Function to show location warning modal
 function showLocationWarningModal() {
   const modal = document.createElement('div');
@@ -2275,7 +2298,14 @@ function searchLocation() {
         // Check if the location is within our segments bounding box
         const bounds = getSegmentsBoundingBox();
         if (bounds && !isPointWithinBounds(lat, lon, bounds)) {
-          showLocationWarningModal();
+          // Zoom out to show all segments before showing warning
+          zoomToShowAllSegments();
+          
+          // Show warning after a brief delay to allow zoom animation
+          setTimeout(() => {
+            showLocationWarningModal();
+          }, 1000);
+          
           searchInput.value = '';
           return;
         }
