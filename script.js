@@ -2512,22 +2512,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-
-
-  // Legend toggle functionality
-  document.getElementById('legend-toggle').addEventListener('click', function() {
-    const legendBox = document.getElementById('legend-box');
-    const isOpen = legendBox.classList.contains('open');
-
-    if (isOpen) {
-      legendBox.classList.remove('open');
-      legendBox.classList.add('closed');
-    } else {
-      legendBox.classList.remove('closed');
-      legendBox.classList.add('open');
-    }
-  });
-
   // Warning box click handlers
   document.getElementById('route-warning').addEventListener('click', function() {
     const continuityResult = checkRouteContinuity();
