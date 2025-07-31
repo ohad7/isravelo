@@ -2190,7 +2190,7 @@ function getSegmentsBoundingBox() {
 
   // Extend by approximately 5km (roughly 0.045 degrees)
   const extension = 0.045;
-  
+
   return {
     minLat: minLat - extension,
     maxLat: maxLat + extension,
@@ -2201,8 +2201,8 @@ function getSegmentsBoundingBox() {
 
 // Function to check if point is within bounding box
 function isPointWithinBounds(lat, lng, bounds) {
-  return lat >= bounds.minLat && lat <= bounds.maxLat && 
-         lng >= bounds.minLng && lng <= bounds.maxLng;
+  return lat >= bounds.minLat && lat <= bounds.maxLat &&
+    lng >= bounds.minLng && lng <= bounds.maxLng;
 }
 
 // Function to zoom out and show all segments
@@ -2249,7 +2249,7 @@ function showLocationWarningModal() {
 
   // Add event listeners
   const closeBtn = modal.querySelector('.location-warning-modal-close');
-  
+
   closeBtn.addEventListener('click', () => {
     document.body.removeChild(modal);
   });
@@ -2300,12 +2300,12 @@ function searchLocation() {
         if (bounds && !isPointWithinBounds(lat, lon, bounds)) {
           // Zoom out to show all segments before showing warning
           zoomToShowAllSegments();
-          
+
           // Show warning after a brief delay to allow zoom animation
           setTimeout(() => {
             showLocationWarningModal();
-          }, 1000);
-          
+          }, 500);
+
           searchInput.value = '';
           return;
         }
@@ -2509,22 +2509,6 @@ document.addEventListener('DOMContentLoaded', function() {
       showResetModal();
     } else {
       resetRoute();
-    }
-  });
-
-
-
-  // Legend toggle functionality
-  document.getElementById('legend-toggle').addEventListener('click', function() {
-    const legendBox = document.getElementById('legend-box');
-    const isOpen = legendBox.classList.contains('open');
-
-    if (isOpen) {
-      legendBox.classList.remove('open');
-      legendBox.classList.add('closed');
-    } else {
-      legendBox.classList.remove('closed');
-      legendBox.classList.add('open');
     }
   });
 

@@ -36,7 +36,7 @@ class Tutorial {
         title: 'הורדת קובץ GPX',
         content: 'לחצו על כפתור GPX כדי לשתף או להוריד את המסלול ולהשתמש בו באפליקציות ניווט',
         target: '#download-gpx',
-        position: 'bottom',
+        position: 'left',
         positionMobile: 'center'
       },
       {
@@ -516,11 +516,11 @@ class Tutorial {
     const navLinks = document.getElementById('nav-links');
     if (navLinks && navLinks.classList.contains('active')) {
       navLinks.classList.remove('active');
-      
+
       // Also restore z-index for search and legend containers
       const searchContainer = document.querySelector('.search-container');
       const legendContainer = document.querySelector('.legend-container');
-      
+
       if (searchContainer && searchContainer.dataset.originalZIndex) {
         if (searchContainer.dataset.originalZIndex === 'auto') {
           searchContainer.style.zIndex = '';

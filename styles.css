@@ -367,69 +367,49 @@ body::before {
 }
 
 .segment-name-display {
-  position: absolute;
-  top: 25px;
-  right: 25px;
   background: rgba(70, 130, 180, 0.9);
   color: white;
   padding: 10px 15px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
-  z-index: 1000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   max-width: 250px;
+  min-height: 50px;
   word-wrap: break-word;
   display: none;
+  margin-bottom: 8px;
 }
 
 @media (max-width: 768px) {
   .segment-name-display {
-    top: 50px;
-    right: 10px;
-    left: auto;
-    max-width: 200px;
     font-size: 12px;
     padding: 8px 12px;
     text-align: right;
+    margin-bottom: 6px;
   }
 }
 
 .legend-container {
   position: absolute;
-  top: 80px;
+  top: 25px;
   left: 25px;
   z-index: 1000;
   direction: rtl;
+  min-width: 100px;
 }
 
 @media (max-width: 768px) {
   .legend-container {
-    top: 56px;
-    left: 10px;
+    top: 15px;
+    left: 15px;
     right: auto;
     width: auto;
   }
 }
 
-.legend-toggle {
-  background: #F8F8F8;
-  border: none;
-  padding: 4px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s;
-  margin-bottom: 2px;
-  display: block;
-  width: auto;
-  min-width: 100px;
-}
-
-.legend-toggle:hover {
-  background: #e0e0e0;
-  transform: translateY(-1px);
+.issue-warning {
+  margin-bottom: 5px;
 }
 
 .legend-box {
@@ -444,14 +424,10 @@ body::before {
   transform-origin: top;
 }
 
-.legend-box.closed {
-  max-height: 0;
-  padding: 0 6px;
-  opacity: 0;
-  transform: scaleY(0);
-}
-
 .legend-box.open {
+  position: absolute;
+  left: 0px;
+  width: 80px;
   max-height: 150px;
   opacity: 1;
   transform: scaleY(1);
@@ -1253,7 +1229,7 @@ body::before {
 .search-container {
   position: absolute;
   top: 25px;
-  left: 25px;
+  right: 25px;
   z-index: 1000;
   display: flex;
   gap: 8px;
@@ -1262,51 +1238,61 @@ body::before {
 
 @media (max-width: 768px) {
   .search-container {
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    flex-direction: row;
+    top: 15px;
+    right: 15px;
     gap: 6px;
-    align-items: center;
+    flex-direction: row;
     flex-wrap: nowrap;
   }
 }
 
 .top-controls {
+  position: absolute;
+  top: 52px;
+  right: 0px;
   display: flex;
+  flex-direction: column;
   gap: 8px;
+  align-items: flex-end;
+  width: auto;
+  z-index: 1000;
 }
 
 @media (max-width: 768px) {
   .top-controls {
-    flex: 1;
-    order: 1;
+    top: 40px;
+    right: 0px;
+    gap: 4px;
   }
 }
 
 .search-input-group {
   display: flex;
   gap: 0;
+  width: 250px;
+  /* flex-shrink: 0; */
 }
 
 @media (max-width: 768px) {
   .search-input-group {
-    flex: 0 0 auto;
-    order: 2;
-    min-width: 120px;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 200px;
   }
 }
 
 .control-buttons {
   display: flex;
+  flex-direction: column;
   gap: 8px;
+  align-items: flex-end;
+  width: auto;
 }
 
 @media (max-width: 768px) {
   .control-buttons {
-    gap: 2px;
-    display: flex;
-    flex: 1;
+    gap: 4px;
   }
 }
 
@@ -1314,27 +1300,33 @@ body::before {
   background: #f8f8f8;
   color: #333;
   border: none;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  min-width: 50px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
   .control-btn {
-    padding: 6px 4px;
-    font-size: 10px;
-    flex: 1;
+    padding: 6px 8px;
+    font-size: 12px;
     min-height: 36px;
+    min-width: 50px;
     touch-action: manipulation;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     white-space: nowrap;
   }
+}
+
+.gpx-download-button {
+  font-size: 14px;
 }
 
 .control-btn:hover:not(:disabled) {
@@ -1357,13 +1349,12 @@ body::before {
   border-right: none;
   font-size: 14px;
   transition: border-color 0.2s;
-  max-width: 200px;
+  max-width: 250px;
   /* Limit width of the search box */
 }
 
 @media (max-width: 768px) {
   #location-search {
-    max-width: 80px;
     padding: 6px 4px;
     font-size: 12px;
     min-height: 36px;
@@ -1507,16 +1498,22 @@ h3 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(-30px) scale(0.95);
   }
-  to { 
+
+  to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
@@ -1620,9 +1617,9 @@ h3 {
 
 @media (max-width: 768px) {
   .route-description-panel {
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
+    bottom: 15px;
+    left: 15px;
+    right: 15px;
     width: auto;
     max-height: 150px;
     font-size: 13px;
