@@ -1272,9 +1272,10 @@ body::before {
 
 .top-controls {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  width: 100%;
-  justify-content: flex-end;
+  width: auto;
+  align-items: flex-end;
 }
 
 @media (max-width: 768px) {
@@ -1298,14 +1299,15 @@ body::before {
 
 .control-buttons {
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
 @media (max-width: 768px) {
   .control-buttons {
-    gap: 2px;
+    gap: 4px;
     display: flex;
-    flex: 1;
+    flex-direction: column;
   }
 }
 
