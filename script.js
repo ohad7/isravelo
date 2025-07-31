@@ -434,13 +434,49 @@ function decodeRoute(routeString) {
     const view = new Uint16Array(binaryData, segmentDataOffset);
     const segmentIds = Array.from(view);
 
-    // Convert IDs back to segment names
+    // Convert IDs back to segment names, handling splits
     const segmentNames = [];
-    for (const segmentName in segmentsData) {
-      const segmentInfo = segmentsData[segmentName];
-      if (segmentInfo && segmentIds.includes(segmentInfo.id)) {
-        const index = segmentIds.indexOf(segmentInfo.id);
-        segmentNames[index] = segmentName;
+
+    for (let i = 0; i < segmentIds.length; i++) {
+      const segmentId = segmentIds[i];
+      let foundSegment = null;
+
+      // Find segment by ID
+      for (const segmentName in segmentsData) {
+        const segmentInfo = segmentsData[segmentName];
+        if (segmentInfo && segmentInfo.id === segmentId) {
+          foundSegment = { name: segmentName, info: segmentInfo };
+          break;
+        }
+      }
+
+      if (foundSegment) {
+        // Check if this segment has split property
+        if (foundSegment.info.split && Array.isArray(foundSegment.info.split)) {
+          // Replace with split segments
+          const splitSegmentIds = foundSegment.info.split;
+
+          // Find the actual segment names for the split IDs
+          const splitSegmentNames = [];
+          for (const splitId of splitSegmentIds) {
+            for (const segmentName in segmentsData) {
+              const segmentInfo = segmentsData[segmentName];
+              if (segmentInfo && segmentInfo.id === splitId) {
+                splitSegmentNames.push(segmentName);
+                break;
+              }
+            }
+          }
+
+          // Wait for routePolylines to be available before processing connectivity
+          if (splitSegmentNames.length > 0) {
+            // For now, just add them in order - connectivity will be handled later by getOrderedCoordinates
+            segmentNames.push(...splitSegmentNames);
+          }
+        } else {
+          // Regular segment, add it
+          segmentNames.push(foundSegment.name);
+        }
       }
     }
 
@@ -659,9 +695,14 @@ function hideRouteLoadingIndicator() {
 async function loadSegmentsData() {
   try {
     const response = await fetch('./segments.json');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
     segmentsData = await response.json();
+    console.log('Successfully loaded segments.json with', Object.keys(segmentsData).length, 'segments');
   } catch (error) {
     console.warn('Could not load segments.json:', error);
+    // Initialize with empty object to prevent errors
     segmentsData = {};
   }
 }
@@ -670,7 +711,7 @@ async function loadKMLFile() {
   try {
     await loadSegmentsData();
     showRouteLoadingIndicator();
-    const response = await fetch('./bike_roads_v10.geojson');
+    const response = await fetch('./bike_roads_v11.geojson');
     const geoJsonData = await response.json();
     parseGeoJSON(geoJsonData);
 
@@ -1209,9 +1250,19 @@ function getClosestPointOnLineSegment(point, lineStart, lineEnd) {
 
 // Function to check if route is continuous and find first broken segment
 function checkRouteContinuity() {
-  if (selectedSegments.length <= 1) return { isContinuous: true, brokenSegmentIndex: -1 };
+  if (selectedSegments.length <= 1) {
+    return { isContinuous: true, brokenSegmentIndex: -1 };
+  }
 
   const tolerance = 100; // 100 meters tolerance
+  const orderedCoords = getOrderedCoordinates();
+
+  if (orderedCoords.length === 0) {
+    return { isContinuous: true, brokenSegmentIndex: -1 };
+  }
+
+  // Check gaps in the ordered coordinates by looking at distances between consecutive segments
+  let coordIndex = 0;
 
   for (let i = 0; i < selectedSegments.length - 1; i++) {
     const currentSegmentName = selectedSegments[i];
@@ -1220,32 +1271,34 @@ function checkRouteContinuity() {
     const currentPolyline = routePolylines.find(p => p.segmentName === currentSegmentName);
     const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
 
-    if (!currentPolyline || !nextPolyline) continue;
+    if (!currentPolyline || !nextPolyline) {
+      continue;
+    }
 
-    const currentCoords = currentPolyline.coordinates;
-    const nextCoords = nextPolyline.coordinates;
+    // Find where current segment ends in ordered coordinates
+    const currentSegmentLength = currentPolyline.coordinates.length;
+    const currentSegmentEndIndex = coordIndex + currentSegmentLength - 1;
 
-    // Get endpoints of current segment
-    const currentStart = currentCoords[0];
-    const currentEnd = currentCoords[currentCoords.length - 1];
-
-    // Get endpoints of next segment
-    const nextStart = nextCoords[0];
-    const nextEnd = nextCoords[nextCoords.length - 1];
-
-    // Check all possible connections
-    const distances = [
-      getDistance(currentEnd, nextStart),
-      getDistance(currentEnd, nextEnd),
-      getDistance(currentStart, nextStart),
-      getDistance(currentStart, nextEnd)
-    ];
-
-    const minDistance = Math.min(...distances);
-
-    // If minimum distance is greater than tolerance, route is broken
-    if (minDistance > tolerance) {
+    // Check if we have enough coordinates
+    if (currentSegmentEndIndex >= orderedCoords.length - 1) {
       return { isContinuous: false, brokenSegmentIndex: i };
+    }
+
+    const currentEnd = orderedCoords[currentSegmentEndIndex];
+    const nextStart = orderedCoords[currentSegmentEndIndex + 1];
+
+    const distance = getDistance(currentEnd, nextStart);
+
+    // If distance is greater than tolerance, route is broken
+    if (distance > tolerance) {
+      return { isContinuous: false, brokenSegmentIndex: i };
+    }
+
+    // Move to next segment in ordered coordinates
+    // Skip first coordinate of next segment if segments are well connected to avoid duplication
+    coordIndex += currentSegmentLength;
+    if (distance <= 50) { // Well connected segments
+      coordIndex -= 1; // Account for coordinate that was skipped in getOrderedCoordinates
     }
   }
 
@@ -1634,7 +1687,9 @@ function loadRouteFromEncoding(routeEncoding) {
 
 // Function to order coordinates based on route connectivity
 function getOrderedCoordinates() {
-  if (selectedSegments.length === 0) return [];
+  if (selectedSegments.length === 0) {
+    return [];
+  }
 
   let orderedCoords = [];
 
@@ -1642,7 +1697,9 @@ function getOrderedCoordinates() {
     const segmentName = selectedSegments[i];
     const polyline = routePolylines.find(p => p.segmentName === segmentName);
 
-    if (!polyline) continue;
+    if (!polyline) {
+      continue;
+    }
 
     let coords = [...polyline.coordinates];
 
@@ -1692,12 +1749,16 @@ function getOrderedCoordinates() {
         coords.reverse();
       }
 
-      // Add coordinates (skip first point to avoid duplication if they're very close)
+      // Add coordinates with better duplication handling
       const firstPoint = coords[0];
-      if (getDistance(lastPoint, firstPoint) > 10) { // 10 meters threshold
-        orderedCoords.push(...coords);
-      } else {
+      const connectionDistance = getDistance(lastPoint, firstPoint);
+
+      // If segments are well connected (within 50 meters), skip first point to avoid duplication
+      // If segments are far apart (gap > 50 meters), include all points to show the gap
+      if (connectionDistance <= 50) {
         orderedCoords.push(...coords.slice(1));
+      } else {
+        orderedCoords.push(...coords);
       }
     }
   }
@@ -2109,6 +2170,106 @@ function removeSegment(segmentName) {
   }
 }
 
+// Function to calculate bounding box of all segments
+function getSegmentsBoundingBox() {
+  if (!routePolylines || routePolylines.length === 0) {
+    return null;
+  }
+
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+
+  routePolylines.forEach(polylineData => {
+    polylineData.coordinates.forEach(coord => {
+      minLat = Math.min(minLat, coord.lat);
+      maxLat = Math.max(maxLat, coord.lat);
+      minLng = Math.min(minLng, coord.lng);
+      maxLng = Math.max(maxLng, coord.lng);
+    });
+  });
+
+  // Extend by approximately 5km (roughly 0.045 degrees)
+  const extension = 0.045;
+  
+  return {
+    minLat: minLat - extension,
+    maxLat: maxLat + extension,
+    minLng: minLng - extension,
+    maxLng: maxLng + extension
+  };
+}
+
+// Function to check if point is within bounding box
+function isPointWithinBounds(lat, lng, bounds) {
+  return lat >= bounds.minLat && lat <= bounds.maxLat && 
+         lng >= bounds.minLng && lng <= bounds.maxLng;
+}
+
+// Function to zoom out and show all segments
+function zoomToShowAllSegments() {
+  if (!routePolylines || routePolylines.length === 0) {
+    return;
+  }
+
+  let bounds = new mapboxgl.LngLatBounds();
+
+  // Add all segment coordinates to bounds
+  routePolylines.forEach(polylineData => {
+    polylineData.coordinates.forEach(coord => {
+      bounds.extend([coord.lng, coord.lat]);
+    });
+  });
+
+  if (!bounds.isEmpty()) {
+    map.fitBounds(bounds, {
+      padding: 50,
+      duration: 1000
+    });
+  }
+}
+
+// Function to show location warning modal
+function showLocationWarningModal() {
+  const modal = document.createElement('div');
+  modal.className = 'location-warning-modal';
+  modal.innerHTML = `
+    <div class="location-warning-modal-content">
+      <div class="location-warning-modal-header">
+        <h3>⚠️ מיקום מחוץ לאזור המפה</h3>
+        <button class="location-warning-modal-close">&times;</button>
+      </div>
+      <div class="location-warning-modal-body">
+        <p>אין לנו עדיין שבילים במפה במקום זה</p>
+        <p>המפה מכסה כרגע את אזור הגליל העליון והגולן בלבד</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Add event listeners
+  const closeBtn = modal.querySelector('.location-warning-modal-close');
+  
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+
+  // Add escape key listener
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+}
+
 // Search functionality
 function searchLocation() {
   const searchInput = document.getElementById('location-search');
@@ -2134,18 +2295,27 @@ function searchLocation() {
         const lat = parseFloat(result.lat);
         const lon = parseFloat(result.lon);
 
-        // Only pan to the location without showing markers or popups
-        // const zoomLevel = result.type === 'city' ? 12 :
-        //   result.type === 'town' ? 13 :
-        //     result.type === 'village' ? 14 : 13;
+        // Check if the location is within our segments bounding box
+        const bounds = getSegmentsBoundingBox();
+        if (bounds && !isPointWithinBounds(lat, lon, bounds)) {
+          // Zoom out to show all segments before showing warning
+          zoomToShowAllSegments();
+          
+          // Show warning after a brief delay to allow zoom animation
+          setTimeout(() => {
+            showLocationWarningModal();
+          }, 1000);
+          
+          searchInput.value = '';
+          return;
+        }
 
+        // Only pan to the location without showing markers or popups
         map.flyTo({
           center: [lon, lat],
           zoom: 11.5,
           duration: 1000
         });
-
-
 
         searchInput.value = '';
       } else {
@@ -2389,6 +2559,73 @@ document.addEventListener('DOMContentLoaded', function() {
         tutorial.startManually();
       } else {
         console.warn('Tutorial not available');
+      }
+    });
+  }
+
+  // Mobile menu toggle
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  const navLinks = document.getElementById('nav-links');
+
+  if (mobileMenuBtn && navLinks) {
+    // Function to manage z-index when menu opens/closes
+    const manageZIndex = (isMenuOpen) => {
+      const searchContainer = document.querySelector('.search-container');
+      const legendContainer = document.querySelector('.legend-container');
+
+      if (isMenuOpen) {
+        // Store original z-index values and set to lower values
+        if (searchContainer) {
+          searchContainer.dataset.originalZIndex = getComputedStyle(searchContainer).zIndex;
+          searchContainer.style.zIndex = '100';
+        }
+        if (legendContainer) {
+          legendContainer.dataset.originalZIndex = getComputedStyle(legendContainer).zIndex;
+          legendContainer.style.zIndex = '100';
+        }
+      } else {
+        // Restore original z-index values
+        if (searchContainer && searchContainer.dataset.originalZIndex) {
+          if (searchContainer.dataset.originalZIndex === 'auto') {
+            searchContainer.style.zIndex = '';
+          } else {
+            searchContainer.style.zIndex = searchContainer.dataset.originalZIndex;
+          }
+          delete searchContainer.dataset.originalZIndex;
+        }
+        if (legendContainer && legendContainer.dataset.originalZIndex) {
+          if (legendContainer.dataset.originalZIndex === 'auto') {
+            legendContainer.style.zIndex = '';
+          } else {
+            legendContainer.style.zIndex = legendContainer.dataset.originalZIndex;
+          }
+          delete legendContainer.dataset.originalZIndex;
+        }
+      }
+    };
+
+    mobileMenuBtn.addEventListener('click', () => {
+      const isMenuOpen = !navLinks.classList.contains('active');
+      navLinks.classList.toggle('active');
+      manageZIndex(isMenuOpen);
+    });
+
+    // Close menu when clicking on a nav link
+    const navLinkItems = navLinks.querySelectorAll('.nav-link');
+    navLinkItems.forEach(link => {
+      link.addEventListener('click', () => {
+        navLinks.classList.remove('active');
+        manageZIndex(false);
+      });
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!mobileMenuBtn.contains(e.target) && !navLinks.contains(e.target)) {
+        if (navLinks.classList.contains('active')) {
+          navLinks.classList.remove('active');
+          manageZIndex(false);
+        }
       }
     });
   }
