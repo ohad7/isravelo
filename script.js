@@ -2170,6 +2170,83 @@ function removeSegment(segmentName) {
   }
 }
 
+// Function to calculate bounding box of all segments
+function getSegmentsBoundingBox() {
+  if (!routePolylines || routePolylines.length === 0) {
+    return null;
+  }
+
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+
+  routePolylines.forEach(polylineData => {
+    polylineData.coordinates.forEach(coord => {
+      minLat = Math.min(minLat, coord.lat);
+      maxLat = Math.max(maxLat, coord.lat);
+      minLng = Math.min(minLng, coord.lng);
+      maxLng = Math.max(maxLng, coord.lng);
+    });
+  });
+
+  // Extend by approximately 5km (roughly 0.045 degrees)
+  const extension = 0.045;
+  
+  return {
+    minLat: minLat - extension,
+    maxLat: maxLat + extension,
+    minLng: minLng - extension,
+    maxLng: maxLng + extension
+  };
+}
+
+// Function to check if point is within bounding box
+function isPointWithinBounds(lat, lng, bounds) {
+  return lat >= bounds.minLat && lat <= bounds.maxLat && 
+         lng >= bounds.minLng && lng <= bounds.maxLng;
+}
+
+// Function to show location warning modal
+function showLocationWarningModal() {
+  const modal = document.createElement('div');
+  modal.className = 'location-warning-modal';
+  modal.innerHTML = `
+    <div class="location-warning-modal-content">
+      <div class="location-warning-modal-header">
+        <h3>⚠️ מיקום מחוץ לאזור המפה</h3>
+        <button class="location-warning-modal-close">&times;</button>
+      </div>
+      <div class="location-warning-modal-body">
+        <p>אין לנו עדיין שבילים במפה במקום זה</p>
+        <p>המפה מכסה כרגע את אזור הגליל העליון והגולן בלבד</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Add event listeners
+  const closeBtn = modal.querySelector('.location-warning-modal-close');
+  
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+
+  // Add escape key listener
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+}
+
 // Search functionality
 function searchLocation() {
   const searchInput = document.getElementById('location-search');
@@ -2195,18 +2272,20 @@ function searchLocation() {
         const lat = parseFloat(result.lat);
         const lon = parseFloat(result.lon);
 
-        // Only pan to the location without showing markers or popups
-        // const zoomLevel = result.type === 'city' ? 12 :
-        //   result.type === 'town' ? 13 :
-        //     result.type === 'village' ? 14 : 13;
+        // Check if the location is within our segments bounding box
+        const bounds = getSegmentsBoundingBox();
+        if (bounds && !isPointWithinBounds(lat, lon, bounds)) {
+          showLocationWarningModal();
+          searchInput.value = '';
+          return;
+        }
 
+        // Only pan to the location without showing markers or popups
         map.flyTo({
           center: [lon, lat],
           zoom: 11.5,
           duration: 1000
         });
-
-
 
         searchInput.value = '';
       } else {
