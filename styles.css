@@ -1,7 +1,3 @@
-The CSS code has been modified to rearrange map controls, update search input styling, remove legend toggle functionality, and adjust mobile responsiveness.
-```
-
-```css
 * {
   box-sizing: border-box;
 }
@@ -414,6 +410,26 @@ body::before {
     right: auto;
     width: auto;
   }
+}
+
+.legend-toggle {
+  background: #F8F8F8;
+  border: none;
+  padding: 4px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+  margin-bottom: 2px;
+  display: block;
+  width: auto;
+  min-width: 100px;
+}
+
+.legend-toggle:hover {
+  background: #e0e0e0;
+  transform: translateY(-1px);
 }
 
 .legend-box {
@@ -1026,3 +1042,602 @@ body::before {
   background: #5a6268;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+}
+
+.segment-action-modal-body p {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.segment-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.segment-action-btn {
+  padding: 14px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.segment-action-btn.add-again-btn {
+  background: #4682B4;
+  color: white;
+  box-shadow: 0 2px 6px rgba(70, 130, 180, 0.3);
+}
+
+.segment-action-btn.add-again-btn:hover {
+  background: #5F9EA0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+}
+
+.segment-action-btn.remove-btn {
+  background: #dc3545;
+  color: white;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+.segment-action-btn.remove-btn:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.segment-action-btn.cancel-btn {
+  background: #6c757d;
+  color: white;
+  box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
+}
+
+.segment-action-btn.cancel-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+}
+
+.share-url-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+
+.share-url-input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #f9f9f9;
+  direction: ltr;
+  text-align: left;
+}
+
+.copy-url-btn {
+  background: #4682B4;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.copy-url-btn:hover {
+  background: #5F9EA0;
+}
+
+.share-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.share-btn-social {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  color: white;
+}
+
+.share-btn-social.twitter {
+  background: #1DA1F2;
+}
+
+.share-btn-social.twitter:hover {
+  background: #0d8bd9;
+}
+
+.share-btn-social.facebook {
+  background: #4267B2;
+}
+
+.share-btn-social.facebook:hover {
+  background: #365899;
+}
+
+.share-btn-social.whatsapp {
+  background: #25D366;
+}
+
+.share-btn-social.whatsapp:hover {
+  background: #128C7E;
+}
+
+.mapboxgl-popup.segment-tooltip .mapboxgl-popup-content {
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.mapboxgl-popup.segment-tooltip .mapboxgl-popup-tip {
+  border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.elevation-profile {
+  margin-top: 8px;
+  padding: 8px;
+  background: linear-gradient(135deg, #E6F3E6 0%, #B8D4B8 100%);
+  border-radius: 4px;
+  border: 1px solid #8FBC8F;
+}
+
+.elevation-profile h4 {
+  margin: 0 0 4px 0;
+  color: #333;
+  font-size: 12px;
+  text-align: center;
+  display: none;
+}
+
+.elevation-chart {
+  position: relative;
+  height: 60px;
+  background: linear-gradient(to top, #6B8E23 0%, #8FBC8F 20%, #E6F3E6 100%);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+
+.elevation-point {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  min-height: 5px;
+  border-radius: 1px 1px 0 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.elevation-point:hover {
+  opacity: 0.8;
+}
+
+.elevation-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.search-container {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .search-container {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    flex-direction: row;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+}
+
+.top-controls {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .top-controls {
+    flex: 1;
+    order: 1;
+  }
+}
+
+.search-input-group {
+  display: flex;
+  gap: 0;
+}
+
+@media (max-width: 768px) {
+  .search-input-group {
+    flex: 0 0 auto;
+    order: 2;
+    min-width: 120px;
+  }
+}
+
+.control-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .control-buttons {
+    gap: 2px;
+    display: flex;
+    flex: 1;
+  }
+}
+
+.control-btn {
+  background: #f8f8f8;
+  color: #333;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .control-btn {
+    padding: 6px 4px;
+    font-size: 10px;
+    flex: 1;
+    min-height: 36px;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+}
+
+.control-btn:hover:not(:disabled) {
+  background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:disabled {
+  background: #dddddd;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+#location-search {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 4px;
+  border-right: none;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  max-width: 200px;
+  /* Limit width of the search box */
+}
+
+@media (max-width: 768px) {
+  #location-search {
+    max-width: 80px;
+    padding: 6px 4px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+}
+
+#location-search:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+#search-btn {
+  background: #4682B4;
+  color: white;
+  border: 2px solid #4682B4;
+  border-left: none;
+  padding: 10px 12px;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  font-size: 12px;
+  /* Reduced search button size */
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3);
+  /* Reduced shadow */
+}
+
+@media (max-width: 768px) {
+  #search-btn {
+    padding: 6px 8px;
+    min-width: 36px;
+    min-height: 36px;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+}
+
+#search-btn:hover {
+  background: #5F9EA0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+  /* Reduced shadow */
+}
+
+.leaflet-interactive {
+  outline: none !important;
+}
+
+.leaflet-interactive:focus {
+  outline: none !important;
+}
+
+h3 {
+  color: #333;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+/* Location warning modal styles */
+.location-warning-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.location-warning-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideIn 0.3s ease-out;
+}
+
+.location-warning-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 10px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.location-warning-modal-header h3 {
+  margin: 0;
+  color: #ff9800;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.location-warning-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.location-warning-modal-close:hover {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.location-warning-modal-body {
+  padding: 20px;
+}
+
+.location-warning-modal-body p {
+  margin: 0 0 15px 0;
+  color: #333;
+  line-height: 1.5;
+  font-size: 16px;
+}
+
+.location-warning-modal-body p:last-child {
+  margin-bottom: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#route-description {
+  background: #4682B4;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.file-upload-container {
+  background: #F8F8F8;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+#kml-file {
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+}
+
+#kml-file:hover {
+  border-color: #2196F3;
+}
+
+.supporting-buttons {
+  position: absolute;
+  top: 25px;
+  right: 250px;
+  /* Adjust as needed */
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+}
+
+.supporting-buttons button {
+  background: #f8f8f8;
+  color: #333;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.supporting-buttons button:hover {
+  background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.elevation-and-description {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Left bottom route description panel */
+.route-description-panel {
+  position: absolute;
+  bottom: 25px;
+  left: 25px;
+  width: 300px;
+  max-height: 200px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  text-align: right;
+  overflow-y: auto;
+  direction: rtl;
+}
+
+/* Hide panel when no segments are selected */
+.route-description-panel.empty {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .route-description-panel {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 150px;
+    font-size: 13px;
+  }
+}
+
+.mobile-only-text {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-only-text {
+    display: inline;
+  }
+}
+
+/* Move the route list inside the download modal */
+/* No CSS changes needed, just structural changes in the React component */
