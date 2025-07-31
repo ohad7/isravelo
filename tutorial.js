@@ -36,7 +36,7 @@ class Tutorial {
         title: 'הורדת קובץ GPX',
         content: 'לחצו על כפתור GPX כדי לשתף או להוריד את המסלול ולהשתמש בו באפליקציות ניווט',
         target: '#download-gpx',
-        position: 'bottom',
+        position: 'left',
         positionMobile: 'center'
       },
       {
