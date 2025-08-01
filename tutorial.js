@@ -68,6 +68,9 @@ class Tutorial {
       return;
     }
 
+    // Mark tutorial as seen
+    localStorage.setItem('bikeRouteTutorialSeen', 'true');
+
     this.isActive = true;
     this.originalSegments = [...selectedSegments];
 
@@ -463,9 +466,6 @@ class Tutorial {
 
   finish() {
     this.isActive = false;
-
-    // Mark tutorial as seen
-    localStorage.setItem('bikeRouteTutorialSeen', 'true');
 
     // Clear tutorial route and restore original route
     if (typeof selectedSegments !== 'undefined') {
