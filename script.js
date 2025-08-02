@@ -1690,6 +1690,28 @@ function focusOnSegmentByName(segmentName) {
 
   returnToStartingPosition();
 
+  // Show segment details in display
+  const metrics = segmentMetrics[segmentName];
+  const segmentDistanceKm = metrics ? metrics.distanceKm : '0.0';
+  const segmentElevationGain = metrics ? metrics.forward.elevationGain : 0;
+  const segmentElevationLoss = metrics ? metrics.forward.elevationLoss : 0;
+
+  const segmentDisplay = document.getElementById('segment-name-display');
+  segmentDisplay.innerHTML = `<strong>${segmentName}</strong> <br> 📏 ${segmentDistanceKm} ק"מ • ⬆️ ${segmentElevationGain} מ' • ⬇️ ${segmentElevationLoss} מ'`;
+
+  // Check for warnings in segments data and add to segment display
+  const segmentInfo = segmentsData[segmentName];
+  if (segmentInfo) {
+    if (segmentInfo.winter === false) {
+      segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ בוץ בחורף</div>`;
+    }
+    if (segmentInfo.warning) {
+      segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_RED}; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
+    }
+  }
+
+  segmentDisplay.style.display = 'block';
+
   // Calculate bounds for the segment
   let minLat = coords[0].lat, maxLat = coords[0].lat;
   let minLng = coords[0].lng, maxLng = coords[0].lng;
