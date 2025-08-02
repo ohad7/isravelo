@@ -714,6 +714,7 @@ function loadRouteFromUrl() {
       setTimeout(() => {
         updateSegmentStyles();
         updateRouteListAndDescription();
+        focusMapOnRoute();
         hideRouteLoadingIndicator();
       }, 500);
 
@@ -1616,6 +1617,36 @@ function focusOnSegment(segmentName) {
   }, 2000);
 }
 
+// Function to focus map on the entire selected route
+function focusMapOnRoute() {
+  if (selectedSegments.length === 0) {
+    return;
+  }
+
+  // Calculate bounds for all selected segments
+  let bounds = new mapboxgl.LngLatBounds();
+  let hasCoordinates = false;
+
+  selectedSegments.forEach(segmentName => {
+    const polyline = routePolylines.find(p => p.segmentName === segmentName);
+    if (polyline && polyline.coordinates.length > 0) {
+      polyline.coordinates.forEach(coord => {
+        bounds.extend([coord.lng, coord.lat]);
+        hasCoordinates = true;
+      });
+    }
+  });
+
+  if (hasCoordinates && !bounds.isEmpty()) {
+    // Zoom to fit the route bounds with padding
+    map.fitBounds(bounds, {
+      padding: 80,
+      duration: 1500,
+      maxZoom: 14 // Don't zoom in too much for long routes
+    });
+  }
+}
+
 // Function to focus map on a segment by name and highlight it briefly
 function focusOnSegmentByName(segmentName) {
   const polyline = routePolylines.find(p => p.segmentName === segmentName);
@@ -1737,6 +1768,11 @@ function loadRouteFromEncoding(routeEncoding) {
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
+
+    // Focus map on the loaded route
+    setTimeout(() => {
+      focusMapOnRoute();
+    }, 200);
 
     console.log(`Loaded route with ${selectedSegments.length} segments`);
     return true;
