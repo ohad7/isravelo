@@ -365,31 +365,31 @@ const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvw
 function base58Encode(bytes) {
   let result = '';
   let bigInt = 0n;
-
+  
   // Convert bytes to a big integer
   for (let i = 0; i < bytes.length; i++) {
     bigInt = bigInt * 256n + BigInt(bytes[i]);
   }
-
+  
   // Convert to base58
   while (bigInt > 0n) {
     const remainder = bigInt % 58n;
     result = BASE58_ALPHABET[Number(remainder)] + result;
     bigInt = bigInt / 58n;
   }
-
+  
   // Handle leading zeros
   for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
     result = '1' + result;
   }
-
+  
   return result;
 }
 
 // Base58 decoding function
 function base58Decode(str) {
   let bigInt = 0n;
-
+  
   // Convert base58 to big integer
   for (let i = 0; i < str.length; i++) {
     const char = str[i];
@@ -399,19 +399,19 @@ function base58Decode(str) {
     }
     bigInt = bigInt * 58n + BigInt(value);
   }
-
+  
   // Convert to bytes
   const bytes = [];
   while (bigInt > 0n) {
     bytes.unshift(Number(bigInt % 256n));
     bigInt = bigInt / 256n;
   }
-
+  
   // Handle leading '1's (zeros)
   for (let i = 0; i < str.length && str[i] === '1'; i++) {
     bytes.unshift(0);
   }
-
+  
   return new Uint8Array(bytes);
 }
 
@@ -452,10 +452,10 @@ function decodeRoute(routeString) {
 
   try {
     let uint8Array;
-
+    
     // Try to determine if this is base58 or base64 encoding
     const isBase58 = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/.test(routeString);
-
+    
     if (isBase58) {
       // Decode from base58 (version 2)
       uint8Array = base58Decode(routeString);
@@ -1422,7 +1422,7 @@ function updateRouteWarning() {
     const countText = winterResult.count > 1 ? ` (${winterResult.count})` : '';
     winterWarning.innerHTML = `❄️בוץ בחורף${countText}`;
     winterWarning.style.display = 'block';
-
+    
     // Reset winter warning cycling index when warnings change
     if (!window.winterWarningIndex || winterResult.winterSegments.length !== window.lastWinterCount) {
       window.winterWarningIndex = 0;
@@ -1439,7 +1439,7 @@ function updateRouteWarning() {
     const countText = warningsResult.count > 1 ? ` (${warningsResult.count})` : '';
     segmentWarning.innerHTML = `⚠️ אזהרות ${countText}`;
     segmentWarning.style.display = 'block';
-
+    
     // Reset segment warning cycling index when warnings change
     if (!window.segmentWarningIndex || warningsResult.warningSegments.length !== window.lastWarningCount) {
       window.segmentWarningIndex = 0;
@@ -1626,8 +1626,7 @@ function focusOnSegment(segmentName) {
 
   map.fitBounds(bounds, {
     padding: 50,
-    duration: 1000,
-    maxZoom: MAX_ZOOM_LEVEL // Prevent zooming in too much on individual segments
+    duration: 1000
   });
 
   // Temporarily highlight the segment
@@ -1675,7 +1674,7 @@ function focusMapOnRoute() {
     map.fitBounds(bounds, {
       padding: 80,
       duration: 1500,
-      maxZoom: MAX_ZOOM_LEVEL // Don't zoom in too much for long routes
+      maxZoom: 14 // Don't zoom in too much for long routes
     });
   }
 }
@@ -1738,8 +1737,7 @@ function focusOnSegmentByName(segmentName) {
   // Zoom to fit the segment bounds
   map.fitBounds(bounds, {
     padding: 50,
-    duration: 1000,
-    maxZoom: MAX_ZOOM_LEVEL // Prevent zooming in too much on individual segments
+    duration: 1000
   });
 
   // Highlight the segment after a short delay to allow map to zoom
@@ -2136,7 +2134,7 @@ function updateRouteListAndDescription() {
                 getDistance(prevStart, currentEnd)
               ];
 
-              const minIndex = distances.indexOf(Math.min(...distances)));
+              const minIndex = distances.indexOf(Math.min(...distances));
               prevLastPoint = (minIndex === 2 || minIndex === 3) ? prevStart : prevEnd;
             } else {
               prevLastPoint = prevEnd;
@@ -2172,7 +2170,7 @@ function updateRouteListAndDescription() {
           getDistance(firstStart, nextEnd)
         ];
 
-        const minIndex = distances.indexOf(Math.min(...distances)));
+        const minIndex = distances.indexOf(Math.min(...distances));
         isReversed = (minIndex === 2 || minIndex === 3);
       }
     }
@@ -2493,7 +2491,7 @@ function returnToStartingPosition() {
   if (window.location.hash) {
     history.pushState(null, null, window.location.pathname + window.location.search);
   }
-
+  
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
@@ -2625,7 +2623,7 @@ function downloadGPX() {
     <name>מסלול רכיבה מתוכנן</name>
     <trkseg>`;
 
-  orderedCoords.forEach(coord =>{
+  orderedCoords.forEach(coord => {
     // Use actual elevation from coordinates if available, otherwise calculate
     let elevation;
     if (coord.elevation !== undefined) {
@@ -2685,10 +2683,10 @@ function scrollToSection(sectionId) {
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize the map when page loads
   initMap();
-
+  
   // Handle initial hash navigation on page load
   handleHashNavigation();
-
+  
   // Handle hash changes (back/forward browser navigation)
   window.addEventListener('hashchange', handleHashNavigation);
 
@@ -2738,11 +2736,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.winterWarningIndex === undefined) {
         window.winterWarningIndex = 0;
       }
-
+      
       // Focus on current segment
       const segmentName = winterResult.winterSegments[window.winterWarningIndex];
       focusOnSegmentByName(segmentName);
-
+      
       // Move to next segment for next click
       window.winterWarningIndex = (window.winterWarningIndex + 1) % winterResult.winterSegments.length;
     }
@@ -2755,11 +2753,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.segmentWarningIndex === undefined) {
         window.segmentWarningIndex = 0;
       }
-
+      
       // Focus on current segment
       const segmentName = warningsResult.warningSegments[window.segmentWarningIndex];
       focusOnSegmentByName(segmentName);
-
+      
       // Move to next segment for next click
       window.segmentWarningIndex = (window.segmentWarningIndex + 1) % warningsResult.warningSegments.length;
     }
@@ -2859,4 +2857,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 const ROUTE_VERSION = 2;
-const MAX_ZOOM_LEVEL = 15;
