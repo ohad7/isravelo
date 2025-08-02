@@ -1569,6 +1569,8 @@ function showSegmentActionDialog(segmentName) {
       }
 
       updateSegmentStyles();
+      updateRouteListAndDescription();
+      updateRouteWarning(); // Ensure warnings are updated after removal
       clearRouteFromUrl();
     }
     document.body.removeChild(modal);
@@ -2316,6 +2318,7 @@ function removeSegment(segmentName) {
 
     updateSegmentStyles();
     updateRouteListAndDescription();
+    updateRouteWarning(); // Ensure warnings are updated after removal
     clearRouteFromUrl(); // Clear route parameter when removing segments
   }
 }
@@ -2717,8 +2720,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('route-warning').addEventListener('click', function() {
     const continuityResult = checkRouteContinuity();
     if (!continuityResult.isContinuous && continuityResult.brokenSegmentIndex >= 0) {
-      const segmentName = selectedSegments[continuityResult.brokenSegmentIndex];
-      focusOnSegment(segmentName);
+      // Focus on the segment that caused the break (the one after the broken connection)
+      const breakingSegmentIndex = continuityResult.brokenSegmentIndex + 1;
+      if (breakingSegmentIndex < selectedSegments.length) {
+        const segmentName = selectedSegments[breakingSegmentIndex];
+        focusOnSegment(segmentName);
+      }
     }
   });
 
