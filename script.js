@@ -18,6 +18,8 @@ const COLORS = {
   HIGHLIGHT_WHITE: '#ffffff', // White for highlighting all segments
 };
 
+const MIN_ZOOM_LEVEL = 12; // Minimum zoom level when focusing on segments
+
 // Function to highlight all segments in white and then return to original colors
 function highlightAllSegments() {
   // First phase: highlight all segments in white
@@ -1626,7 +1628,8 @@ function focusOnSegment(segmentName) {
 
   map.fitBounds(bounds, {
     padding: 50,
-    duration: 1000
+    duration: 1000,
+    maxZoom: MIN_ZOOM_LEVEL
   });
 
   // Temporarily highlight the segment
@@ -1734,10 +1737,11 @@ function focusOnSegmentByName(segmentName) {
     [maxLng + lngPadding, maxLat + latPadding]
   );
 
-  // Zoom to fit the segment bounds
+  // Zoom to fit the segment bounds with minimum zoom limit
   map.fitBounds(bounds, {
     padding: 50,
-    duration: 1000
+    duration: 1000,
+    maxZoom: MIN_ZOOM_LEVEL
   });
 
   // Highlight the segment after a short delay to allow map to zoom
