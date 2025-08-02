@@ -358,6 +358,63 @@ function initMap() {
   }
 }
 
+// Base58 alphabet (Bitcoin-style)
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+// Base58 encoding function
+function base58Encode(bytes) {
+  let result = '';
+  let bigInt = 0n;
+  
+  // Convert bytes to a big integer
+  for (let i = 0; i < bytes.length; i++) {
+    bigInt = bigInt * 256n + BigInt(bytes[i]);
+  }
+  
+  // Convert to base58
+  while (bigInt > 0n) {
+    const remainder = bigInt % 58n;
+    result = BASE58_ALPHABET[Number(remainder)] + result;
+    bigInt = bigInt / 58n;
+  }
+  
+  // Handle leading zeros
+  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
+    result = '1' + result;
+  }
+  
+  return result;
+}
+
+// Base58 decoding function
+function base58Decode(str) {
+  let bigInt = 0n;
+  
+  // Convert base58 to big integer
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    const value = BASE58_ALPHABET.indexOf(char);
+    if (value === -1) {
+      throw new Error('Invalid base58 character');
+    }
+    bigInt = bigInt * 58n + BigInt(value);
+  }
+  
+  // Convert to bytes
+  const bytes = [];
+  while (bigInt > 0n) {
+    bytes.unshift(Number(bigInt % 256n));
+    bigInt = bigInt / 256n;
+  }
+  
+  // Handle leading '1's (zeros)
+  for (let i = 0; i < str.length && str[i] === '1'; i++) {
+    bytes.unshift(0);
+  }
+  
+  return new Uint8Array(bytes);
+}
+
 // Route sharing functions
 function encodeRoute(segmentNames) {
   if (!segmentNames || segmentNames.length === 0) return '';
@@ -386,30 +443,35 @@ function encodeRoute(segmentNames) {
     view[index] = id;
   });
 
-  // Convert to base64
-  let binaryString = '';
-  for (let i = 0; i < uint8Array.length; i++) {
-    binaryString += String.fromCharCode(uint8Array[i]);
-  }
-
-  return btoa(binaryString);
+  // Convert to base58
+  return base58Encode(uint8Array);
 }
 
 function decodeRoute(routeString) {
   if (!routeString) return [];
 
   try {
-    // Decode from base64
-    const binaryString = atob(routeString);
-    const binaryData = new ArrayBuffer(binaryString.length);
-    const uint8Array = new Uint8Array(binaryData);
+    let uint8Array;
+    
+    // Try to determine if this is base58 or base64 encoding
+    const isBase58 = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/.test(routeString);
+    
+    if (isBase58) {
+      // Decode from base58 (version 2)
+      uint8Array = base58Decode(routeString);
+    } else {
+      // Decode from base64 (legacy version 1)
+      const binaryString = atob(routeString);
+      const binaryData = new ArrayBuffer(binaryString.length);
+      uint8Array = new Uint8Array(binaryData);
 
-    for (let i = 0; i < binaryString.length; i++) {
-      uint8Array[i] = binaryString.charCodeAt(i);
+      for (let i = 0; i < binaryString.length; i++) {
+        uint8Array[i] = binaryString.charCodeAt(i);
+      }
     }
 
     // Check for empty data
-    if (binaryData.byteLength === 0) {
+    if (uint8Array.byteLength === 0) {
       console.warn('Empty route data');
       return [];
     }
@@ -417,21 +479,21 @@ function decodeRoute(routeString) {
     // Read version from first byte
     const version = uint8Array[0];
 
-    if (version !== ROUTE_VERSION) {
-      console.warn(`Unsupported route version: ${version}. Expected version ${ROUTE_VERSION}.`);
+    if (version !== 1 && version !== ROUTE_VERSION) {
+      console.warn(`Unsupported route version: ${version}. Expected version 1 or ${ROUTE_VERSION}.`);
       return [];
     }
 
     // Parse segment data (skip version and padding bytes)
     const segmentDataOffset = 2;
-    const segmentDataLength = binaryData.byteLength - segmentDataOffset;
+    const segmentDataLength = uint8Array.byteLength - segmentDataOffset;
 
     if (segmentDataLength % 2 !== 0) {
       console.warn('Invalid route data: segment data length is not even');
       return [];
     }
 
-    const view = new Uint16Array(binaryData, segmentDataOffset);
+    const view = new Uint16Array(uint8Array.buffer, segmentDataOffset);
     const segmentIds = Array.from(view);
 
     // Convert IDs back to segment names, handling splits
@@ -2471,11 +2533,17 @@ function downloadGPX() {
   </trk>
 </gpx>`;
 
+  // Generate filename using encoded route (first 32 characters)
+  const routeEncoding = encodeRoute(selectedSegments);
+  const filename = routeEncoding ? 
+    `route_${routeEncoding.substring(0, 32)}.gpx` : 
+    'bike_route.gpx';
+
   const blob = new Blob([gpx], { type: 'application/gpx+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'bike_route.gpx';
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -2654,4 +2722,4 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-const ROUTE_VERSION = 1;
+const ROUTE_VERSION = 2;
