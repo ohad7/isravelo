@@ -2492,8 +2492,27 @@ function showDownloadModal() {
       segmentsHtml += `
         <div class="modal-segment-item">
           <span><strong>${index + 1}.</strong> ${segmentName}${warningIcons}</span>
-        </div>
       `;
+
+      // Add warning details below the segment name
+      if (segmentInfo) {
+        if (segmentInfo.winter === false) {
+          segmentsHtml += `
+            <div style="color: #ff9800; font-size: 12px; margin-top: 5px; margin-right: 20px;">
+              ❄️ מסלול לא מתאים לחורף
+            </div>
+          `;
+        }
+        if (segmentInfo.warning) {
+          segmentsHtml += `
+            <div style="color: #f44336; font-size: 12px; margin-top: 5px; margin-right: 20px;">
+              ⚠️ ${segmentInfo.warning}
+            </div>
+          `;
+        }
+      }
+
+      segmentsHtml += '</div>';
     });
     segmentsHtml += '</div>';
     routeSegmentsList.innerHTML = segmentsHtml;
