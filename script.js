@@ -866,7 +866,6 @@ function parseGeoJSON(geoJsonData) {
           'line-cap': 'round'
         },
         paint: {
-          ```text
           'line-color': originalColor,
           'line-width': originalWeight,
           'line-opacity': originalOpacity
@@ -1628,7 +1627,7 @@ function focusOnSegment(segmentName) {
   map.fitBounds(bounds, {
     padding: 50,
     duration: 1000,
-    maxZoom: 15 // Prevent zooming in too much on individual segments
+    maxZoom: MAX_ZOOM_LEVEL // Prevent zooming in too much on individual segments
   });
 
   // Temporarily highlight the segment
@@ -1676,7 +1675,7 @@ function focusMapOnRoute() {
     map.fitBounds(bounds, {
       padding: 80,
       duration: 1500,
-      maxZoom: 14 // Don't zoom in too much for long routes
+      maxZoom: MAX_ZOOM_LEVEL // Don't zoom in too much for long routes
     });
   }
 }
@@ -1740,7 +1739,7 @@ function focusOnSegmentByName(segmentName) {
   map.fitBounds(bounds, {
     padding: 50,
     duration: 1000,
-    maxZoom: 15 // Prevent zooming in too much on individual segments
+    maxZoom: MAX_ZOOM_LEVEL // Prevent zooming in too much on individual segments
   });
 
   // Highlight the segment after a short delay to allow map to zoom
@@ -2173,7 +2172,7 @@ function updateRouteListAndDescription() {
           getDistance(firstStart, nextEnd)
         ];
 
-        const minIndex = distances.indexOf(Math.min(...distances));
+        const minIndex = distances.indexOf(Math.min(...distances)));
         isReversed = (minIndex === 2 || minIndex === 3);
       }
     }
@@ -2860,3 +2859,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 const ROUTE_VERSION = 2;
+const MAX_ZOOM_LEVEL = 15;
