@@ -2334,6 +2334,11 @@ function searchLocation() {
 
 // Function to scroll to top of page
 function returnToStartingPosition() {
+  // Clear URL hash
+  if (window.location.hash) {
+    history.pushState(null, null, window.location.pathname + window.location.search);
+  }
+  
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
