@@ -2330,13 +2330,7 @@ function searchLocation() {
     });
 }
 
-// Function to scroll to section
-function scrollToSection(sectionId) {
-  const section = document.getElementById(sectionId);
-  if (section) {
-    section.scrollIntoView({ behavior: 'smooth' });
-  }
-}
+
 
 // Function to scroll to top of page
 function returnToStartingPosition() {
@@ -2481,10 +2475,37 @@ function downloadGPX() {
   URL.revokeObjectURL(url);
 }
 
+// Hash navigation functionality
+function handleHashNavigation() {
+  const hash = window.location.hash.substring(1); // Remove the # symbol
+  if (hash) {
+    const section = document.getElementById(hash);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+}
+
+// Function to scroll to section and update URL hash
+function scrollToSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (section) {
+    // Update URL hash without triggering page reload
+    history.pushState(null, null, `#${sectionId}`);
+    section.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize the map when page loads
   initMap();
+  
+  // Handle initial hash navigation on page load
+  handleHashNavigation();
+  
+  // Handle hash changes (back/forward browser navigation)
+  window.addEventListener('hashchange', handleHashNavigation);
 
   // Download GPX functionality
   document.getElementById('download-gpx').addEventListener('click', () => {

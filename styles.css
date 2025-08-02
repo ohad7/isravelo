@@ -277,6 +277,10 @@ body::before {
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 .content-section {
   background: #F8F8F8;
   border-radius: 12px;
