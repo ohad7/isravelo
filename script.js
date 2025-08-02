@@ -253,7 +253,7 @@ function initMap() {
         const segmentInfo = segmentsData[name];
         if (segmentInfo) {
           if (segmentInfo.winter === false) {
-            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>`;
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️  בוץ בחורף</div>`;
           }
           if (segmentInfo.warning) {
             segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_RED}; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
@@ -911,7 +911,7 @@ function parseGeoJSON(geoJsonData) {
         const segmentInfo = segmentsData[name];
         if (segmentInfo) {
           if (segmentInfo.winter === false) {
-            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ מסלול בוצי בחורף</div>`;
+            segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_ORANGE}; font-size: 12px; margin-top: 5px;">❄️ בוץ בחורף</div>`;
           }
           if (segmentInfo.warning) {
             segmentDisplay.innerHTML += `<div style="color: ${COLORS.WARNING_RED}; font-size: 12px; margin-top: 5px;">⚠️ ${segmentInfo.warning}</div>`;
@@ -1420,7 +1420,7 @@ function updateRouteWarning() {
   // Show winter warning with count
   if (winterResult.hasWinter) {
     const countText = winterResult.count > 1 ? ` (${winterResult.count})` : '';
-    winterWarning.innerHTML = `❄️ מסלול בוצי בחורף${countText}`;
+    winterWarning.innerHTML = `❄️בוץ בחורף${countText}`;
     winterWarning.style.display = 'block';
     
     // Reset winter warning cycling index when warnings change
@@ -1437,7 +1437,7 @@ function updateRouteWarning() {
   // Show segment warnings indicator with count
   if (warningsResult.hasWarnings) {
     const countText = warningsResult.count > 1 ? ` (${warningsResult.count})` : '';
-    segmentWarning.innerHTML = `⚠️ אזהרת קטע${countText}`;
+    segmentWarning.innerHTML = `⚠️ אזהרות ${countText}`;
     segmentWarning.style.display = 'block';
     
     // Reset segment warning cycling index when warnings change
@@ -2510,14 +2510,14 @@ function showDownloadModal() {
       // Check for warnings
       let warningIcons = '';
       const segmentInfo = segmentsData[segmentName];
-      if (segmentInfo) {
-        if (segmentInfo.winter === false) {
-          warningIcons += ' ❄️';
-        }
-        if (segmentInfo.warning) {
-          warningIcons += ' ⚠️';
-        }
-      }
+      // if (segmentInfo) {
+      //   if (segmentInfo.winter === false) {
+      //     warningIcons += ' ❄️';
+      //   }
+      //   if (segmentInfo.warning) {
+      //     warningIcons += ' ⚠️';
+      //   }
+      // }
 
       segmentsHtml += `
         <div class="modal-segment-item">
@@ -2529,7 +2529,7 @@ function showDownloadModal() {
         if (segmentInfo.winter === false) {
           segmentsHtml += `
             <div style="color: #ff9800; font-size: 12px; margin-top: 5px; margin-right: 20px;">
-              ❄️ מסלול לא מתאים לחורף
+              ❄️ מסלול בוצי בחורף   
             </div>
           `;
         }
