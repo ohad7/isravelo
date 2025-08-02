@@ -1368,26 +1368,36 @@ function checkRouteContinuity() {
   return { isContinuous: true, brokenSegmentIndex: -1 };
 }
 
-// Function to check if any selected segments have winter warning and find first one
+// Function to check if any selected segments have winter warning and find all of them
 function hasWinterSegments() {
+  const winterSegments = [];
   for (let i = 0; i < selectedSegments.length; i++) {
     const segmentInfo = segmentsData[selectedSegments[i]];
     if (segmentInfo && segmentInfo.winter === false) {
-      return { hasWinter: true, firstWinterSegment: selectedSegments[i] };
+      winterSegments.push(selectedSegments[i]);
     }
   }
-  return { hasWinter: false, firstWinterSegment: null };
+  return { 
+    hasWinter: winterSegments.length > 0, 
+    winterSegments: winterSegments,
+    count: winterSegments.length
+  };
 }
 
-// Function to check if any selected segments have warnings and find first one
+// Function to check if any selected segments have warnings and find all of them
 function hasSegmentWarnings() {
+  const warningSegments = [];
   for (let i = 0; i < selectedSegments.length; i++) {
     const segmentInfo = segmentsData[selectedSegments[i]];
     if (segmentInfo && segmentInfo.warning) {
-      return { hasWarnings: true, firstWarningSegment: selectedSegments[i] };
+      warningSegments.push(selectedSegments[i]);
     }
   }
-  return { hasWarnings: false, firstWarningSegment: null };
+  return { 
+    hasWarnings: warningSegments.length > 0, 
+    warningSegments: warningSegments,
+    count: warningSegments.length
+  };
 }
 
 // Function to update route warning visibility
@@ -1407,18 +1417,38 @@ function updateRouteWarning() {
     routeWarning.style.display = 'none';
   }
 
-  // Show winter warning
+  // Show winter warning with count
   if (winterResult.hasWinter) {
+    const countText = winterResult.count > 1 ? ` (${winterResult.count})` : '';
+    winterWarning.innerHTML = `❄️ מסלול בוצי בחורף${countText}`;
     winterWarning.style.display = 'block';
+    
+    // Reset winter warning cycling index when warnings change
+    if (!window.winterWarningIndex || winterResult.winterSegments.length !== window.lastWinterCount) {
+      window.winterWarningIndex = 0;
+      window.lastWinterCount = winterResult.winterSegments.length;
+    }
   } else {
     winterWarning.style.display = 'none';
+    window.winterWarningIndex = 0;
+    window.lastWinterCount = 0;
   }
 
-  // Show segment warnings indicator
+  // Show segment warnings indicator with count
   if (warningsResult.hasWarnings) {
+    const countText = warningsResult.count > 1 ? ` (${warningsResult.count})` : '';
+    segmentWarning.innerHTML = `⚠️ אזהרת קטע${countText}`;
     segmentWarning.style.display = 'block';
+    
+    // Reset segment warning cycling index when warnings change
+    if (!window.segmentWarningIndex || warningsResult.warningSegments.length !== window.lastWarningCount) {
+      window.segmentWarningIndex = 0;
+      window.lastWarningCount = warningsResult.warningSegments.length;
+    }
   } else {
     segmentWarning.style.display = 'none';
+    window.segmentWarningIndex = 0;
+    window.lastWarningCount = 0;
   }
 }
 
@@ -2672,15 +2702,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('winter-warning').addEventListener('click', function() {
     const winterResult = hasWinterSegments();
-    if (winterResult.hasWinter && winterResult.firstWinterSegment) {
-      focusOnSegment(winterResult.firstWinterSegment);
+    if (winterResult.hasWinter && winterResult.winterSegments.length > 0) {
+      // Initialize index if not set
+      if (window.winterWarningIndex === undefined) {
+        window.winterWarningIndex = 0;
+      }
+      
+      // Focus on current segment
+      const segmentName = winterResult.winterSegments[window.winterWarningIndex];
+      focusOnSegmentByName(segmentName);
+      
+      // Move to next segment for next click
+      window.winterWarningIndex = (window.winterWarningIndex + 1) % winterResult.winterSegments.length;
     }
   });
 
   document.getElementById('segment-warning').addEventListener('click', function() {
     const warningsResult = hasSegmentWarnings();
-    if (warningsResult.hasWarnings && warningsResult.firstWarningSegment) {
-      focusOnSegment(warningsResult.firstWarningSegment);
+    if (warningsResult.hasWarnings && warningsResult.warningSegments.length > 0) {
+      // Initialize index if not set
+      if (window.segmentWarningIndex === undefined) {
+        window.segmentWarningIndex = 0;
+      }
+      
+      // Focus on current segment
+      const segmentName = warningsResult.warningSegments[window.segmentWarningIndex];
+      focusOnSegmentByName(segmentName);
+      
+      // Move to next segment for next click
+      window.segmentWarningIndex = (window.segmentWarningIndex + 1) % warningsResult.warningSegments.length;
     }
   });
 
