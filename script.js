@@ -1422,7 +1422,7 @@ function findConnectingSegments(targetSegmentName) {
 
   // Use Dijkstra's algorithm to find the shortest connecting path
   const visitedSegments = new Set(selectedSegments);
-  visitedSegments.add(targetSegmentName);
+  // Don't add target segment to visited set initially - we want to consider it in both directions
 
   // Priority queue for Dijkstra's algorithm (min-heap by distance)
   const queue = [{
@@ -1434,6 +1434,17 @@ function findConnectingSegments(targetSegmentName) {
 
   // Track best distances to each point to avoid revisiting with longer paths
   const bestDistances = new Map();
+
+  // First, check if target segment can be connected directly in reverse
+  const targetCoords = targetPolyline.coordinates;
+  const targetStartToSearch = getDistance(searchStartPoint, targetCoords[0]);
+  const targetEndToSearch = getDistance(searchStartPoint, targetCoords[targetCoords.length - 1]);
+  
+  // If target segment can connect directly in reverse (closer to its end than start)
+  if (Math.min(targetStartToSearch, targetEndToSearch) <= tolerance && targetEndToSearch < targetStartToSearch) {
+    // Target can be connected in reverse direction
+    return [];
+  }
 
   while (queue.length > 0) {
     // Sort queue by total distance and take the shortest path
@@ -1449,10 +1460,13 @@ function findConnectingSegments(targetSegmentName) {
     }
     bestDistances.set(pointKey, totalDistance);
 
-    // Find all segments that connect to current point
-    const connectingSegments = routePolylines.filter(polyline => {
-      if (visitedSegments.has(polyline.segmentName)) {
-        return false;
+    // Find all segments that connect to current point (including bidirectional consideration)
+    const connectingSegments = [];
+    
+    routePolylines.forEach(polyline => {
+      // Skip if this segment is already in our route path
+      if (visitedSegments.has(polyline.segmentName) || path.includes(polyline.segmentName)) {
+        return;
       }
 
       const coords = polyline.coordinates;
@@ -1462,50 +1476,89 @@ function findConnectingSegments(targetSegmentName) {
       const distToStart = getDistance(currentPoint, startPoint);
       const distToEnd = getDistance(currentPoint, endPoint);
 
-      return Math.min(distToStart, distToEnd) <= tolerance;
+      // Add segment if either end is within tolerance
+      if (Math.min(distToStart, distToEnd) <= tolerance) {
+        connectingSegments.push({
+          polyline: polyline,
+          connectViaStart: distToStart <= tolerance,
+          connectViaEnd: distToEnd <= tolerance,
+          distToStart: distToStart,
+          distToEnd: distToEnd
+        });
+      }
     });
 
-    for (const connectingSegment of connectingSegments) {
+    for (const connectingSegmentInfo of connectingSegments) {
+      const connectingSegment = connectingSegmentInfo.polyline;
       const coords = connectingSegment.coordinates;
       const startPoint = coords[0];
       const endPoint = coords[coords.length - 1];
       
-      const distToStart = getDistance(currentPoint, startPoint);
-      const distToEnd = getDistance(currentPoint, endPoint);
-      
-      // Determine which end of the connecting segment to use as next point
-      const useStartAsNext = distToStart > distToEnd;
-      const nextPoint = useStartAsNext ? startPoint : endPoint;
-      const connectionDistance = Math.min(distToStart, distToEnd);
-      
       // Calculate segment length for total distance
       const segmentMetric = segmentMetrics[connectingSegment.segmentName];
       const segmentLength = segmentMetric ? segmentMetric.distance : 0;
+
+      // Process each possible connection direction
+      const connectionsToTry = [];
       
-      const newPath = [...path, connectingSegment.segmentName];
-      const newTotalDistance = totalDistance + connectionDistance + segmentLength;
-      
-      // Check if this segment can reach the target
-      const distToTargetStart = getDistance(nextPoint, targetStart);
-      const distToTargetEnd = getDistance(nextPoint, targetEnd);
-      const minDistanceToTarget = Math.min(distToTargetStart, distToTargetEnd);
-      
-      if (minDistanceToTarget <= tolerance) {
-        // Found a path! Return it since we're using Dijkstra's (shortest first)
-        return newPath;
+      if (connectingSegmentInfo.connectViaStart) {
+        connectionsToTry.push({
+          nextPoint: endPoint,
+          connectionDistance: connectingSegmentInfo.distToStart,
+          connectingVia: 'start'
+        });
       }
       
-      // Add to queue for further exploration with total distance
-      const nextPointKey = `${nextPoint.lat.toFixed(6)},${nextPoint.lng.toFixed(6)}`;
-      
-      // Only add if we haven't found a shorter path to this point
-      if (!bestDistances.has(nextPointKey) || bestDistances.get(nextPointKey) > newTotalDistance) {
-        queue.push({
-          currentPoint: nextPoint,
-          path: newPath,
-          totalDistance: newTotalDistance,
-          connectingToEnd: connectingToEnd
+      if (connectingSegmentInfo.connectViaEnd) {
+        connectionsToTry.push({
+          nextPoint: startPoint,
+          connectionDistance: connectingSegmentInfo.distToEnd,
+          connectingVia: 'end'
         });
+      }
+
+      for (const connection of connectionsToTry) {
+        const newPath = [...path, connectingSegment.segmentName];
+        const newTotalDistance = totalDistance + connection.connectionDistance + segmentLength;
+        
+        // Check if this segment can reach the target from this direction
+        const distToTargetStart = getDistance(connection.nextPoint, targetStart);
+        const distToTargetEnd = getDistance(connection.nextPoint, targetEnd);
+        const minDistanceToTarget = Math.min(distToTargetStart, distToTargetEnd);
+        
+        // Special case: if this is the target segment itself, check if we should use it in reverse
+        if (connectingSegment.segmentName === targetSegmentName) {
+          // We've reached the target segment, but need to check if we're using it optimally
+          const originalTargetStart = targetCoords[0];
+          const originalTargetEnd = targetCoords[targetCoords.length - 1];
+          
+          // Check if using target in reverse provides better connection to route
+          const routeEndToTargetStart = getDistance(searchStartPoint, originalTargetStart);
+          const routeEndToTargetEnd = getDistance(searchStartPoint, originalTargetEnd);
+          
+          // If we're closer to target's end than start, we should traverse it in reverse
+          if (routeEndToTargetEnd < routeEndToTargetStart && connection.connectingVia === 'end') {
+            return newPath;
+          } else if (routeEndToTargetStart <= routeEndToTargetEnd && connection.connectingVia === 'start') {
+            return newPath;
+          }
+        } else if (minDistanceToTarget <= tolerance) {
+          // Found a path to target through another segment
+          return newPath;
+        }
+        
+        // Add to queue for further exploration
+        const nextPointKey = `${connection.nextPoint.lat.toFixed(6)},${connection.nextPoint.lng.toFixed(6)}`;
+        
+        // Only add if we haven't found a shorter path to this point
+        if (!bestDistances.has(nextPointKey) || bestDistances.get(nextPointKey) > newTotalDistance) {
+          queue.push({
+            currentPoint: connection.nextPoint,
+            path: newPath,
+            totalDistance: newTotalDistance,
+            connectingToEnd: connectingToEnd
+          });
+        }
       }
     }
   }
