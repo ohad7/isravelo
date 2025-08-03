@@ -1353,14 +1353,14 @@ function findConnectingSegments(targetSegmentName) {
   
   const distanceToStart = getDistance(routeEndPoint, targetStart);
   const distanceToEnd = getDistance(routeEndPoint, targetEnd);
-  const tolerance = 100; // 100 meters tolerance
+  const tolerance = 20; // 20 meters tolerance
 
   if (Math.min(distanceToStart, distanceToEnd) <= tolerance) {
     return []; // Already close enough, no connecting segments needed
   }
 
   // Use simple pathfinding to find connecting segments
-  const maxHops = 3; // Limit search to avoid too many segments
+  // No hop limit - search until we find a path or exhaust all possibilities
   const visitedSegments = new Set(selectedSegments);
   visitedSegments.add(targetSegmentName);
 
@@ -1373,10 +1373,6 @@ function findConnectingSegments(targetSegmentName) {
 
   while (queue.length > 0) {
     const { currentPoint, path, hops } = queue.shift();
-    
-    if (hops >= maxHops) {
-      continue;
-    }
 
     // Find all segments that connect to current point
     const connectingSegments = routePolylines.filter(polyline => {
@@ -1416,15 +1412,13 @@ function findConnectingSegments(targetSegmentName) {
         return newPath;
       }
       
-      // Add to queue for further exploration if we haven't exceeded max hops
-      if (hops < maxHops - 1) {
-        visitedSegments.add(connectingSegment.segmentName);
-        queue.push({
-          currentPoint: nextPoint,
-          path: newPath,
-          hops: hops + 1
-        });
-      }
+      // Add to queue for further exploration
+      visitedSegments.add(connectingSegment.segmentName);
+      queue.push({
+        currentPoint: nextPoint,
+        path: newPath,
+        hops: hops + 1
+      });
     }
   }
 
@@ -1447,7 +1441,7 @@ function checkRouteContinuity() {
     return { isContinuous: true, brokenSegmentIndex: -1 };
   }
 
-  const tolerance = 100; // 100 meters tolerance
+  const tolerance = 20; // 20 meters tolerance
   const orderedCoords = getOrderedCoordinates();
 
   if (orderedCoords.length === 0) {
