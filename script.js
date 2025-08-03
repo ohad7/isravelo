@@ -1739,22 +1739,7 @@ function handleSelectedSegmentClick(segmentName) {
   
   if (!routeEndPoint || !routeStartPoint) {
     // If no valid route endpoints, just remove the segment
-    const index = selectedSegments.indexOf(segmentName);
-    if (index > -1) {
-      saveState();
-      selectedSegments.splice(index, 1);
-      
-      const polyline = routePolylines.find(p => p.segmentName === segmentName);
-      if (polyline) {
-        map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
-        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
-      }
-      
-      updateSegmentStyles();
-      updateRouteListAndDescription();
-      updateRouteWarning();
-      clearRouteFromUrl();
-    }
+    removeSegmentAndFixRoute(segmentName);
     return;
   }
 
@@ -1787,24 +1772,170 @@ function handleSelectedSegmentClick(segmentName) {
     updateRouteListAndDescription();
     clearRouteFromUrl();
   } else {
-    // Can't connect in reverse, so remove the segment
-    const index = selectedSegments.indexOf(segmentName);
-    if (index > -1) {
-      saveState();
-      selectedSegments.splice(index, 1);
+    // Can't connect in reverse, so remove the segment and try to fix the route
+    removeSegmentAndFixRoute(segmentName);
+  }
+}
+
+// Function to remove a segment and attempt to fix the broken route
+function removeSegmentAndFixRoute(segmentName) {
+  const index = selectedSegments.indexOf(segmentName);
+  if (index === -1) return;
+
+  saveState();
+  
+  // Store the segments before and after the one being removed
+  const segmentBefore = index > 0 ? selectedSegments[index - 1] : null;
+  const segmentAfter = index < selectedSegments.length - 1 ? selectedSegments[index + 1] : null;
+  
+  // Remove the segment
+  selectedSegments.splice(index, 1);
+
+  // Reset the removed segment's visual style
+  const polyline = routePolylines.find(p => p.segmentName === segmentName);
+  if (polyline) {
+    map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
+    map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
+  }
+
+  // If we removed a segment from the middle, try to fix the gap
+  if (segmentBefore && segmentAfter && selectedSegments.length > 1) {
+    const beforePolyline = routePolylines.find(p => p.segmentName === segmentBefore);
+    const afterPolyline = routePolylines.find(p => p.segmentName === segmentAfter);
+    
+    if (beforePolyline && afterPolyline) {
+      // Check if the segments are still connected after removal
+      const beforeCoords = beforePolyline.coordinates;
+      const afterCoords = afterPolyline.coordinates;
+      const beforeEnd = beforeCoords[beforeCoords.length - 1];
+      const afterStart = afterCoords[0];
+      const afterEnd = afterCoords[afterCoords.length - 1];
       
-      const polyline = routePolylines.find(p => p.segmentName === segmentName);
-      if (polyline) {
-        map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
-        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
+      const tolerance = 50;
+      const distanceToStart = getDistance(beforeEnd, afterStart);
+      const distanceToEnd = getDistance(beforeEnd, afterEnd);
+      
+      // If there's a gap, try to find connecting segments
+      if (Math.min(distanceToStart, distanceToEnd) > tolerance) {
+        // Find segments that could bridge the gap
+        const connectingSegments = findConnectingSegmentsBetween(segmentBefore, segmentAfter);
+        
+        if (connectingSegments.length > 0) {
+          // Insert the connecting segments at the removed segment's position
+          selectedSegments.splice(index, 0, ...connectingSegments);
+          
+          // Update visual styles for the new segments
+          connectingSegments.forEach(connectingSegmentName => {
+            const connectingPolyline = routePolylines.find(p => p.segmentName === connectingSegmentName);
+            if (connectingPolyline) {
+              map.setPaintProperty(connectingPolyline.layerId, 'line-color', COLORS.SEGMENT_SELECTED);
+              map.setPaintProperty(connectingPolyline.layerId, 'line-width', connectingPolyline.originalStyle.weight + 1);
+            }
+          });
+        }
       }
-      
-      updateSegmentStyles();
-      updateRouteListAndDescription();
-      updateRouteWarning();
-      clearRouteFromUrl();
     }
   }
+
+  updateSegmentStyles();
+  updateRouteListAndDescription();
+  updateRouteWarning();
+  clearRouteFromUrl();
+}
+
+// Function to find segments that can connect two specific segments
+function findConnectingSegmentsBetween(fromSegmentName, toSegmentName) {
+  const fromPolyline = routePolylines.find(p => p.segmentName === fromSegmentName);
+  const toPolyline = routePolylines.find(p => p.segmentName === toSegmentName);
+  
+  if (!fromPolyline || !toPolyline) {
+    return [];
+  }
+
+  // Get the end point of the from segment and start point of the to segment
+  const fromCoords = fromPolyline.coordinates;
+  const toCoords = toPolyline.coordinates;
+  const fromEnd = fromCoords[fromCoords.length - 1];
+  const toStart = toCoords[0];
+  const toEnd = toCoords[toCoords.length - 1];
+  
+  // Determine which end of the to segment we should connect to
+  const distanceToStart = getDistance(fromEnd, toStart);
+  const distanceToEnd = getDistance(fromEnd, toEnd);
+  const targetPoint = distanceToStart <= distanceToEnd ? toStart : toEnd;
+
+  // Use Dijkstra's algorithm to find the shortest connecting path
+  const visitedSegments = new Set(selectedSegments);
+  visitedSegments.delete(fromSegmentName);
+  visitedSegments.delete(toSegmentName);
+
+  const queue = [{
+    currentPoint: fromEnd,
+    path: [],
+    totalDistance: 0
+  }];
+
+  const bestDistances = new Map();
+  const tolerance = 50;
+
+  while (queue.length > 0) {
+    queue.sort((a, b) => a.totalDistance - b.totalDistance);
+    const { currentPoint, path, totalDistance } = queue.shift();
+
+    const pointKey = `${currentPoint.lat.toFixed(6)},${currentPoint.lng.toFixed(6)}`;
+    
+    if (bestDistances.has(pointKey) && bestDistances.get(pointKey) < totalDistance) {
+      continue;
+    }
+    bestDistances.set(pointKey, totalDistance);
+
+    // Check if we've reached the target
+    const distanceToTarget = getDistance(currentPoint, targetPoint);
+    if (distanceToTarget <= tolerance) {
+      return path;
+    }
+
+    // Prevent infinite loops by limiting path length
+    if (path.length >= 5) {
+      continue;
+    }
+
+    // Find connecting segments
+    routePolylines.forEach(polyline => {
+      if (visitedSegments.has(polyline.segmentName) || path.includes(polyline.segmentName)) {
+        return;
+      }
+
+      const coords = polyline.coordinates;
+      const startPoint = coords[0];
+      const endPoint = coords[coords.length - 1];
+
+      const distToStart = getDistance(currentPoint, startPoint);
+      const distToEnd = getDistance(currentPoint, endPoint);
+
+      if (Math.min(distToStart, distToEnd) <= tolerance) {
+        const segmentMetric = segmentMetrics[polyline.segmentName];
+        const segmentLength = segmentMetric ? segmentMetric.distance : 0;
+        
+        const nextPoint = distToStart <= distToEnd ? endPoint : startPoint;
+        const connectionDistance = Math.min(distToStart, distToEnd);
+        const newPath = [...path, polyline.segmentName];
+        const newTotalDistance = totalDistance + connectionDistance + segmentLength;
+        
+        const nextPointKey = `${nextPoint.lat.toFixed(6)},${nextPoint.lng.toFixed(6)}`;
+        
+        if (!bestDistances.has(nextPointKey) || bestDistances.get(nextPointKey) > newTotalDistance) {
+          queue.push({
+            currentPoint: nextPoint,
+            path: newPath,
+            totalDistance: newTotalDistance
+          });
+        }
+      }
+    });
+  }
+
+  return [];
 }
 
 
