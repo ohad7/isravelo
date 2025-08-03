@@ -1359,20 +1359,33 @@ function findConnectingSegments(targetSegmentName) {
     return []; // Already close enough, no connecting segments needed
   }
 
-  // Use simple pathfinding to find connecting segments
-  // No hop limit - search until we find a path or exhaust all possibilities
+  // Use Dijkstra's algorithm to find the shortest connecting path
   const visitedSegments = new Set(selectedSegments);
   visitedSegments.add(targetSegmentName);
 
-  // Breadth-first search for connecting path
+  // Priority queue for Dijkstra's algorithm (min-heap by distance)
   const queue = [{
     currentPoint: routeEndPoint,
     path: [],
-    hops: 0
+    totalDistance: 0
   }];
 
+  // Track best distances to each point to avoid revisiting with longer paths
+  const bestDistances = new Map();
+
   while (queue.length > 0) {
-    const { currentPoint, path, hops } = queue.shift();
+    // Sort queue by total distance and take the shortest path
+    queue.sort((a, b) => a.totalDistance - b.totalDistance);
+    const { currentPoint, path, totalDistance } = queue.shift();
+
+    // Create a key for the current point to track visited locations
+    const pointKey = `${currentPoint.lat.toFixed(6)},${currentPoint.lng.toFixed(6)}`;
+    
+    // Skip if we've already found a shorter path to this point
+    if (bestDistances.has(pointKey) && bestDistances.get(pointKey) < totalDistance) {
+      continue;
+    }
+    bestDistances.set(pointKey, totalDistance);
 
     // Find all segments that connect to current point
     const connectingSegments = routePolylines.filter(polyline => {
@@ -1401,24 +1414,36 @@ function findConnectingSegments(targetSegmentName) {
       // Determine which end of the connecting segment to use as next point
       const useStartAsNext = distToStart > distToEnd;
       const nextPoint = useStartAsNext ? startPoint : endPoint;
+      const connectionDistance = Math.min(distToStart, distToEnd);
+      
+      // Calculate segment length for total distance
+      const segmentMetric = segmentMetrics[connectingSegment.segmentName];
+      const segmentLength = segmentMetric ? segmentMetric.distance : 0;
+      
       const newPath = [...path, connectingSegment.segmentName];
+      const newTotalDistance = totalDistance + connectionDistance + segmentLength;
       
       // Check if this segment can reach the target
       const distToTargetStart = getDistance(nextPoint, targetStart);
       const distToTargetEnd = getDistance(nextPoint, targetEnd);
+      const minDistanceToTarget = Math.min(distToTargetStart, distToTargetEnd);
       
-      if (Math.min(distToTargetStart, distToTargetEnd) <= tolerance) {
-        // Found a path!
+      if (minDistanceToTarget <= tolerance) {
+        // Found a path! Return it since we're using Dijkstra's (shortest first)
         return newPath;
       }
       
-      // Add to queue for further exploration
-      visitedSegments.add(connectingSegment.segmentName);
-      queue.push({
-        currentPoint: nextPoint,
-        path: newPath,
-        hops: hops + 1
-      });
+      // Add to queue for further exploration with total distance
+      const nextPointKey = `${nextPoint.lat.toFixed(6)},${nextPoint.lng.toFixed(6)}`;
+      
+      // Only add if we haven't found a shorter path to this point
+      if (!bestDistances.has(nextPointKey) || bestDistances.get(nextPointKey) > newTotalDistance) {
+        queue.push({
+          currentPoint: nextPoint,
+          path: newPath,
+          totalDistance: newTotalDistance
+        });
+      }
     }
   }
 
