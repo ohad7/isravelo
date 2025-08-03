@@ -1401,7 +1401,7 @@ function findConnectingSegments(targetSegmentName) {
   const targetCoords = targetPolyline.coordinates;
   const targetStart = targetCoords[0];
   const targetEnd = targetCoords[targetCoords.length - 1];
-  const tolerance = 20; // 20 meters tolerance
+  const tolerance = 50; // 50 meters tolerance
 
   // Check distances from both route ends to target segment
   const endToTargetStart = getDistance(routeEndPoint, targetStart);
@@ -1539,7 +1539,7 @@ function checkRouteContinuity() {
     return { isContinuous: true, brokenSegmentIndex: -1 };
   }
 
-  const tolerance = 20; // 20 meters tolerance
+  const tolerance = 50; // 50 meters tolerance
   const orderedCoords = getOrderedCoordinates();
 
   if (orderedCoords.length === 0) {
