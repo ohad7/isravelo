@@ -306,6 +306,22 @@ function initMap() {
 
         if (!selectedSegments.includes(name)) {
           saveState();
+          
+          // Try to auto-fix route if segment is disconnected
+          const connectingSegments = findConnectingSegments(name);
+          if (connectingSegments.length > 0) {
+            // Add connecting segments first
+            connectingSegments.forEach(segmentName => {
+              selectedSegments.push(segmentName);
+              const polyline = routePolylines.find(p => p.segmentName === segmentName);
+              if (polyline) {
+                map.setPaintProperty(polyline.layerId, 'line-color', COLORS.SEGMENT_SELECTED);
+                map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight + 1);
+              }
+            });
+          }
+          
+          // Add the target segment
           selectedSegments.push(name);
           map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
           map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 1);
@@ -1311,6 +1327,118 @@ function getClosestPointOnLineSegment(point, lineStart, lineEnd) {
   }
 
   return { lat: yy, lng: xx };
+}
+
+// Function to find segments that connect the current route end to a target segment
+function findConnectingSegments(targetSegmentName) {
+  if (selectedSegments.length === 0) {
+    return [];
+  }
+
+  const targetPolyline = routePolylines.find(p => p.segmentName === targetSegmentName);
+  if (!targetPolyline) {
+    return [];
+  }
+
+  // Get current route endpoint
+  const routeEndPoint = getRouteEndPoint();
+  if (!routeEndPoint) {
+    return [];
+  }
+
+  // Check if target segment is already close enough
+  const targetCoords = targetPolyline.coordinates;
+  const targetStart = targetCoords[0];
+  const targetEnd = targetCoords[targetCoords.length - 1];
+  
+  const distanceToStart = getDistance(routeEndPoint, targetStart);
+  const distanceToEnd = getDistance(routeEndPoint, targetEnd);
+  const tolerance = 100; // 100 meters tolerance
+
+  if (Math.min(distanceToStart, distanceToEnd) <= tolerance) {
+    return []; // Already close enough, no connecting segments needed
+  }
+
+  // Use simple pathfinding to find connecting segments
+  const maxHops = 3; // Limit search to avoid too many segments
+  const visitedSegments = new Set(selectedSegments);
+  visitedSegments.add(targetSegmentName);
+
+  // Breadth-first search for connecting path
+  const queue = [{
+    currentPoint: routeEndPoint,
+    path: [],
+    hops: 0
+  }];
+
+  while (queue.length > 0) {
+    const { currentPoint, path, hops } = queue.shift();
+    
+    if (hops >= maxHops) {
+      continue;
+    }
+
+    // Find all segments that connect to current point
+    const connectingSegments = routePolylines.filter(polyline => {
+      if (visitedSegments.has(polyline.segmentName)) {
+        return false;
+      }
+
+      const coords = polyline.coordinates;
+      const startPoint = coords[0];
+      const endPoint = coords[coords.length - 1];
+
+      const distToStart = getDistance(currentPoint, startPoint);
+      const distToEnd = getDistance(currentPoint, endPoint);
+
+      return Math.min(distToStart, distToEnd) <= tolerance;
+    });
+
+    for (const connectingSegment of connectingSegments) {
+      const coords = connectingSegment.coordinates;
+      const startPoint = coords[0];
+      const endPoint = coords[coords.length - 1];
+      
+      const distToStart = getDistance(currentPoint, startPoint);
+      const distToEnd = getDistance(currentPoint, endPoint);
+      
+      // Determine which end of the connecting segment to use as next point
+      const useStartAsNext = distToStart > distToEnd;
+      const nextPoint = useStartAsNext ? startPoint : endPoint;
+      const newPath = [...path, connectingSegment.segmentName];
+      
+      // Check if this segment can reach the target
+      const distToTargetStart = getDistance(nextPoint, targetStart);
+      const distToTargetEnd = getDistance(nextPoint, targetEnd);
+      
+      if (Math.min(distToTargetStart, distToTargetEnd) <= tolerance) {
+        // Found a path!
+        return newPath;
+      }
+      
+      // Add to queue for further exploration if we haven't exceeded max hops
+      if (hops < maxHops - 1) {
+        visitedSegments.add(connectingSegment.segmentName);
+        queue.push({
+          currentPoint: nextPoint,
+          path: newPath,
+          hops: hops + 1
+        });
+      }
+    }
+  }
+
+  return []; // No connecting path found
+}
+
+// Helper function to get the actual end point of the current route considering directionality
+function getRouteEndPoint() {
+  if (selectedSegments.length === 0) return null;
+
+  const orderedCoords = getOrderedCoordinates();
+  if (orderedCoords.length === 0) return null;
+
+  return orderedCoords[orderedCoords.length - 1];
 }
 
 // Function to check if route is continuous and find first broken segment
