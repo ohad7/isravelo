@@ -1421,8 +1421,8 @@ function findConnectingSegments(targetSegmentName) {
   const searchStartPoint = useRouteEnd ? routeEndPoint : routeStartPoint;
 
   // Use Dijkstra's algorithm to find the shortest connecting path
-  const visitedSegments = new Set(selectedSegments);
-  // Don't add target segment to visited set initially - we want to consider it in both directions
+  const visitedSegments = new Set();
+  // Allow reusing segments from selected route, but track path to avoid immediate loops
 
   // Priority queue for Dijkstra's algorithm (min-heap by distance)
   const queue = [{
@@ -1436,7 +1436,6 @@ function findConnectingSegments(targetSegmentName) {
   const bestDistances = new Map();
 
   // First, check if target segment can be connected directly in reverse
-  // Use existing targetCoords variable from above
   const targetStartToSearch = getDistance(searchStartPoint, targetCoords[0]);
   const targetEndToSearch = getDistance(searchStartPoint, targetCoords[targetCoords.length - 1]);
   
@@ -1464,8 +1463,8 @@ function findConnectingSegments(targetSegmentName) {
     const connectingSegments = [];
     
     routePolylines.forEach(polyline => {
-      // Skip if this segment is already in our route path
-      if (visitedSegments.has(polyline.segmentName) || path.includes(polyline.segmentName)) {
+      // Allow reusing segments, but avoid immediate loops in the current path
+      if (path.length > 0 && path[path.length - 1] === polyline.segmentName) {
         return;
       }
 
@@ -1731,23 +1730,80 @@ function updateRouteWarning() {
 function handleSelectedSegmentClick(segmentName) {
   if (selectedSegments.length === 0) return;
 
-  // Always remove the segment when it's clicked and already selected
-  const index = selectedSegments.indexOf(segmentName);
-  if (index > -1) {
-    saveState();
-    selectedSegments.splice(index, 1);
+  // Check if adding this segment again (in reverse) would create a valid connection
+  const targetPolyline = routePolylines.find(p => p.segmentName === segmentName);
+  if (!targetPolyline) return;
 
-    // Reset polyline to original style
-    const polyline = routePolylines.find(p => p.segmentName === segmentName);
-    if (polyline) {
-      map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
-      map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
+  const routeEndPoint = getRouteEndPoint();
+  const routeStartPoint = getRouteStartPoint();
+  
+  if (!routeEndPoint || !routeStartPoint) {
+    // If no valid route endpoints, just remove the segment
+    const index = selectedSegments.indexOf(segmentName);
+    if (index > -1) {
+      saveState();
+      selectedSegments.splice(index, 1);
+      
+      const polyline = routePolylines.find(p => p.segmentName === segmentName);
+      if (polyline) {
+        map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
+        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
+      }
+      
+      updateSegmentStyles();
+      updateRouteListAndDescription();
+      updateRouteWarning();
+      clearRouteFromUrl();
     }
+    return;
+  }
 
+  const targetCoords = targetPolyline.coordinates;
+  const targetStart = targetCoords[0];
+  const targetEnd = targetCoords[targetCoords.length - 1];
+  const tolerance = 50;
+
+  // Check distances from both route ends to target segment ends
+  const endToTargetStart = getDistance(routeEndPoint, targetStart);
+  const endToTargetEnd = getDistance(routeEndPoint, targetEnd);
+  const startToTargetStart = getDistance(routeStartPoint, targetStart);
+  const startToTargetEnd = getDistance(routeStartPoint, targetEnd);
+
+  // Check if we can connect this segment in reverse direction
+  const canConnectToEndInReverse = Math.min(endToTargetStart, endToTargetEnd) <= tolerance;
+  const canConnectToStartInReverse = Math.min(startToTargetStart, startToTargetEnd) <= tolerance;
+
+  if (canConnectToEndInReverse || canConnectToStartInReverse) {
+    // Add the same segment again (it will be traversed in the optimal direction)
+    saveState();
+    
+    if (canConnectToEndInReverse) {
+      selectedSegments.push(segmentName);
+    } else {
+      selectedSegments.unshift(segmentName);
+    }
+    
     updateSegmentStyles();
     updateRouteListAndDescription();
-    updateRouteWarning(); // Ensure warnings are updated after removal
     clearRouteFromUrl();
+  } else {
+    // Can't connect in reverse, so remove the segment
+    const index = selectedSegments.indexOf(segmentName);
+    if (index > -1) {
+      saveState();
+      selectedSegments.splice(index, 1);
+      
+      const polyline = routePolylines.find(p => p.segmentName === segmentName);
+      if (polyline) {
+        map.setPaintProperty(polyline.layerId, 'line-color', polyline.originalStyle.color);
+        map.setPaintProperty(polyline.layerId, 'line-width', polyline.originalStyle.weight);
+      }
+      
+      updateSegmentStyles();
+      updateRouteListAndDescription();
+      updateRouteWarning();
+      clearRouteFromUrl();
+    }
   }
 }
 
