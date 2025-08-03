@@ -1436,7 +1436,7 @@ function findConnectingSegments(targetSegmentName) {
   const bestDistances = new Map();
 
   // First, check if target segment can be connected directly in reverse
-  const targetCoords = targetPolyline.coordinates;
+  // Use existing targetCoords variable from above
   const targetStartToSearch = getDistance(searchStartPoint, targetCoords[0]);
   const targetEndToSearch = getDistance(searchStartPoint, targetCoords[targetCoords.length - 1]);
   
