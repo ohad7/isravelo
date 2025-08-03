@@ -1743,34 +1743,45 @@ function handleSelectedSegmentClick(segmentName) {
     return;
   }
 
-  const targetCoords = targetPolyline.coordinates;
-  const targetStart = targetCoords[0];
-  const targetEnd = targetCoords[targetCoords.length - 1];
+  const segmentCoords = targetPolyline.coordinates;
+  const segmentStart = segmentCoords[0];
+  const segmentEnd = segmentCoords[segmentCoords.length - 1];
   const tolerance = 50;
 
   // Check distances from both route ends to target segment ends
-  const endToTargetStart = getDistance(routeEndPoint, targetStart);
-  const endToTargetEnd = getDistance(routeEndPoint, targetEnd);
-  const startToTargetStart = getDistance(routeStartPoint, targetStart);
-  const startToTargetEnd = getDistance(routeStartPoint, targetEnd);
+  const endToSegmentStart = getDistance(routeEndPoint, segmentStart);
+  const endToSegmentEnd = getDistance(routeEndPoint, segmentEnd);
+  const startToSegmentStart = getDistance(routeStartPoint, segmentStart);
+  const startToSegmentEnd = getDistance(routeStartPoint, segmentEnd);
 
   // Check if we can connect this segment in reverse direction
-  const canConnectToEndInReverse = Math.min(endToTargetStart, endToTargetEnd) <= tolerance;
-  const canConnectToStartInReverse = Math.min(startToTargetStart, startToTargetEnd) <= tolerance;
+  const canConnectToEndInReverse = Math.min(endToSegmentStart, endToSegmentEnd) <= tolerance;
+  const canConnectToStartInReverse = Math.min(startToSegmentStart, startToSegmentEnd) <= tolerance;
 
+  // If the segment can be connected again (extending the route), add it
   if (canConnectToEndInReverse || canConnectToStartInReverse) {
-    // Add the same segment again (it will be traversed in the optimal direction)
-    saveState();
+    // Only add if it would actually extend the route (not just duplicate)
+    const lastSegment = selectedSegments[selectedSegments.length - 1];
+    const firstSegment = selectedSegments[0];
     
-    if (canConnectToEndInReverse) {
-      selectedSegments.push(segmentName);
+    // If this is the last segment and can connect to end, or first segment and can connect to start
+    if ((canConnectToEndInReverse && segmentName === lastSegment) || 
+        (canConnectToStartInReverse && segmentName === firstSegment)) {
+      saveState();
+      
+      if (canConnectToEndInReverse && segmentName === lastSegment) {
+        selectedSegments.push(segmentName);
+      } else if (canConnectToStartInReverse && segmentName === firstSegment) {
+        selectedSegments.unshift(segmentName);
+      }
+      
+      updateSegmentStyles();
+      updateRouteListAndDescription();
+      clearRouteFromUrl();
     } else {
-      selectedSegments.unshift(segmentName);
+      // Otherwise, remove the segment
+      removeSegmentAndFixRoute(segmentName);
     }
-    
-    updateSegmentStyles();
-    updateRouteListAndDescription();
-    clearRouteFromUrl();
   } else {
     // Can't connect in reverse, so remove the segment and try to fix the route
     removeSegmentAndFixRoute(segmentName);
