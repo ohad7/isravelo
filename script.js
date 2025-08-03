@@ -18,7 +18,7 @@ const COLORS = {
   HIGHLIGHT_WHITE: '#ffffff', // White for highlighting all segments
 };
 
-const MIN_ZOOM_LEVEL = 12; // Minimum zoom level when focusing on segments
+const MIN_ZOOM_LEVEL = 13; // Minimum zoom level when focusing on segments
 
 // Function to highlight all segments in white and then return to original colors
 function highlightAllSegments() {
