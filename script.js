@@ -256,12 +256,18 @@ function findOptimalRouteThoughPoints(points) {
 
     const pathSegments = findPathBetweenPointsOptimal(actualStartPoint, nextPoint, usedSegments);
     
-    // Add segments to the route, avoiding immediate duplicates
+    // Validate path continuity before adding
     for (const segmentName of pathSegments) {
-      // Only avoid immediate duplicates (same segment right after itself)
-      if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
-        allSegments.push(segmentName);
-        usedSegments.add(segmentName);
+      // Check if adding this segment would maintain continuity
+      const testSegments = [...allSegments, segmentName];
+      const testContinuity = checkSegmentsContinuity(testSegments);
+      
+      if (testContinuity.isContinuous || allSegments.length === 0) {
+        // Only avoid immediate duplicates (same segment right after itself)
+        if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
+          allSegments.push(segmentName);
+          usedSegments.add(segmentName);
+        }
       }
     }
   }
@@ -437,24 +443,11 @@ function findShortestSegmentPathOptimal(startSegmentName, endSegmentName, usedSe
   return bestPath || [startSegmentName, endSegmentName];
 }
 
-// Calculate a score for a path, considering length and reuse of segments
+// Calculate a score for a path, considering only length
 function calculatePathScore(path, usedSegments) {
-  let score = path.length; // Base score is path length
-
-  // Add penalty for reusing segments
-  for (const segmentName of path) {
-    if (usedSegments.has(segmentName)) {
-      score += 3; // Heavy penalty for reusing segments
-    }
-  }
-
-  // Add penalty for immediate repetition (same segment twice in a row)
-  for (let i = 1; i < path.length; i++) {
-    if (path[i] === path[i - 1]) {
-      score += 5; // Very heavy penalty for immediate repetition
-    }
-  }
-
+  let score = path.length; // Base score is path length only
+  
+  // No penalties for reusing segments or reverse direction
   return score;
 }
 
@@ -506,6 +499,56 @@ function areSegmentsConnected(segment1, segment2, threshold) {
   }
 
   return false;
+}
+
+// Helper function to check continuity of a list of segments
+function checkSegmentsContinuity(segments) {
+  if (segments.length <= 1) {
+    return { isContinuous: true, brokenSegmentIndex: -1 };
+  }
+
+  const tolerance = 100; // 100 meters tolerance
+
+  for (let i = 0; i < segments.length - 1; i++) {
+    const currentSegmentName = segments[i];
+    const nextSegmentName = segments[i + 1];
+
+    const currentPolyline = routePolylines.find(p => p.segmentName === currentSegmentName);
+    const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
+
+    if (!currentPolyline || !nextPolyline) {
+      continue;
+    }
+
+    // Check connectivity between segments
+    const currentCoords = currentPolyline.coordinates;
+    const nextCoords = nextPolyline.coordinates;
+
+    if (currentCoords.length === 0 || nextCoords.length === 0) {
+      return { isContinuous: false, brokenSegmentIndex: i };
+    }
+
+    // Check all endpoint combinations to find best connection
+    const currentStart = currentCoords[0];
+    const currentEnd = currentCoords[currentCoords.length - 1];
+    const nextStart = nextCoords[0];
+    const nextEnd = nextCoords[nextCoords.length - 1];
+
+    const distances = [
+      getDistance(currentEnd, nextStart),   // normal forward connection
+      getDistance(currentEnd, nextEnd),     // current forward, next reverse
+      getDistance(currentStart, nextStart), // current reverse, next forward
+      getDistance(currentStart, nextEnd)    // both reverse
+    ];
+
+    const minDistance = Math.min(...distances);
+
+    if (minDistance > tolerance) {
+      return { isContinuous: false, brokenSegmentIndex: i };
+    }
+  }
+
+  return { isContinuous: true, brokenSegmentIndex: -1 };
 }
 
 function clearRouteFromUrl() {
@@ -761,11 +804,13 @@ function initMap() {
 
       const clickPoint = e.lngLat;
       const clickPixel = map.project(clickPoint);
-      const threshold = 50; // pixels - larger threshold for easier point placement
+      const threshold = 15; // Use same threshold as hover logic
 
-      // Check if click is close to any existing segments
-      let isNearSegment = false;
-      for (const polylineData of routePolylines) {
+      // Use same logic as hover to find closest segment
+      let closestSegment = null;
+      let minDistance = Infinity;
+
+      routePolylines.forEach(polylineData => {
         const coords = polylineData.coordinates;
         for (let i = 0; i < coords.length - 1; i++) {
           const startPixel = map.project([coords[i].lng, coords[i].lat]);
@@ -777,17 +822,15 @@ function initMap() {
             endPixel
           );
 
-          if (distance < threshold) {
-            isNearSegment = true;
-            break;
+          if (distance < threshold && distance < minDistance) {
+            minDistance = distance;
+            closestSegment = polylineData;
           }
         }
-        if (isNearSegment) break;
-      }
+      });
 
-
-      // Only add point if it's near a segment
-      if (isNearSegment) {
+      // Only add point if close enough to a segment (same as hover logic)
+      if (closestSegment) {
         addRoutePoint(clickPoint);
       }
     });
