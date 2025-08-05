@@ -278,7 +278,7 @@ function findShortestSegmentPath(startSegmentName, endSegmentName) {
 
     // Check all connected segments
     const connectedSegments = adjacencyMap.get(currentSegment) || [];
-
+    
     for (const neighborSegment of connectedSegments) {
       if (neighborSegment === endSegmentName) {
         // Found the target segment
@@ -443,7 +443,6 @@ function resetRoute() {
     window.elevationMarker.remove();
     window.elevationMarker = null;
   }
-  removeRouteProgressLine(); // Remove progress line on reset
 
   // Hide segment name display
   const segmentDisplay = document.getElementById('segment-name-display');
@@ -1299,9 +1298,6 @@ function parseGeoJSON(geoJsonData) {
               window.hoverMarker = new mapboxgl.Marker(el)
                 .setLngLat([closestPointOnSegment.lng, closestPointOnSegment.lat])
                 .addTo(map);
-
-              // Add continuous route line from start to hover point
-              addRouteProgressLine(distanceFromStart);
             }
           }
         }
@@ -1322,7 +1318,6 @@ function parseGeoJSON(geoJsonData) {
         if (window.hoverMarker) {
           window.hoverMarker.remove(); window.hoverMarker = null;
         }
-        removeRouteProgressLine(); // Remove progress line on mouse leave
       });
     });
 
@@ -2211,71 +2206,6 @@ function generateElevationProfile() {
   return elevationHtml;
 }
 
-// Function to add route progress line
-function addRouteProgressLine(distance) {
-  if (!map || !window.currentElevationData || !window.currentTotalDistance) return;
-
-  // Remove any existing progress line
-  removeRouteProgressLine();
-
-  // Find the closest point in elevationData based on distance
-  let closestPoint = null;
-  let minDiff = Infinity;
-
-  window.currentElevationData.forEach(point => {
-    const diff = Math.abs(point.distance - distance);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closestPoint = point;
-    }
-  });
-
-  if (!closestPoint) return;
-
-  // Create a new GeoJSON LineString feature for the progress line
-  const progressLine = {
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: [[closestPoint.coord.lng, closestPoint.coord.lat]]
-    }
-  };
-
-  // Add the progress line to the map
-  const progressLineLayerId = 'route-progress-line';
-  map.addSource(progressLineLayerId, {
-    type: 'geojson',
-    data: progressLine
-  });
-
-  map.addLayer({
-    id: progressLineLayerId,
-    type: 'line',
-    source: progressLineLayerId,
-    paint: {
-      'line-color': '#ff0000', // Red color for progress line
-      'line-width': 4,
-      'line-opacity': 1
-    }
-  });
-
-  window.currentRouteProgressLine = { sourceId: progressLineLayerId, layerId: progressLineLayerId };
-}
-
-// Function to remove route progress line
-function removeRouteProgressLine() {
-  if (window.currentRouteProgressLine) {
-    const { sourceId, layerId } = window.currentRouteProgressLine;
-    if (map.getSource(sourceId)) {
-      map.removeSource(sourceId);
-    }
-    if (map.getLayer(layerId)) {
-      map.removeLayer(layerId);
-    }
-    window.currentRouteProgressLine = null;
-  }
-}
-
 function updateRouteListAndDescription() {
   const routeDescription = document.getElementById
     ('route-description');
@@ -2465,9 +2395,6 @@ function updateRouteListAndDescription() {
             .setLngLat([closestPoint.coord.lng, closestPoint.coord.lat])
             .addTo(map);
 
-          // Add continuous route line from start to hover point
-          addRouteProgressLine(closestPoint.distance);
-
           // Update segment display with elevation info
           const segmentDisplay = document.getElementById('segment-name-display');
           segmentDisplay.innerHTML = `📍 Distance: ${(closestPoint.distance / 1000).toFixed(1)} km • Elevation: ${Math.round(closestPoint.elevation)} m`;
@@ -2481,9 +2408,6 @@ function updateRouteListAndDescription() {
           window.elevationMarker.remove();
           window.elevationMarker = null;
         }
-
-        // Remove route progress line
-        removeRouteProgressLine();
 
         // Hide segment display
         const segmentDisplay = document.getElementById('segment-name-display');
