@@ -242,6 +242,17 @@ function findOptimalRouteThoughPoints(points) {
     const currentPoint = points[i];
     const nextPoint = points[i + 1];
 
+    // Check if the next point is on the last segment of the current route
+    if (allSegments.length > 0) {
+      const lastSegmentName = allSegments[allSegments.length - 1];
+      const lastSegment = findClosestSegment(nextPoint);
+      
+      if (lastSegment && lastSegment.name === lastSegmentName) {
+        // Next point is on the last segment, no need to add more segments
+        continue;
+      }
+    }
+
     // Determine the actual start point for pathfinding
     let actualStartPoint;
     
@@ -434,7 +445,6 @@ function findShortestSegmentPathOptimal(startSegmentName, endSegmentName, usedSe
 
     // Limit search depth to prevent infinite loops
     if (currentPath.length > 10) {
-      // Use break inside a loop, not outside
       break;
     }
   }
