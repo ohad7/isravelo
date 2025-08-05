@@ -70,13 +70,13 @@ function addRoutePoint(lngLat, fromClick = true) {
   if (fromClick) {
     saveState();
   }
-  
+
   const point = {
     lng: lngLat.lng,
     lat: lngLat.lat,
     id: Date.now() + Math.random()
   };
-  
+
   routePoints.push(point);
   createPointMarker(point, routePoints.length - 1);
   recalculateRoute();
@@ -145,18 +145,18 @@ function createPointMarker(point, index) {
 // Remove a route point
 function removeRoutePoint(index) {
   if (index < 0 || index >= routePoints.length) return;
-  
+
   saveState();
-  
+
   // Remove the marker
   if (pointMarkers[index]) {
     pointMarkers[index].remove();
   }
-  
+
   // Remove from arrays
   routePoints.splice(index, 1);
   pointMarkers.splice(index, 1);
-  
+
   // Update remaining markers with new numbers
   updatePointMarkers();
   recalculateRoute();
@@ -196,10 +196,10 @@ function findClosestSegment(point) {
     for (let i = 0; i < coords.length - 1; i++) {
       const segmentStart = coords[i];
       const segmentEnd = coords[i + 1];
-      
+
       const closestPoint = getClosestPointOnLineSegment(point, segmentStart, segmentEnd);
       const distance = getDistance(point, closestPoint);
-      
+
       if (distance < threshold && distance < minDistance) {
         minDistance = distance;
         closestSegment = {
@@ -212,7 +212,7 @@ function findClosestSegment(point) {
       }
     }
   });
-  
+
   return closestSegment;
 }
 
@@ -226,16 +226,16 @@ function recalculateRoute() {
   }
 
   const newSelectedSegments = [];
-  
+
   // For each consecutive pair of points, find the path between them
   for (let i = 0; i < routePoints.length - 1; i++) {
     const startPoint = routePoints[i];
     const endPoint = routePoints[i + 1];
-    
+
     const pathSegments = findPathBetweenPoints(startPoint, endPoint);
     newSelectedSegments.push(...pathSegments);
   }
-  
+
   selectedSegments = newSelectedSegments;
   updateSegmentStyles();
   updateRouteListAndDescription();
@@ -245,23 +245,23 @@ function recalculateRoute() {
 function findPathBetweenPoints(startPoint, endPoint) {
   const startSegment = findClosestSegment(startPoint);
   const endSegment = findClosestSegment(endPoint);
-  
+
   if (!startSegment || !endSegment) {
     return [];
   }
-  
+
   if (startSegment.name === endSegment.name) {
     // Both points are on the same segment
     return [startSegment.name];
   }
-  
+
   // For now, simple implementation: just add both segments
   // In a more sophisticated version, this would use pathfinding
   const segments = [startSegment.name];
   if (!segments.includes(endSegment.name)) {
     segments.push(endSegment.name);
   }
-  
+
   return segments;
 }
 
@@ -280,18 +280,18 @@ function undo() {
       segments: [...selectedSegments],
       points: routePoints.map(p => ({...p}))
     });
-    
+
     // Restore previous state
     const previousState = undoStack.pop();
     selectedSegments = [...previousState.segments];
-    
+
     // Clear and restore points
     clearRoutePoints();
     routePoints = previousState.points.map(p => ({...p}));
     routePoints.forEach((point, index) => {
       createPointMarker(point, index);
     });
-    
+
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
@@ -306,18 +306,18 @@ function redo() {
       segments: [...selectedSegments],
       points: routePoints.map(p => ({...p}))
     });
-    
+
     // Restore next state
     const nextState = redoStack.pop();
     selectedSegments = [...nextState.segments];
-    
+
     // Clear and restore points
     clearRoutePoints();
     routePoints = nextState.points.map(p => ({...p}));
     routePoints.forEach((point, index) => {
       createPointMarker(point, index);
     });
-    
+
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
@@ -519,7 +519,7 @@ function initMap() {
       const clickPoint = e.lngLat;
       const clickPixel = map.project(clickPoint);
       const threshold = 50; // pixels - larger threshold for easier point placement
-      
+
       // Check if click is close to any existing segments
       let isNearSegment = false;
       routePolylines.forEach(polylineData => {
@@ -536,11 +536,12 @@ function initMap() {
 
           if (distance < threshold) {
             isNearSegment = true;
-            break;
+            return true; // Exit loop early if segment is found
           }
         }
-        if (isNearSegment) break;
+        if (isNearSegment) return true; // Exit loop early if segment is found
       });
+
 
       // Only add point if it's near a segment
       if (isNearSegment) {
@@ -566,31 +567,31 @@ const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvw
 function base58Encode(bytes) {
   let result = '';
   let bigInt = 0n;
-  
+
   // Convert bytes to a big integer
   for (let i = 0; i < bytes.length; i++) {
     bigInt = bigInt * 256n + BigInt(bytes[i]);
   }
-  
+
   // Convert to base58
   while (bigInt > 0n) {
     const remainder = bigInt % 58n;
     result = BASE58_ALPHABET[Number(remainder)] + result;
     bigInt = bigInt / 58n;
   }
-  
+
   // Handle leading zeros
   for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
     result = '1' + result;
   }
-  
+
   return result;
 }
 
 // Base58 decoding function
 function base58Decode(str) {
   let bigInt = 0n;
-  
+
   // Convert base58 to big integer
   for (let i = 0; i < str.length; i++) {
     const char = str[i];
@@ -600,19 +601,19 @@ function base58Decode(str) {
     }
     bigInt = bigInt * 58n + BigInt(value);
   }
-  
+
   // Convert to bytes
   const bytes = [];
   while (bigInt > 0n) {
     bytes.unshift(Number(bigInt % 256n));
     bigInt = bigInt / 256n;
   }
-  
+
   // Handle leading '1's (zeros)
   for (let i = 0; i < str.length && str[i] === '1'; i++) {
     bytes.unshift(0);
   }
-  
+
   return new Uint8Array(bytes);
 }
 
@@ -653,10 +654,10 @@ function decodeRoute(routeString) {
 
   try {
     let uint8Array;
-    
+
     // Try to determine if this is base58 or base64 encoding
     const isBase58 = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/.test(routeString);
-    
+
     if (isBase58) {
       // Decode from base58 (version 2)
       uint8Array = base58Decode(routeString);
@@ -1578,8 +1579,8 @@ function hasWinterSegments() {
       winterSegments.push(selectedSegments[i]);
     }
   }
-  return { 
-    hasWinter: winterSegments.length > 0, 
+  return {
+    hasWinter: winterSegments.length > 0,
     winterSegments: winterSegments,
     count: winterSegments.length
   };
@@ -1594,8 +1595,8 @@ function hasSegmentWarnings() {
       warningSegments.push(selectedSegments[i]);
     }
   }
-  return { 
-    hasWarnings: warningSegments.length > 0, 
+  return {
+    hasWarnings: warningSegments.length > 0,
     warningSegments: warningSegments,
     count: warningSegments.length
   };
@@ -1623,7 +1624,7 @@ function updateRouteWarning() {
     const countText = winterResult.count > 1 ? ` (${winterResult.count})` : '';
     winterWarning.innerHTML = `❄️בוץ בחורף${countText}`;
     winterWarning.style.display = 'block';
-    
+
     // Reset winter warning cycling index when warnings change
     if (!window.winterWarningIndex || winterResult.winterSegments.length !== window.lastWinterCount) {
       window.winterWarningIndex = 0;
@@ -1640,7 +1641,7 @@ function updateRouteWarning() {
     const countText = warningsResult.count > 1 ? ` (${warningsResult.count})` : '';
     segmentWarning.innerHTML = `⚠️ אזהרות ${countText}`;
     segmentWarning.style.display = 'block';
-    
+
     // Reset segment warning cycling index when warnings change
     if (!window.segmentWarningIndex || warningsResult.warningSegments.length !== window.lastWarningCount) {
       window.segmentWarningIndex = 0;
@@ -2254,12 +2255,12 @@ function updateRouteListAndDescription() {
   const elevationProfile = generateElevationProfile();
 
   const pointsInfo = routePoints.length > 0 ? `<div style="margin-bottom: 10px;"><strong>📍 נקודות מסלול:</strong> ${routePoints.length}</div>` : '';
-  
+
   routeDescription.innerHTML = `
     ${pointsInfo}
-    <strong>📏 מרחק:</strong> ${totalDistanceKm} ק"מ
-    <strong>⬆️</strong> ${totalElevationGain} מ'
-    <strong>⬇️</strong> ${totalElevationLoss} מ'
+    <strong>Distance:</strong> ${totalDistanceKm} km
+    <strong>⬆️ Elevation Gain:</strong> ${totalElevationGain} m
+    <strong>⬇️ Elevation Loss:</strong> ${totalElevationLoss} m
     ${elevationProfile}
   `;
 
@@ -2315,7 +2316,7 @@ function updateRouteListAndDescription() {
 
           // Update segment display with elevation info
           const segmentDisplay = document.getElementById('segment-name-display');
-          segmentDisplay.innerHTML = `📍 מרחק: ${(closestPoint.distance / 1000).toFixed(1)} ק"מ • גובה: ${Math.round(closestPoint.elevation)} מ'`;
+          segmentDisplay.innerHTML = `📍 Distance: ${(closestPoint.distance / 1000).toFixed(1)} km • Elevation: ${Math.round(closestPoint.elevation)} m`;
           segmentDisplay.style.display = 'block';
         }
       };
@@ -2555,7 +2556,7 @@ function returnToStartingPosition() {
   if (window.location.hash) {
     history.pushState(null, null, window.location.pathname + window.location.search);
   }
-  
+
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
@@ -2618,7 +2619,7 @@ function showDownloadModal() {
         if (segmentInfo.winter === false) {
           segmentsHtml += `
             <div style="color: #ff9800; font-size: 12px; margin-top: 5px; margin-right: 20px;">
-              ❄️ מסלול בוצי בחורף   
+              ❄️ מסלול בוצי בחורף
             </div>
           `;
         }
@@ -2709,8 +2710,8 @@ function downloadGPX() {
 
   // Generate filename using encoded route (first 32 characters)
   const routeEncoding = encodeRoute(selectedSegments);
-  const filename = routeEncoding ? 
-    `route_${routeEncoding.substring(0, 32)}.gpx` : 
+  const filename = routeEncoding ?
+    `route_${routeEncoding.substring(0, 32)}.gpx` :
     'bike_route.gpx';
 
   const blob = new Blob([gpx], { type: 'application/gpx+xml' });
@@ -2747,10 +2748,10 @@ function scrollToSection(sectionId) {
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize the map when page loads
   initMap();
-  
+
   // Handle initial hash navigation on page load
   handleHashNavigation();
-  
+
   // Handle hash changes (back/forward browser navigation)
   window.addEventListener('hashchange', handleHashNavigation);
 
@@ -2800,11 +2801,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.winterWarningIndex === undefined) {
         window.winterWarningIndex = 0;
       }
-      
+
       // Focus on current segment
       const segmentName = winterResult.winterSegments[window.winterWarningIndex];
       focusOnSegmentByName(segmentName);
-      
+
       // Move to next segment for next click
       window.winterWarningIndex = (window.winterWarningIndex + 1) % winterResult.winterSegments.length;
     }
@@ -2817,11 +2818,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.segmentWarningIndex === undefined) {
         window.segmentWarningIndex = 0;
       }
-      
+
       // Focus on current segment
       const segmentName = warningsResult.warningSegments[window.segmentWarningIndex];
       focusOnSegmentByName(segmentName);
-      
+
       // Move to next segment for next click
       window.segmentWarningIndex = (window.segmentWarningIndex + 1) % warningsResult.warningSegments.length;
     }
