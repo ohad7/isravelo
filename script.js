@@ -87,21 +87,14 @@ function addRoutePoint(lngLat, fromClick = true) {
 function createPointMarker(point, index) {
   const el = document.createElement('div');
   el.className = 'route-point-marker';
-  el.innerHTML = `<div class="point-number">${index + 1}</div>`;
   el.style.cssText = `
-    width: 24px;
-    height: 24px;
+    width: 12px;
+    height: 12px;
     background: #ff4444;
-    border: 3px solid white;
+    border: 2px solid white;
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     cursor: grab;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: bold;
-    color: white;
   `;
 
   const marker = new mapboxgl.Marker({
@@ -165,15 +158,7 @@ function removeRoutePoint(index) {
 
 // Update all point markers with correct numbering
 function updatePointMarkers() {
-  pointMarkers.forEach((marker, index) => {
-    if (marker) {
-      const el = marker.getElement();
-      const numberDiv = el.querySelector('.point-number');
-      if (numberDiv) {
-        numberDiv.textContent = index + 1;
-      }
-    }
-  });
+  // Point markers no longer have numbers to update
 }
 
 // Clear all route points
@@ -2490,13 +2475,8 @@ function updateRouteListAndDescription() {
 
   const elevationProfile = generateElevationProfile();
 
-  const pointsInfo = routePoints.length > 0 ? `<div style="margin-bottom: 10px;"><strong>📍 נקודות מסלול:</strong> ${routePoints.length}</div>` : '';
-
   routeDescription.innerHTML = `
-    ${pointsInfo}
-    <strong>Distance:</strong> ${totalDistanceKm} km
-    <strong>⬆️ Elevation Gain:</strong> ${totalElevationGain} m
-    <strong>⬇️ Elevation Loss:</strong> ${totalElevationLoss} m
+    <strong>מרחק:</strong> ${totalDistanceKm} ק"מ • <strong>⬆️</strong> ${totalElevationGain} מ' • <strong>⬇️</strong> ${totalElevationLoss} מ'
     ${elevationProfile}
   `;
 
