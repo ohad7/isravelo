@@ -6,6 +6,10 @@ let redoStack = [];
 let kmlData = null;
 let segmentsData = null;
 let segmentMetrics = {}; // Pre-calculated distance, elevation, and directionality data
+let routePoints = []; // Array of points that define the route
+let pointMarkers = []; // Array of map markers for the points
+let isDraggingPoint = false;
+let draggedPointIndex = -1;
 
 const COLORS = {
   WARNING_ORANGE: '#ff9800',
@@ -52,10 +56,213 @@ function highlightAllSegments() {
 
 // Save state for undo/redo
 function saveState() {
-  undoStack.push([...selectedSegments]);
+  undoStack.push({
+    segments: [...selectedSegments],
+    points: routePoints.map(p => ({...p})) // Deep copy of points
+  });
   redoStack = []; // Clear redo stack when new action is performed
   updateUndoRedoButtons();
   clearRouteFromUrl(); // Clear route parameter when making changes
+}
+
+// Add a new route point
+function addRoutePoint(lngLat, fromClick = true) {
+  if (fromClick) {
+    saveState();
+  }
+  
+  const point = {
+    lng: lngLat.lng,
+    lat: lngLat.lat,
+    id: Date.now() + Math.random()
+  };
+  
+  routePoints.push(point);
+  createPointMarker(point, routePoints.length - 1);
+  recalculateRoute();
+  clearRouteFromUrl();
+}
+
+// Create a draggable marker for a route point
+function createPointMarker(point, index) {
+  const el = document.createElement('div');
+  el.className = 'route-point-marker';
+  el.innerHTML = `<div class="point-number">${index + 1}</div>`;
+  el.style.cssText = `
+    width: 24px;
+    height: 24px;
+    background: #ff4444;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+  `;
+
+  const marker = new mapboxgl.Marker({
+    element: el,
+    draggable: true
+  })
+  .setLngLat([point.lng, point.lat])
+  .addTo(map);
+
+  // Handle marker drag
+  marker.on('dragstart', () => {
+    isDraggingPoint = true;
+    draggedPointIndex = index;
+    el.style.cursor = 'grabbing';
+  });
+
+  marker.on('drag', () => {
+    const lngLat = marker.getLngLat();
+    routePoints[index].lng = lngLat.lng;
+    routePoints[index].lat = lngLat.lat;
+    recalculateRoute();
+  });
+
+  marker.on('dragend', () => {
+    isDraggingPoint = false;
+    draggedPointIndex = -1;
+    el.style.cursor = 'grab';
+    saveState();
+    clearRouteFromUrl();
+  });
+
+  // Handle right-click to remove point
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    removeRoutePoint(index);
+  });
+
+  pointMarkers[index] = marker;
+}
+
+// Remove a route point
+function removeRoutePoint(index) {
+  if (index < 0 || index >= routePoints.length) return;
+  
+  saveState();
+  
+  // Remove the marker
+  if (pointMarkers[index]) {
+    pointMarkers[index].remove();
+  }
+  
+  // Remove from arrays
+  routePoints.splice(index, 1);
+  pointMarkers.splice(index, 1);
+  
+  // Update remaining markers with new numbers
+  updatePointMarkers();
+  recalculateRoute();
+  clearRouteFromUrl();
+}
+
+// Update all point markers with correct numbering
+function updatePointMarkers() {
+  pointMarkers.forEach((marker, index) => {
+    if (marker) {
+      const el = marker.getElement();
+      const numberDiv = el.querySelector('.point-number');
+      if (numberDiv) {
+        numberDiv.textContent = index + 1;
+      }
+    }
+  });
+}
+
+// Clear all route points
+function clearRoutePoints() {
+  pointMarkers.forEach(marker => {
+    if (marker) marker.remove();
+  });
+  pointMarkers = [];
+  routePoints = [];
+}
+
+// Find the closest segment to a point
+function findClosestSegment(point) {
+  let closestSegment = null;
+  let minDistance = Infinity;
+  const threshold = 100; // meters
+
+  routePolylines.forEach(polylineData => {
+    const coords = polylineData.coordinates;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const segmentStart = coords[i];
+      const segmentEnd = coords[i + 1];
+      
+      const closestPoint = getClosestPointOnLineSegment(point, segmentStart, segmentEnd);
+      const distance = getDistance(point, closestPoint);
+      
+      if (distance < threshold && distance < minDistance) {
+        minDistance = distance;
+        closestSegment = {
+          name: polylineData.segmentName,
+          distance: distance,
+          pointOnSegment: closestPoint,
+          segmentStart: segmentStart,
+          segmentEnd: segmentEnd
+        };
+      }
+    }
+  });
+  
+  return closestSegment;
+}
+
+// Recalculate the route based on current points
+function recalculateRoute() {
+  if (routePoints.length === 0) {
+    selectedSegments = [];
+    updateSegmentStyles();
+    updateRouteListAndDescription();
+    return;
+  }
+
+  const newSelectedSegments = [];
+  
+  // For each consecutive pair of points, find the path between them
+  for (let i = 0; i < routePoints.length - 1; i++) {
+    const startPoint = routePoints[i];
+    const endPoint = routePoints[i + 1];
+    
+    const pathSegments = findPathBetweenPoints(startPoint, endPoint);
+    newSelectedSegments.push(...pathSegments);
+  }
+  
+  selectedSegments = newSelectedSegments;
+  updateSegmentStyles();
+  updateRouteListAndDescription();
+}
+
+// Find path between two points (simplified - connects via closest segments)
+function findPathBetweenPoints(startPoint, endPoint) {
+  const startSegment = findClosestSegment(startPoint);
+  const endSegment = findClosestSegment(endPoint);
+  
+  if (!startSegment || !endSegment) {
+    return [];
+  }
+  
+  if (startSegment.name === endSegment.name) {
+    // Both points are on the same segment
+    return [startSegment.name];
+  }
+  
+  // For now, simple implementation: just add both segments
+  // In a more sophisticated version, this would use pathfinding
+  const segments = [startSegment.name];
+  if (!segments.includes(endSegment.name)) {
+    segments.push(endSegment.name);
+  }
+  
+  return segments;
 }
 
 function clearRouteFromUrl() {
@@ -68,8 +275,23 @@ function clearRouteFromUrl() {
 
 function undo() {
   if (undoStack.length > 0) {
-    redoStack.push([...selectedSegments]);
-    selectedSegments = undoStack.pop();
+    // Save current state to redo stack
+    redoStack.push({
+      segments: [...selectedSegments],
+      points: routePoints.map(p => ({...p}))
+    });
+    
+    // Restore previous state
+    const previousState = undoStack.pop();
+    selectedSegments = [...previousState.segments];
+    
+    // Clear and restore points
+    clearRoutePoints();
+    routePoints = previousState.points.map(p => ({...p}));
+    routePoints.forEach((point, index) => {
+      createPointMarker(point, index);
+    });
+    
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
@@ -79,8 +301,23 @@ function undo() {
 
 function redo() {
   if (redoStack.length > 0) {
-    undoStack.push([...selectedSegments]);
-    selectedSegments = redoStack.pop();
+    // Save current state to undo stack
+    undoStack.push({
+      segments: [...selectedSegments],
+      points: routePoints.map(p => ({...p}))
+    });
+    
+    // Restore next state
+    const nextState = redoStack.pop();
+    selectedSegments = [...nextState.segments];
+    
+    // Clear and restore points
+    clearRoutePoints();
+    routePoints = nextState.points.map(p => ({...p}));
+    routePoints.forEach((point, index) => {
+      createPointMarker(point, index);
+    });
+    
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
@@ -91,17 +328,18 @@ function redo() {
 function updateUndoRedoButtons() {
   document.getElementById('undo-btn').disabled = undoStack.length === 0;
   document.getElementById('redo-btn').disabled = redoStack.length === 0;
-  document.getElementById('reset-btn').disabled = selectedSegments.length === 0;
+  document.getElementById('reset-btn').disabled = selectedSegments.length === 0 && routePoints.length === 0;
 }
 
 function resetRoute() {
   // Save current state for potential undo
-  if (selectedSegments.length > 0) {
+  if (selectedSegments.length > 0 || routePoints.length > 0) {
     saveState();
   }
 
-  // Clear selected segments
+  // Clear selected segments and points
   selectedSegments = [];
+  clearRoutePoints();
 
   // Clear undo/redo stacks
   undoStack = [];
@@ -271,15 +509,19 @@ function initMap() {
       }
     });
 
-    // Add global click handler for proximity-based selection
+    // Add global click handler for adding route points
     map.on('click', (e) => {
+      // Don't add points if we're dragging a point
+      if (isDraggingPoint) {
+        return;
+      }
+
       const clickPoint = e.lngLat;
       const clickPixel = map.project(clickPoint);
-      const threshold = 15; // pixels
-      let closestSegment = null;
-      let minDistance = Infinity;
-
-      // Find closest segment within threshold
+      const threshold = 50; // pixels - larger threshold for easier point placement
+      
+      // Check if click is close to any existing segments
+      let isNearSegment = false;
       routePolylines.forEach(polylineData => {
         const coords = polylineData.coordinates;
         for (let i = 0; i < coords.length - 1; i++) {
@@ -292,73 +534,17 @@ function initMap() {
             endPixel
           );
 
-          if (distance < threshold && distance < minDistance) {
-            minDistance = distance;
-            closestSegment = polylineData;
+          if (distance < threshold) {
+            isNearSegment = true;
+            break;
           }
         }
+        if (isNearSegment) break;
       });
 
-      // Select/deselect closest segment if found
-      if (closestSegment) {
-        const name = closestSegment.segmentName;
-        const layerId = closestSegment.layerId;
-        const isRightClick = e.originalEvent.button === 2 || e.originalEvent.ctrlKey;
-
-        if (isRightClick && selectedSegments.includes(name)) {
-          // Right-click or ctrl-click on selected segment - remove it
-          removeSegment(name);
-        } else if (!selectedSegments.includes(name)) {
-          // Left-click on unselected segment - add it
-          saveState();
-          selectedSegments.push(name);
-          map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
-          map.setPaintProperty(layerId, 'line-width', closestSegment.originalStyle.weight + 1);
-
-          // Smart focusing logic (same as before)
-          if (closestSegment.coordinates.length > 0 && selectedSegments.length > 1) {
-            const previousSegmentName = selectedSegments[selectedSegments.length - 2];
-            const previousPolyline = routePolylines.find(p => p.segmentName === previousSegmentName);
-
-            if (previousPolyline) {
-              const prevCoords = previousPolyline.coordinates;
-              const prevStart = prevCoords[0];
-              const prevEnd = prevCoords[prevCoords.length - 1];
-
-              const currentStart = closestSegment.coordinates[0];
-              const currentEnd = closestSegment.coordinates[closestSegment.coordinates.length - 1];
-
-              const prevEndToCurrentStart = getDistance(prevEnd, currentStart);
-              const prevEndToCurrentEnd = getDistance(prevEnd, currentEnd);
-              const prevStartToCurrentStart = getDistance(prevStart, currentStart);
-              const prevStartToCurrentEnd = getDistance(prevStart, currentEnd);
-
-              const minDistance = Math.min(prevEndToCurrentStart, prevEndToCurrentEnd, prevStartToCurrentStart, prevStartToCurrentEnd);
-
-              let focusPoint;
-              if (minDistance === prevEndToCurrentStart) {
-                focusPoint = [currentEnd.lng, currentEnd.lat];
-              } else if (minDistance === prevEndToCurrentEnd) {
-                focusPoint = [currentStart.lng, currentStart.lat];
-              } else if (minDistance === prevStartToCurrentStart) {
-                focusPoint = [currentEnd.lng, currentEnd.lat];
-              } else {
-                focusPoint = [currentStart.lng, currentStart.lat];
-              }
-
-              map.panTo(focusPoint, {
-                duration: 1000
-              });
-            }
-          }
-        } else if (selectedSegments.includes(name)) {
-          // Left-click on already selected segment - add it again at the end
-          saveState();
-          selectedSegments.push(name);
-          updateSegmentStyles();
-          clearRouteFromUrl();
-        }
-        updateRouteListAndDescription();
+      // Only add point if it's near a segment
+      if (isNearSegment) {
+        addRoutePoint(clickPoint);
       }
     });
 
@@ -1944,8 +2130,8 @@ function updateRouteListAndDescription() {
   const downloadButton = document.getElementById('download-gpx');
   const descriptionPanel = document.getElementById('route-description-panel');
 
-  if (selectedSegments.length === 0) {
-    routeDescription.innerHTML = 'לחץ על קטעי מפה כדי לבנות את המסלול שלך.';
+  if (selectedSegments.length === 0 && routePoints.length === 0) {
+    routeDescription.innerHTML = 'לחץ על המפה ליד קטעי דרך כדי לבנות את המסלול שלך.';
     downloadButton.disabled = true;
     updateRouteWarning();
     updateUndoRedoButtons(); // Update reset button state
@@ -2067,7 +2253,10 @@ function updateRouteListAndDescription() {
 
   const elevationProfile = generateElevationProfile();
 
+  const pointsInfo = routePoints.length > 0 ? `<div style="margin-bottom: 10px;"><strong>📍 נקודות מסלול:</strong> ${routePoints.length}</div>` : '';
+  
   routeDescription.innerHTML = `
+    ${pointsInfo}
     <strong>📏 מרחק:</strong> ${totalDistanceKm} ק"מ
     <strong>⬆️</strong> ${totalElevationGain} מ'
     <strong>⬇️</strong> ${totalElevationLoss} מ'
