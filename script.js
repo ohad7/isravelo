@@ -225,20 +225,63 @@ function recalculateRoute() {
     return;
   }
 
-  const newSelectedSegments = [];
-
-  // For each consecutive pair of points, find the path between them
-  for (let i = 0; i < routePoints.length - 1; i++) {
-    const startPoint = routePoints[i];
-    const endPoint = routePoints[i + 1];
-
-    const pathSegments = findPathBetweenPoints(startPoint, endPoint);
-    newSelectedSegments.push(...pathSegments);
+  if (routePoints.length === 1) {
+    // Single point - just find closest segment
+    const closestSegment = findClosestSegment(routePoints[0]);
+    selectedSegments = closestSegment ? [closestSegment.name] : [];
+    updateSegmentStyles();
+    updateRouteListAndDescription();
+    return;
   }
 
+  // Find optimal route through all points
+  const newSelectedSegments = findOptimalRouteThoughPoints(routePoints);
   selectedSegments = newSelectedSegments;
   updateSegmentStyles();
   updateRouteListAndDescription();
+}
+
+// Find optimal route that goes through all points in order
+function findOptimalRouteThoughPoints(points) {
+  if (points.length === 0) return [];
+  if (points.length === 1) {
+    const closestSegment = findClosestSegment(points[0]);
+    return closestSegment ? [closestSegment.name] : [];
+  }
+
+  const allSegments = [];
+  const usedSegments = new Set();
+
+  // For each consecutive pair of points, find the best path
+  for (let i = 0; i < points.length - 1; i++) {
+    const startPoint = points[i];
+    const endPoint = points[i + 1];
+
+    // Get the last segment endpoint to ensure continuity
+    let actualStartPoint = startPoint;
+    if (allSegments.length > 0) {
+      const lastSegmentName = allSegments[allSegments.length - 1];
+      const lastSegment = routePolylines.find(p => p.segmentName === lastSegmentName);
+      if (lastSegment) {
+        // Use the end of the last segment as the actual start point
+        const lastSegmentCoords = lastSegment.coordinates;
+        actualStartPoint = lastSegmentCoords[lastSegmentCoords.length - 1];
+      }
+    }
+
+    const pathSegments = findPathBetweenPointsOptimal(actualStartPoint, endPoint, usedSegments);
+    
+    // Add segments to the route, avoiding immediate duplicates
+    for (const segmentName of pathSegments) {
+      // Only avoid immediate duplicates (same segment right after itself)
+      if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
+        allSegments.push(segmentName);
+        usedSegments.add(segmentName);
+      }
+    }
+  }
+
+  return allSegments;
 }
 
 // Find path between two points using breadth-first search on connected segments
@@ -257,6 +300,23 @@ function findPathBetweenPoints(startPoint, endPoint) {
 
   // Use BFS to find shortest path between segments
   return findShortestSegmentPath(startSegment.name, endSegment.name);
+}
+
+// Enhanced pathfinding that considers used segments and tries to minimize backtracking
+function findPathBetweenPointsOptimal(startPoint, endPoint, usedSegments = new Set()) {
+  const startSegment = findClosestSegment(startPoint);
+  const endSegment = findClosestSegment(endPoint);
+
+  if (!startSegment || !endSegment) {
+    return [];
+  }
+
+  if (startSegment.name === endSegment.name) {
+    return [startSegment.name];
+  }
+
+  // Use enhanced BFS that considers segment usage and connectivity
+  return findShortestSegmentPathOptimal(startSegment.name, endSegment.name, usedSegments);
 }
 
 // Find shortest path between two segments using BFS
@@ -294,6 +354,101 @@ function findShortestSegmentPath(startSegmentName, endSegmentName) {
 
   // No path found, return direct connection
   return [startSegmentName, endSegmentName];
+}
+
+// Enhanced pathfinding that considers already used segments and prefers unused routes
+function findShortestSegmentPathOptimal(startSegmentName, endSegmentName, usedSegments = new Set()) {
+  if (startSegmentName === endSegmentName) {
+    return [startSegmentName];
+  }
+
+  const adjacencyMap = buildSegmentAdjacencyMap();
+
+  // Priority queue: [path, score] where lower score is better
+  // Score considers: path length + penalty for reusing segments
+  const queue = [[startSegmentName]];
+  const visited = new Set([startSegmentName]);
+  const pathScores = new Map();
+  pathScores.set(startSegmentName, 0);
+
+  let bestPath = null;
+  let bestScore = Infinity;
+
+  while (queue.length > 0) {
+    // Sort queue by score (simple approach, could use proper priority queue for better performance)
+    queue.sort((a, b) => {
+      const scoreA = calculatePathScore(a, usedSegments);
+      const scoreB = calculatePathScore(b, usedSegments);
+      return scoreA - scoreB;
+    });
+
+    const currentPath = queue.shift();
+    const currentSegment = currentPath[currentPath.length - 1];
+    const currentScore = calculatePathScore(currentPath, usedSegments);
+
+    // If we've found a path that's clearly worse than our best, skip it
+    if (bestPath && currentScore > bestScore + 2) {
+      continue;
+    }
+
+    const connectedSegments = adjacencyMap.get(currentSegment) || [];
+    
+    for (const neighborSegment of connectedSegments) {
+      // Avoid immediate backtracking (going back to the previous segment)
+      if (currentPath.length > 1 && neighborSegment === currentPath[currentPath.length - 2]) {
+        continue;
+      }
+
+      const newPath = [...currentPath, neighborSegment];
+      const newScore = calculatePathScore(newPath, usedSegments);
+
+      if (neighborSegment === endSegmentName) {
+        // Found target - check if this is better than current best
+        if (!bestPath || newScore < bestScore) {
+          bestPath = newPath;
+          bestScore = newScore;
+        }
+        continue;
+      }
+
+      // Only continue exploring if this path hasn't been visited with a better score
+      const existingScore = pathScores.get(neighborSegment);
+      if (!visited.has(neighborSegment) || (existingScore && newScore < existingScore)) {
+        visited.add(neighborSegment);
+        pathScores.set(neighborSegment, newScore);
+        queue.push(newPath);
+      }
+    }
+
+    // Limit search depth to prevent infinite loops
+    if (currentPath.length > 10) {
+      break;
+    }
+  }
+
+  // Return best path found, or fallback to direct connection
+  return bestPath || [startSegmentName, endSegmentName];
+}
+
+// Calculate a score for a path, considering length and reuse of segments
+function calculatePathScore(path, usedSegments) {
+  let score = path.length; // Base score is path length
+
+  // Add penalty for reusing segments
+  for (const segmentName of path) {
+    if (usedSegments.has(segmentName)) {
+      score += 3; // Heavy penalty for reusing segments
+    }
+  }
+
+  // Add penalty for immediate repetition (same segment twice in a row)
+  for (let i = 1; i < path.length; i++) {
+    if (path[i] === path[i - 1]) {
+      score += 5; // Very heavy penalty for immediate repetition
+    }
+  }
+
+  return score;
 }
 
 // Build adjacency map of segments connected within 100 meters
