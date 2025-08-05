@@ -239,22 +239,22 @@ function findOptimalRouteThoughPoints(points) {
 
   // For each consecutive pair of points, find the best path
   for (let i = 0; i < points.length - 1; i++) {
-    const startPoint = points[i];
-    const endPoint = points[i + 1];
+    const currentPoint = points[i];
+    const nextPoint = points[i + 1];
 
-    // Get the last segment endpoint to ensure continuity
-    let actualStartPoint = startPoint;
-    if (allSegments.length > 0) {
-      const lastSegmentName = allSegments[allSegments.length - 1];
-      const lastSegment = routePolylines.find(p => p.segmentName === lastSegmentName);
-      if (lastSegment) {
-        // Use the end of the last segment as the actual start point
-        const lastSegmentCoords = lastSegment.coordinates;
-        actualStartPoint = lastSegmentCoords[lastSegmentCoords.length - 1];
-      }
+    // Determine the actual start point for pathfinding
+    let actualStartPoint;
+    
+    if (i === 0) {
+      // For the first point, use the point itself
+      actualStartPoint = currentPoint;
+    } else {
+      // For subsequent points, use the end of the current route
+      const currentRouteCoords = getCurrentRouteEndpoint(allSegments);
+      actualStartPoint = currentRouteCoords || currentPoint;
     }
 
-    const pathSegments = findPathBetweenPointsOptimal(actualStartPoint, endPoint, usedSegments);
+    const pathSegments = findPathBetweenPointsOptimal(actualStartPoint, nextPoint, usedSegments);
     
     // Add segments to the route, avoiding immediate duplicates
     for (const segmentName of pathSegments) {
@@ -267,6 +267,27 @@ function findOptimalRouteThoughPoints(points) {
   }
 
   return allSegments;
+}
+
+// Helper function to get the endpoint of the current route
+function getCurrentRouteEndpoint(segments) {
+  if (segments.length === 0) return null;
+  
+  // Get the ordered coordinates of the current route
+  const tempSelectedSegments = [...selectedSegments];
+  selectedSegments.length = 0;
+  selectedSegments.push(...segments);
+  
+  const orderedCoords = getOrderedCoordinates();
+  
+  // Restore original selected segments
+  selectedSegments.length = 0;
+  selectedSegments.push(...tempSelectedSegments);
+  
+  if (orderedCoords.length === 0) return null;
+  
+  // Return the last coordinate of the route
+  return orderedCoords[orderedCoords.length - 1];
 }
 
 // Find path between two points using breadth-first search on connected segments
@@ -407,6 +428,7 @@ function findShortestSegmentPathOptimal(startSegmentName, endSegmentName, usedSe
 
     // Limit search depth to prevent infinite loops
     if (currentPath.length > 10) {
+      // Use break inside a loop, not outside
       break;
     }
   }
