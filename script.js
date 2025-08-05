@@ -255,45 +255,165 @@ function findPathBetweenPoints(startPoint, endPoint) {
     return [startSegment.name];
   }
 
-  // Use BFS to find shortest path between segments
-  return findShortestSegmentPath(startSegment.name, endSegment.name);
+  // Use BFS to find shortest continuous path between segments
+  return findShortestContinuousPath(startPoint, endPoint, startSegment, endSegment);
 }
 
-// Find shortest path between two segments using BFS
-function findShortestSegmentPath(startSegmentName, endSegmentName) {
-  if (startSegmentName === endSegmentName) {
-    return [startSegmentName];
+// Find shortest continuous path between two points considering segment directionality
+function findShortestContinuousPath(startPoint, endPoint, startSegment, endSegment) {
+  if (startSegment.name === endSegment.name) {
+    return [startSegment.name];
   }
 
-  // Build adjacency map of connected segments (within 100m)
-  const adjacencyMap = buildSegmentAdjacencyMap();
+  // Build enhanced adjacency map that considers directionality
+  const adjacencyMap = buildDirectionalAdjacencyMap();
 
-  // BFS to find shortest path
-  const queue = [[startSegmentName]];
-  const visited = new Set([startSegmentName]);
+  // BFS to find shortest continuous path
+  const queue = [{
+    segments: [startSegment.name],
+    lastEndpoint: getSegmentEndNearPoint(startSegment.name, startPoint),
+    direction: getSegmentDirectionFromPoint(startSegment.name, startPoint)
+  }];
+  
+  const visited = new Set([startSegment.name]);
 
   while (queue.length > 0) {
-    const currentPath = queue.shift();
-    const currentSegment = currentPath[currentPath.length - 1];
+    const current = queue.shift();
+    const currentSegment = current.segments[current.segments.length - 1];
 
     // Check all connected segments
-    const connectedSegments = adjacencyMap.get(currentSegment) || [];
+    const connections = adjacencyMap.get(currentSegment) || [];
     
-    for (const neighborSegment of connectedSegments) {
-      if (neighborSegment === endSegmentName) {
-        // Found the target segment
-        return [...currentPath, neighborSegment];
+    for (const connection of connections) {
+      if (connection.neighborSegment === endSegment.name) {
+        // Found target segment - check if we can connect to the end point
+        const finalSegments = [...current.segments, connection.neighborSegment];
+        if (canReachPointFromSegmentEnd(connection.neighborSegment, connection.neighborEndpoint, endPoint)) {
+          return finalSegments;
+        }
       }
 
-      if (!visited.has(neighborSegment)) {
-        visited.add(neighborSegment);
-        queue.push([...currentPath, neighborSegment]);
+      if (!visited.has(connection.neighborSegment)) {
+        visited.add(connection.neighborSegment);
+        queue.push({
+          segments: [...current.segments, connection.neighborSegment],
+          lastEndpoint: connection.neighborEndpoint,
+          direction: connection.direction
+        });
       }
     }
   }
 
-  // No path found, return direct connection
-  return [startSegmentName, endSegmentName];
+  // No continuous path found, return direct connection
+  return [startSegment.name, endSegment.name];
+}
+
+// Get the segment endpoint closest to a given point
+function getSegmentEndNearPoint(segmentName, point) {
+  const polyline = routePolylines.find(p => p.segmentName === segmentName);
+  if (!polyline) return null;
+
+  const coords = polyline.coordinates;
+  const startPoint = coords[0];
+  const endPoint = coords[coords.length - 1];
+
+  const distanceToStart = getDistance(point, startPoint);
+  const distanceToEnd = getDistance(point, endPoint);
+
+  return distanceToStart <= distanceToEnd ? 'start' : 'end';
+}
+
+// Get segment direction based on which end is closer to the given point
+function getSegmentDirectionFromPoint(segmentName, point) {
+  const polyline = routePolylines.find(p => p.segmentName === segmentName);
+  if (!polyline) return 'forward';
+
+  const coords = polyline.coordinates;
+  const startPoint = coords[0];
+  const endPoint = coords[coords.length - 1];
+
+  const distanceToStart = getDistance(point, startPoint);
+  const distanceToEnd = getDistance(point, endPoint);
+
+  return distanceToStart <= distanceToEnd ? 'forward' : 'reverse';
+}
+
+// Check if we can reach a point from a specific segment endpoint
+function canReachPointFromSegmentEnd(segmentName, endpoint, targetPoint) {
+  const polyline = routePolylines.find(p => p.segmentName === segmentName);
+  if (!polyline) return false;
+
+  const coords = polyline.coordinates;
+  const segmentEnd = endpoint === 'start' ? coords[0] : coords[coords.length - 1];
+
+  return getDistance(segmentEnd, targetPoint) <= 100; // 100m tolerance
+}
+
+// Build enhanced adjacency map that considers segment endpoints and directionality
+function buildDirectionalAdjacencyMap() {
+  const adjacencyMap = new Map();
+  const connectionThreshold = 100; // 100 meters
+
+  // Initialize adjacency map
+  routePolylines.forEach(polyline => {
+    adjacencyMap.set(polyline.segmentName, []);
+  });
+
+  // Find connections between segment endpoints
+  for (let i = 0; i < routePolylines.length; i++) {
+    for (let j = i + 1; j < routePolylines.length; j++) {
+      const segment1 = routePolylines[i];
+      const segment2 = routePolylines[j];
+
+      const coords1 = segment1.coordinates;
+      const coords2 = segment2.coordinates;
+
+      if (coords1.length === 0 || coords2.length === 0) continue;
+
+      const endpoints1 = {
+        start: coords1[0],
+        end: coords1[coords1.length - 1]
+      };
+      
+      const endpoints2 = {
+        start: coords2[0],
+        end: coords2[coords2.length - 1]
+      };
+
+      // Check all endpoint combinations
+      const connections = [
+        { p1: 'start', p2: 'start', dist: getDistance(endpoints1.start, endpoints2.start) },
+        { p1: 'start', p2: 'end', dist: getDistance(endpoints1.start, endpoints2.end) },
+        { p1: 'end', p2: 'start', dist: getDistance(endpoints1.end, endpoints2.start) },
+        { p1: 'end', p2: 'end', dist: getDistance(endpoints1.end, endpoints2.end) }
+      ];
+
+      // Add valid connections (within threshold)
+      connections.forEach(conn => {
+        if (conn.dist <= connectionThreshold) {
+          // Add connection from segment1 to segment2
+          adjacencyMap.get(segment1.segmentName).push({
+            neighborSegment: segment2.segmentName,
+            fromEndpoint: conn.p1,
+            neighborEndpoint: conn.p2,
+            distance: conn.dist,
+            direction: conn.p1 === 'end' ? 'forward' : 'reverse'
+          });
+
+          // Add reverse connection from segment2 to segment1
+          adjacencyMap.get(segment2.segmentName).push({
+            neighborSegment: segment1.segmentName,
+            fromEndpoint: conn.p2,
+            neighborEndpoint: conn.p1,
+            distance: conn.dist,
+            direction: conn.p2 === 'end' ? 'forward' : 'reverse'
+          });
+        }
+      });
+    }
+  }
+
+  return adjacencyMap;
 }
 
 // Build adjacency map of segments connected within 100 meters
@@ -1980,13 +2100,14 @@ function loadRouteFromEncoding(routeEncoding) {
   }
 }
 
-// Function to order coordinates based on route connectivity
+// Function to order coordinates based on route connectivity with proper directionality
 function getOrderedCoordinates() {
   if (selectedSegments.length === 0) {
     return [];
   }
 
   let orderedCoords = [];
+  let currentEndPoint = null; // Track where the route currently ends
 
   for (let i = 0; i < selectedSegments.length; i++) {
     const segmentName = selectedSegments[i];
@@ -1998,63 +2119,77 @@ function getOrderedCoordinates() {
 
     let coords = [...polyline.coordinates];
 
-    // For the first segment, check if we need to orient it correctly
     if (i === 0) {
-      // If there's a second segment, orient the first segment to connect better
-      if (selectedSegments.length > 1) {
+      // For the first segment, determine best orientation based on route points if available
+      if (routePoints.length >= 2) {
+        // Use route points to determine orientation
+        const firstRoutePoint = routePoints[0];
+        const secondRoutePoint = routePoints[1];
+        
+        const startToFirst = getDistance(coords[0], firstRoutePoint);
+        const endToFirst = getDistance(coords[coords.length - 1], firstRoutePoint);
+        
+        // Orient segment so it starts closer to the first route point
+        if (endToFirst < startToFirst) {
+          coords.reverse();
+        }
+      } else if (selectedSegments.length > 1) {
+        // Fall back to next segment orientation
         const nextSegmentName = selectedSegments[1];
         const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
 
         if (nextPolyline) {
           const nextCoords = nextPolyline.coordinates;
-          const firstStart = coords[0];
-          const firstEnd = coords[coords.length - 1];
-          const nextStart = nextCoords[0];
-          const nextEnd = nextCoords[nextCoords.length - 1];
-
-          // Calculate all possible connection distances
           const distances = [
-            getDistance(firstEnd, nextStart),    // first end to next start
-            getDistance(firstEnd, nextEnd),      // first end to next end
-            getDistance(firstStart, nextStart),  // first start to next start
-            getDistance(firstStart, nextEnd)     // first start to next end
+            getDistance(coords[coords.length - 1], nextCoords[0]), // current end to next start
+            getDistance(coords[coords.length - 1], nextCoords[nextCoords.length - 1]), // current end to next end
+            getDistance(coords[0], nextCoords[0]), // current start to next start  
+            getDistance(coords[0], nextCoords[nextCoords.length - 1]) // current start to next end
           ];
 
           const minDistance = Math.min(...distances);
           const minIndex = distances.indexOf(minDistance);
 
-          // If the best connection is from first start, reverse the first segment
-          if (minIndex === 2 || minIndex === 3) {
+          // If best connection is from current start, reverse the segment
+          if (minIndex >= 2) {
             coords.reverse();
           }
         }
       }
+      
       orderedCoords = [...coords];
+      currentEndPoint = coords[coords.length - 1];
     } else {
-      // For subsequent segments, determine which end connects better
-      const lastPoint = orderedCoords[orderedCoords.length - 1];
+      // For subsequent segments, always connect to the closest endpoint
       const segmentStart = coords[0];
       const segmentEnd = coords[coords.length - 1];
 
-      const distanceToStart = getDistance(lastPoint, segmentStart);
-      const distanceToEnd = getDistance(lastPoint, segmentEnd);
+      const distanceToStart = getDistance(currentEndPoint, segmentStart);
+      const distanceToEnd = getDistance(currentEndPoint, segmentEnd);
 
-      // If the end is closer, reverse the coordinates
+      // Choose orientation that minimizes connection distance
       if (distanceToEnd < distanceToStart) {
         coords.reverse();
       }
 
-      // Add coordinates with better duplication handling
+      // Handle connection between segments
       const firstPoint = coords[0];
-      const connectionDistance = getDistance(lastPoint, firstPoint);
+      const connectionDistance = getDistance(currentEndPoint, firstPoint);
 
-      // If segments are well connected (within 50 meters), skip first point to avoid duplication
-      // If segments are far apart (gap > 50 meters), include all points to show the gap
-      if (connectionDistance <= 50) {
+      // For very close connections (< 10m), skip the first point to avoid duplication
+      // For moderate connections (10-50m), include a transition point
+      // For far connections (> 50m), include all points to show the gap
+      if (connectionDistance < 10) {
         orderedCoords.push(...coords.slice(1));
+      } else if (connectionDistance <= 50) {
+        // Add a subtle transition - keep both points but they're close
+        orderedCoords.push(...coords);
       } else {
+        // Large gap - include all points to show discontinuity
         orderedCoords.push(...coords);
       }
+
+      currentEndPoint = coords[coords.length - 1];
     }
   }
 
