@@ -241,7 +241,7 @@ function recalculateRoute() {
   updateRouteListAndDescription();
 }
 
-// Find path between two points (simplified - connects via closest segments)
+// Find path between two points using breadth-first search on connected segments
 function findPathBetweenPoints(startPoint, endPoint) {
   const startSegment = findClosestSegment(startPoint);
   const endSegment = findClosestSegment(endPoint);
@@ -255,14 +255,95 @@ function findPathBetweenPoints(startPoint, endPoint) {
     return [startSegment.name];
   }
 
-  // For now, simple implementation: just add both segments
-  // In a more sophisticated version, this would use pathfinding
-  const segments = [startSegment.name];
-  if (!segments.includes(endSegment.name)) {
-    segments.push(endSegment.name);
+  // Use BFS to find shortest path between segments
+  return findShortestSegmentPath(startSegment.name, endSegment.name);
+}
+
+// Find shortest path between two segments using BFS
+function findShortestSegmentPath(startSegmentName, endSegmentName) {
+  if (startSegmentName === endSegmentName) {
+    return [startSegmentName];
   }
 
-  return segments;
+  // Build adjacency map of connected segments (within 100m)
+  const adjacencyMap = buildSegmentAdjacencyMap();
+
+  // BFS to find shortest path
+  const queue = [[startSegmentName]];
+  const visited = new Set([startSegmentName]);
+
+  while (queue.length > 0) {
+    const currentPath = queue.shift();
+    const currentSegment = currentPath[currentPath.length - 1];
+
+    // Check all connected segments
+    const connectedSegments = adjacencyMap.get(currentSegment) || [];
+    
+    for (const neighborSegment of connectedSegments) {
+      if (neighborSegment === endSegmentName) {
+        // Found the target segment
+        return [...currentPath, neighborSegment];
+      }
+
+      if (!visited.has(neighborSegment)) {
+        visited.add(neighborSegment);
+        queue.push([...currentPath, neighborSegment]);
+      }
+    }
+  }
+
+  // No path found, return direct connection
+  return [startSegmentName, endSegmentName];
+}
+
+// Build adjacency map of segments connected within 100 meters
+function buildSegmentAdjacencyMap() {
+  const adjacencyMap = new Map();
+  const connectionThreshold = 100; // 100 meters
+
+  // Initialize adjacency map
+  routePolylines.forEach(polyline => {
+    adjacencyMap.set(polyline.segmentName, []);
+  });
+
+  // Find connections between segments
+  for (let i = 0; i < routePolylines.length; i++) {
+    for (let j = i + 1; j < routePolylines.length; j++) {
+      const segment1 = routePolylines[i];
+      const segment2 = routePolylines[j];
+
+      if (areSegmentsConnected(segment1, segment2, connectionThreshold)) {
+        adjacencyMap.get(segment1.segmentName).push(segment2.segmentName);
+        adjacencyMap.get(segment2.segmentName).push(segment1.segmentName);
+      }
+    }
+  }
+
+  return adjacencyMap;
+}
+
+// Check if two segments are connected within threshold distance
+function areSegmentsConnected(segment1, segment2, threshold) {
+  const coords1 = segment1.coordinates;
+  const coords2 = segment2.coordinates;
+
+  if (coords1.length === 0 || coords2.length === 0) {
+    return false;
+  }
+
+  // Check all combinations of endpoints
+  const endpoints1 = [coords1[0], coords1[coords1.length - 1]];
+  const endpoints2 = [coords2[0], coords2[coords2.length - 1]];
+
+  for (const point1 of endpoints1) {
+    for (const point2 of endpoints2) {
+      if (getDistance(point1, point2) <= threshold) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function clearRouteFromUrl() {
@@ -522,7 +603,7 @@ function initMap() {
 
       // Check if click is close to any existing segments
       let isNearSegment = false;
-      routePolylines.forEach(polylineData => {
+      for (const polylineData of routePolylines) {
         const coords = polylineData.coordinates;
         for (let i = 0; i < coords.length - 1; i++) {
           const startPixel = map.project([coords[i].lng, coords[i].lat]);
@@ -536,11 +617,11 @@ function initMap() {
 
           if (distance < threshold) {
             isNearSegment = true;
-            return true; // Exit loop early if segment is found
+            break;
           }
         }
-        if (isNearSegment) return true; // Exit loop early if segment is found
-      });
+        if (isNearSegment) break;
+      }
 
 
       // Only add point if it's near a segment
