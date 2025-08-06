@@ -818,6 +818,7 @@ function initMap() {
 
       // Use same logic as hover to find closest segment
       let closestSegment = null;
+      let closestPointOnSegment = null;
       let minDistance = Infinity;
 
       routePolylines.forEach(polylineData => {
@@ -835,13 +836,22 @@ function initMap() {
           if (distance < threshold && distance < minDistance) {
             minDistance = distance;
             closestSegment = polylineData;
+            
+            // Calculate the closest point on this segment
+            const segmentStart = coords[i];
+            const segmentEnd = coords[i + 1];
+            closestPointOnSegment = getClosestPointOnLineSegment(
+              { lat: clickPoint.lat, lng: clickPoint.lng },
+              segmentStart,
+              segmentEnd
+            );
           }
         }
       });
 
-      // Only add point if close enough to a segment (same as hover logic)
-      if (closestSegment) {
-        addRoutePoint(clickPoint);
+      // Only add point if close enough to a segment and snap it to the segment
+      if (closestSegment && closestPointOnSegment) {
+        addRoutePoint({ lng: closestPointOnSegment.lng, lat: closestPointOnSegment.lat });
       }
     });
 
