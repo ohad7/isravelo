@@ -318,35 +318,27 @@ function validateSummary(manager, summary) {
   let hasFailures = false;
 
   // Check if we have actual segments vs expected
-  if (summary.finalSegmentIds && segmentIds.length > 0) {
-    // Check if the actual segments match the expected final segments
-    const expectedIds = summary.finalSegmentIds;
-    const actualIds = segmentIds;
+    if (summary.finalSegmentIds && segmentIds.length > 0) {
+      // Check if the actual segments match the expected final segments
+      const expectedIds = summary.finalSegmentIds;
+      const actualIds = segmentIds;
 
-    if (
-      actualIds.length === expectedIds.length &&
-      expectedIds.every((id) => actualIds.includes(id))
-    ) {
-      console.log(
-        `✓ Final segment IDs match expected: [${expectedIds.join(", ")}]`,
-      );
-    } else {
-      // Only consider this a failure if we have no segments at all when we expected some
-      if (actualIds.length === 0 && expectedIds.length > 0) {
+      // Check if arrays match exactly (same length and same order)
+      const arraysMatch = actualIds.length === expectedIds.length &&
+        actualIds.every((id, index) => id === expectedIds[index]);
+
+      if (arraysMatch) {
         console.log(
-          `❌ Expected segments but got none. Expected: [${expectedIds.join(", ")}]`,
+          `✓ Final segment IDs match expected: [${expectedIds.join(", ")}]`,
         );
-        hasFailures = true;
       } else {
         console.log(
-          `ℹ️ Segment IDs differ from recorded test case (expected: [${expectedIds.join(", ")}], got: [${actualIds.join(", ")}])`,
+          `❌ Final segment IDs don't match expected. Expected: [${expectedIds.join(", ")}], Got: [${actualIds.join(", ")}]`,
         );
-        console.log(
-          `   This may be due to route calculation differences and is not necessarily an error.`,
-        );
+        hasFailures = true;
       }
     }
-  } else if (summary.finalSegmentsCount !== undefined) {
+  else if (summary.finalSegmentsCount !== undefined) {
     if (routeInfo.segments.length === summary.finalSegmentsCount) {
       console.log(
         `✓ Final segment count matches: ${summary.finalSegmentsCount}`,
@@ -416,7 +408,7 @@ const testResults = [];
 // Modified test runner that tracks results
 async function runTestWithResultTracking(testName, testFunction) {
   console.log(`\n=== Running ${testName} ===`);
-  
+
   try {
     await testFunction();
     testResults.push({ name: testName, status: "PASS", error: null });
@@ -431,7 +423,7 @@ async function runTestWithResultTracking(testName, testFunction) {
 async function runTestFromJsonWithTracking(testFilePath) {
   const testName = testFilePath.replace('tests/', '').replace('.json', '');
   console.log(`\n=== Running ${testName} ===`);
-  
+
   try {
     // Load test case JSON
     const fs = require("fs");
@@ -508,20 +500,20 @@ function printTestSummary() {
   console.log('='.repeat(60));
   console.log('                    TEST SUMMARY REPORT');
   console.log('='.repeat(60));
-  
+
   const passed = testResults.filter(t => t.status === 'PASS').length;
   const passedWithWarnings = testResults.filter(t => t.status === 'PASS_WITH_WARNINGS').length;
   const failed = testResults.filter(t => t.status === 'FAIL').length;
-  
+
   console.log(`\nTotal Tests: ${testResults.length}`);
   console.log(`✅ Passed: ${passed}`);
   console.log(`⚠️  Passed with Warnings: ${passedWithWarnings}`);
   console.log(`❌ Failed: ${failed}`);
   console.log(`\nSuccess Rate: ${Math.round(((passed + passedWithWarnings) / testResults.length) * 100)}%`);
-  
+
   console.log('\nDetailed Results:');
   console.log('-'.repeat(60));
-  
+
   testResults.forEach((result, index) => {
     const statusIcon = result.status === 'PASS' ? '✅' : 
                       result.status === 'PASS_WITH_WARNINGS' ? '⚠️' : '❌';
@@ -530,7 +522,7 @@ function printTestSummary() {
       console.log(`   Error: ${result.error}`);
     }
   });
-  
+
   if (failed > 0) {
     console.log('\n❌ SOME TESTS FAILED - Please review the errors above');
   } else if (passedWithWarnings > 0) {
@@ -538,7 +530,7 @@ function printTestSummary() {
   } else {
     console.log('\n🎉 ALL TESTS PASSED SUCCESSFULLY!');
   }
-  
+
   console.log('='.repeat(60));
 }
 
@@ -573,11 +565,11 @@ if (typeof module !== "undefined" && module.exports) {
     (async () => {
       // Clear test results
       testResults.length = 0;
-      
+
       // Run basic tests
       await runTestWithResultTracking("Basic RouteManager Tests", testRouteManager);
       await runTestWithResultTracking("Error Handling Tests", testErrorHandling);
-      
+
       // Run JSON test cases
       await runTestFromJsonWithTracking("tests/test1.json");
       await runTestFromJsonWithTracking("tests/test2.json");
@@ -586,7 +578,7 @@ if (typeof module !== "undefined" && module.exports) {
       await runTestFromJsonWithTracking("tests/test5.json");
       await runTestFromJsonWithTracking("tests/test6.json");
       await runTestFromJsonWithTracking("tests/test7.json");
-      
+
       // Print comprehensive summary
       printTestSummary();
     })();
