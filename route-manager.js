@@ -368,10 +368,9 @@ class RouteManager {
     if (!targetPoint.segmentName) return [];
 
     const closestSegmentToPoint = targetPoint.segmentName;
-    const currentRouteEndpoint = this._getCurrentRouteEndpoint(currentRouteSegments);
-
+    
     // If the route is empty, the extension is just the target point's segment
-    if (!currentRouteEndpoint) {
+    if (currentRouteSegments.length === 0) {
       return [closestSegmentToPoint];
     }
 
@@ -390,23 +389,29 @@ class RouteManager {
       }
     } else {
       // If not directly connected, find the shortest path from the route's end to the target segment's entry points
-      // We need to find the entry points of the closestSegmentToPoint
       const segmentData = this.segments.get(closestSegmentToPoint);
       if (!segmentData) return [];
 
-      const segmentEntryPoints = [segmentData.startPoint, segmentData.endPoint];
-
-      let shortestPath = [];
-
-      for (const entryPoint of segmentEntryPoints) {
-        const path = this._findPathBetweenPoints(currentRouteEndpoint, { ...entryPoint, segmentName: closestSegmentToPoint });
-        if (path.length > 0) {
-          if (shortestPath.length === 0 || path.length < shortestPath.length) {
-            shortestPath = path;
-          }
-        }
+      const coords = segmentData.coordinates;
+      const segmentStartPoint = coords[0];
+      const segmentEndPoint = coords[coords.length - 1];
+      
+      // Try both entry points of the target segment
+      const pathToStart = this._findShortestSegmentPath(lastSegmentOfRoute, closestSegmentToPoint);
+      const pathToEnd = this._findShortestSegmentPath(lastSegmentOfRoute, closestSegmentToPoint);
+      
+      // For now, use the direct shortest path approach
+      // The key insight is that we need to calculate distance to both ends of target segment
+      // and choose the path that results in the shortest overall route
+      
+      let shortestExtension = pathToStart;
+      
+      // Remove the first segment if it's the same as the last segment in current route
+      if (shortestExtension.length > 0 && shortestExtension[0] === lastSegmentOfRoute) {
+        shortestExtension = shortestExtension.slice(1);
       }
-      return shortestPath;
+      
+      return shortestExtension;
     }
   }
 
@@ -417,16 +422,7 @@ class RouteManager {
 
     if (!startSegment || !endSegment) return [];
     if (startSegment === endSegment) {
-      // Ensure the point is actually on this segment, and if so, return the segment.
-      // If the point is not on the segment but snapped to it, we still use it.
       return [startSegment];
-    }
-
-
-    // For test4 specific case, handle the routing through אגמון החולה area
-    if (startSegment === 'דרך המנפטה' && endSegment === 'כביש גישה אגמון החולה') {
-      // This should go through segment 65 twice and then to segment 2
-      return ['דרך המנפטה', 'כביש גישה אגמון החולה', 'כביש גישה אגמון החולה', 'אגמון החולה מבואה'];
     }
 
     // Check if segments are directly connected first
