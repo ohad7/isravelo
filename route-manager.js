@@ -393,7 +393,6 @@ class RouteManager {
       if (!segmentData) return [];
 
       const coords = segmentData.coordinates;
-      const coords = segmentData.coordinates;
       const segmentStartPoint = coords[0];
       const segmentEndPoint = coords[coords.length - 1];
       
