@@ -345,132 +345,68 @@ class RouteManager {
     }
 
     const allSegments = [];
-    const segmentPointGroups = this._groupPointsBySegment(points);
+    const usedSegments = new Set();
 
-    // Process each group of consecutive points on the same segment
-    for (const group of segmentPointGroups) {
-      if (group.type === 'same_segment') {
-        // Handle points on the same segment
-        const segmentSegments = this._processSameSegmentPoints(group.points, group.segmentName);
-        allSegments.push(...segmentSegments);
-      } else {
-        // Handle transition between different segments
-        const pathSegments = this._findPathBetweenPoints(group.startPoint, group.endPoint);
-        
-        // Add path segments, avoiding duplicates with last segment
-        for (const segmentName of pathSegments) {
-          if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
-            allSegments.push(segmentName);
+    for (let i = 0; i < points.length - 1; i++) {
+      const currentPoint = points[i];
+      const nextPoint = points[i + 1];
+
+      // Check if both points are on the same segment
+      if (currentPoint.segmentName && nextPoint.segmentName && 
+          currentPoint.segmentName === nextPoint.segmentName) {
+        // Only add the segment if it's not already in the route
+        if (!allSegments.includes(currentPoint.segmentName)) {
+          allSegments.push(currentPoint.segmentName);
+          usedSegments.add(currentPoint.segmentName);
+        }
+        continue;
+      }
+
+      // For the first segment pair, use the actual points
+      let actualStartPoint = currentPoint;
+      if (i > 0) {
+        // For subsequent pairs, check if we need to connect from the end of current route
+        const currentRouteCoords = this._getCurrentRouteEndpoint(allSegments);
+        if (currentRouteCoords) {
+          // Check if the current point is close to the route endpoint
+          const distanceToCurrentPoint = this._getDistance(currentRouteCoords, currentPoint);
+          if (distanceToCurrentPoint > 100) {
+            // If current point is far from route end, use route end as start
+            actualStartPoint = currentRouteCoords;
           }
+        }
+      }
+
+      const pathSegments = this._findPathBetweenPoints(actualStartPoint, nextPoint, usedSegments);
+      
+      // Add path segments, avoiding duplicates
+      for (const segmentName of pathSegments) {
+        // Skip if this segment is already the last one in the route
+        if (allSegments.length > 0 && allSegments[allSegments.length - 1] === segmentName) {
+          continue;
+        }
+        
+        // Check if this segment is directly under one of the clicked points
+        const isDirectSegment = points.some(point => point.segmentName === segmentName);
+        
+        // Add segment if it's the first one, a direct click segment, or necessary for connection
+        if (allSegments.length === 0 || isDirectSegment || 
+            this._isSegmentNecessaryForConnection(allSegments, segmentName, pathSegments)) {
+          allSegments.push(segmentName);
+          usedSegments.add(segmentName);
         }
       }
     }
 
-    return allSegments;
-  }
-
-  _groupPointsBySegment(points) {
-    const groups = [];
-    let currentGroup = null;
-
-    for (let i = 0; i < points.length; i++) {
-      const point = points[i];
-      
-      if (i === 0) {
-        // First point starts a new group
-        currentGroup = {
-          type: 'same_segment',
-          segmentName: point.segmentName,
-          points: [point],
-          startIndex: i
-        };
-      } else {
-        const prevPoint = points[i - 1];
-        
-        if (point.segmentName === prevPoint.segmentName && point.segmentName) {
-          // Same segment, add to current group
-          currentGroup.points.push(point);
-        } else {
-          // Different segment, finish current group and start transition
-          if (currentGroup) {
-            groups.push(currentGroup);
-          }
-          
-          // Add transition group if segments are different
-          if (prevPoint.segmentName !== point.segmentName) {
-            groups.push({
-              type: 'transition',
-              startPoint: prevPoint,
-              endPoint: point
-            });
-          }
-          
-          // Start new group for current point
-          currentGroup = {
-            type: 'same_segment',
-            segmentName: point.segmentName,
-            points: [point],
-            startIndex: i
-          };
-        }
-      }
-    }
-    
-    if (currentGroup) {
-      groups.push(currentGroup);
-    }
-    
-    return groups;
-  }
-
-  _processSameSegmentPoints(points, segmentName) {
-    if (!segmentName || points.length === 0) return [];
-    if (points.length === 1) return [segmentName];
-
-    const segmentData = this.segments.get(segmentName);
-    if (!segmentData) return [segmentName];
-
-    const segments = [segmentName];
-    
-    // Calculate positions along the segment for all points
-    const pointsWithPositions = points.map(point => ({
-      ...point,
-      position: this._getPositionAlongSegment(point, segmentData.coordinates)
-    }));
-
-    // Analyze movement pattern to detect direction changes
-    for (let i = 0; i < pointsWithPositions.length - 1; i++) {
-      const currentPoint = pointsWithPositions[i];
-      const nextPoint = pointsWithPositions[i + 1];
-      
-      // Check if there's a significant backward movement
-      if (this._isSignificantBackwardMovement(currentPoint, nextPoint, segmentData)) {
-        // Add the segment again to represent going back
-        segments.push(segmentName);
+    // Remove any consecutive duplicates that might have slipped through
+    const cleanedSegments = [];
+    for (const segment of allSegments) {
+      if (cleanedSegments.length === 0 || cleanedSegments[cleanedSegments.length - 1] !== segment) {
+        cleanedSegments.push(segment);
       }
     }
 
-    return segments;
-  }
-
-  _isSignificantBackwardMovement(currentPoint, nextPoint, segmentData) {
-    const positionDiff = nextPoint.position - currentPoint.position;
-    const segmentLength = this._calculateSegmentLength(segmentData.coordinates);
-    
-    // Consider it backward movement if:
-    // 1. Next point is significantly before current point (negative movement)
-    // 2. The movement is substantial relative to segment length
-    const backwardThreshold = -segmentLength * 0.1; // 10% of segment length
-    
-    return positionDiff < backwardThreshold;
-  }
-
-  _calculateSegmentLength(coordinates) {
-    let totalLength = 0;
-    for (let i = 0; i < coordinates.length - 1; i++) {
-      totalLength += this._getDistance(coordinates[i], coordinates[i + 1]);
-    }
-    return totalLength;
+    return cleanedSegments;
   }
 
   _findPathBetweenPoints(startPoint, endPoint, usedSegments = new Set()) {
@@ -480,9 +416,22 @@ class RouteManager {
     if (!startSegment || !endSegment) return [];
     if (startSegment === endSegment) return [startSegment];
 
-    // For transitions between different segments, return both segments
-    // This ensures we capture the user's intent to travel from one segment to another
-    return [startSegment, endSegment];
+    // Check if segments are directly connected first
+    const startConnections = this.adjacencyMap.get(startSegment) || [];
+    if (startConnections.includes(endSegment)) {
+      return [startSegment, endSegment];
+    }
+
+    // Use shortest path algorithm
+    const shortestPath = this._findShortestSegmentPath(startSegment, endSegment);
+    
+    // For paths with more than 2 segments, try to simplify
+    if (shortestPath.length > 2) {
+      // Check if we can connect start directly to end (fallback)
+      return [startSegment, endSegment];
+    }
+    
+    return shortestPath;
   }
 
   _findSegmentForPoint(point) {
