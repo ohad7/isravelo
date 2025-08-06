@@ -351,7 +351,7 @@ class RouteManager {
       const currentPoint = points[i];
       const nextPoint = points[i + 1];
 
-      // Skip if both points are on the same segment
+      // Check if both points are on the same segment
       if (currentPoint.segmentName && nextPoint.segmentName && 
           currentPoint.segmentName === nextPoint.segmentName) {
         // Only add the segment if it's not already in the route
@@ -362,27 +362,34 @@ class RouteManager {
         continue;
       }
 
+      // For the first segment pair, use the actual points
       let actualStartPoint = currentPoint;
       if (i > 0) {
+        // For subsequent pairs, check if we need to connect from the end of current route
         const currentRouteCoords = this._getCurrentRouteEndpoint(allSegments);
         if (currentRouteCoords) {
-          actualStartPoint = currentRouteCoords;
+          // Check if the current point is close to the route endpoint
+          const distanceToCurrentPoint = this._getDistance(currentRouteCoords, currentPoint);
+          if (distanceToCurrentPoint > 100) {
+            // If current point is far from route end, use route end as start
+            actualStartPoint = currentRouteCoords;
+          }
         }
       }
 
       const pathSegments = this._findPathBetweenPoints(actualStartPoint, nextPoint, usedSegments);
       
-      // Only add segments that are directly under the clicked points or necessary for connection
+      // Add path segments, avoiding duplicates
       for (const segmentName of pathSegments) {
-        // Don't add duplicates
-        if (allSegments[allSegments.length - 1] === segmentName) {
+        // Skip if this segment is already the last one in the route
+        if (allSegments.length > 0 && allSegments[allSegments.length - 1] === segmentName) {
           continue;
         }
         
         // Check if this segment is directly under one of the clicked points
         const isDirectSegment = points.some(point => point.segmentName === segmentName);
         
-        // Always add the first segment, direct segments, or if it's needed to connect
+        // Add segment if it's the first one, a direct click segment, or necessary for connection
         if (allSegments.length === 0 || isDirectSegment || 
             this._isSegmentNecessaryForConnection(allSegments, segmentName, pathSegments)) {
           allSegments.push(segmentName);
@@ -391,7 +398,15 @@ class RouteManager {
       }
     }
 
-    return allSegments;
+    // Remove any consecutive duplicates that might have slipped through
+    const cleanedSegments = [];
+    for (const segment of allSegments) {
+      if (cleanedSegments.length === 0 || cleanedSegments[cleanedSegments.length - 1] !== segment) {
+        cleanedSegments.push(segment);
+      }
+    }
+
+    return cleanedSegments;
   }
 
   _findPathBetweenPoints(startPoint, endPoint, usedSegments = new Set()) {
@@ -404,22 +419,19 @@ class RouteManager {
     // Check if segments are directly connected first
     const startConnections = this.adjacencyMap.get(startSegment) || [];
     if (startConnections.includes(endSegment)) {
-      // Verify the points are in the correct direction on their segments
-      if (this._arePointsInCorrectDirection(startPoint, endPoint, startSegment, endSegment)) {
-        return [startSegment, endSegment];
-      }
+      return [startSegment, endSegment];
     }
 
-    // Use shortest path only if direct connection isn't possible
+    // Use shortest path algorithm
     const shortestPath = this._findShortestSegmentPath(startSegment, endSegment);
     
-    // For simple cases, prefer direct segments only
-    if (shortestPath.length <= 2) {
-      return shortestPath;
+    // For paths with more than 2 segments, try to simplify
+    if (shortestPath.length > 2) {
+      // Check if we can connect start directly to end (fallback)
+      return [startSegment, endSegment];
     }
     
-    // For longer paths, try to minimize intermediate segments
-    return this._minimizePath(shortestPath, startSegment, endSegment);
+    return shortestPath;
   }
 
   _findSegmentForPoint(point) {
@@ -467,14 +479,20 @@ class RouteManager {
     // If this is one of only two segments in the path, it's necessary
     if (pathSegments.length <= 2) return true;
     
-    // If we already have segments and this creates a gap, it's necessary
-    if (existingSegments.length > 0) {
-      const lastSegment = existingSegments[existingSegments.length - 1];
-      const candidateIndex = pathSegments.indexOf(candidateSegment);
-      const lastSegmentIndex = pathSegments.indexOf(lastSegment);
-      
-      // If this segment immediately follows the last one in the path, it's necessary
-      return candidateIndex === lastSegmentIndex + 1;
+    // If we have no existing segments, the first one is necessary
+    if (existingSegments.length === 0) return true;
+    
+    // Check if this segment connects to the last segment in our route
+    const lastSegment = existingSegments[existingSegments.length - 1];
+    const candidateIndex = pathSegments.indexOf(candidateSegment);
+    const lastSegmentIndex = pathSegments.indexOf(lastSegment);
+    
+    // Only add if this segment immediately follows the last one in the shortest path
+    // and there's no alternative direct connection
+    if (candidateIndex === lastSegmentIndex + 1) {
+      // Check if the last segment and candidate are actually connected
+      const lastSegmentConnections = this.adjacencyMap.get(lastSegment) || [];
+      return lastSegmentConnections.includes(candidateSegment);
     }
     
     return false;
