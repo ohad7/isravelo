@@ -413,18 +413,11 @@ class RouteManager {
       const targetPointPosition = this._getPositionAlongSegment(targetPoint, segmentCoords);
       const currentRouteEndPosition = this._getPositionAlongSegment(routeEndpoint, segmentCoords);
       
-      // For same segment detection, we need to check if the new point is continuing
-      // in the direction we were already traveling on this segment
+      // Determine current direction of route on this segment
+      let routeDirection = 1; // 1 for forward (start to end), -1 for reverse (end to start)
       
-      // Simple approach: check if we're moving away from the start of our route
-      // If this is the only segment, assume we start from beginning and go forward
-      let isMovingForward;
-      
-      if (currentRouteSegments.length === 1) {
-        // First segment - check if target is further along than current end
-        isMovingForward = targetPointPosition > currentRouteEndPosition;
-      } else {
-        // Multiple segments - check direction based on how we entered this segment
+      if (currentRouteSegments.length > 1) {
+        // Look at how we entered this segment from the previous one
         const secondLastSegment = currentRouteSegments[currentRouteSegments.length - 2];
         const secondLastData = this.segments.get(secondLastSegment);
         if (secondLastData) {
@@ -435,30 +428,32 @@ class RouteManager {
           const segmentStart = segmentCoords[0];
           const segmentEnd = segmentCoords[segmentCoords.length - 1];
           
-          // Check which end of current segment we entered from
-          const distToStartFromPrevEnd = this._getDistance(secondLastEnd, segmentStart);
-          const distToEndFromPrevEnd = this._getDistance(secondLastEnd, segmentEnd);
-          const distToStartFromPrevStart = this._getDistance(secondLastStart, segmentStart);
-          const distToEndFromPrevStart = this._getDistance(secondLastStart, segmentEnd);
+          // Check which end of current segment connects to previous segment
+          const distanceFromPrevEndToSegmentStart = this._getDistance(secondLastEnd, segmentStart);
+          const distanceFromPrevEndToSegmentEnd = this._getDistance(secondLastEnd, segmentEnd);
+          const distanceFromPrevStartToSegmentStart = this._getDistance(secondLastStart, segmentStart);
+          const distanceFromPrevStartToSegmentEnd = this._getDistance(secondLastStart, segmentEnd);
           
-          const minDist = Math.min(distToStartFromPrevEnd, distToEndFromPrevEnd, distToStartFromPrevStart, distToEndFromPrevStart);
+          const minDistance = Math.min(
+            distanceFromPrevEndToSegmentStart,
+            distanceFromPrevEndToSegmentEnd,
+            distanceFromPrevStartToSegmentStart,
+            distanceFromPrevStartToSegmentEnd
+          );
           
-          // If we entered from the start, we're going forward (increasing position)
-          // If we entered from the end, we're going backward (decreasing position)
-          const enteredFromStart = (minDist === distToStartFromPrevEnd || minDist === distToStartFromPrevStart);
-          
-          if (enteredFromStart) {
-            // Entered from start, going forward means higher position
-            isMovingForward = targetPointPosition > currentRouteEndPosition;
+          // If we connected to the start of current segment, we're going forward
+          if (minDistance === distanceFromPrevEndToSegmentStart || minDistance === distanceFromPrevStartToSegmentStart) {
+            routeDirection = 1; // Forward direction
           } else {
-            // Entered from end, going forward means lower position  
-            isMovingForward = targetPointPosition < currentRouteEndPosition;
+            routeDirection = -1; // Reverse direction
           }
-        } else {
-          // Fallback - assume forward direction
-          isMovingForward = targetPointPosition > currentRouteEndPosition;
         }
       }
+      
+      // Check if the new point continues in the same direction
+      const isMovingForward = routeDirection === 1 ? 
+        targetPointPosition > currentRouteEndPosition : 
+        targetPointPosition < currentRouteEndPosition;
       
       if (isMovingForward) {
         // Continuing in the same direction - no need to add the segment again
