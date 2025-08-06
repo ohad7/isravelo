@@ -997,37 +997,6 @@ html {
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
-
-
-/* Route point markers */
-.route-point-marker {
-  transition: all 0.2s ease;
-}
-
-.route-point-marker:hover {
-  transform: scale(1.1);
-  z-index: 1000;
-}
-
-.route-point-marker:active {
-  transform: scale(0.95);
-}
-
-.point-number {
-  font-family: Arial, sans-serif;
-  font-weight: bold;
-  font-size: 12px;
-  color: white;
-  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
-}
-
-/* Improved cursor states for dragging */
-.route-point-marker.dragging {
-  cursor: grabbing !important;
-  transform: scale(1.1);
-  z-index: 1001;
-}
-
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -1695,4 +1664,168 @@ h3 {
   .about-code {
     font-size: 11px;
   }
+}
+
+/* Export modal styles */
+.export-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  direction: ltr;
+}
+
+.export-modal-content {
+  background: white;
+  padding: 0;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.export-modal-header {
+  background: #f5f5f5;
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.export-modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.export-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.export-modal-close:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.export-modal-body {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.json-container {
+  margin: 15px 0;
+}
+
+.json-textarea {
+  width: 100%;
+  height: 300px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  resize: vertical;
+  background: #f9f9f9;
+  color: #333;
+}
+
+.export-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.copy-json-btn, .clear-operations-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.copy-json-btn {
+  background: #4682B4;
+  color: white;
+}
+
+.copy-json-btn:hover {
+  background: #357abd;
+}
+
+.clear-operations-btn {
+  background: #f44336;
+  color: white;
+}
+
+.clear-operations-btn:hover {
+  background: #d32f2f;
+}
+
+/* Reset modal styles */
+.reset-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  direction: rtl;
+}
+
+/* Route point markers */
+.route-point-marker {
+  transition: all 0.2s ease;
+}
+
+.route-point-marker:hover {
+  transform: scale(1.1);
+  z-index: 1000;
+}
+
+.route-point-marker:active {
+  transform: scale(0.95);
+}
+
+.point-number {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  color: white;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+}
+
+/* Improved cursor states for dragging */
+.route-point-marker.dragging {
+  cursor: grabbing !important;
+  transform: scale(1.1);
+  z-index: 1001;
 }

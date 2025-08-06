@@ -11,6 +11,7 @@ let pointMarkers = []; // Array of map markers for the points
 let isDraggingPoint = false;
 let draggedPointIndex = -1;
 let routeManager = null; // Instance of RouteManager
+let operationsLog = []; // Log of user operations for export
 
 const COLORS = {
   WARNING_ORANGE: '#ff9800',
@@ -78,6 +79,14 @@ function addRoutePoint(lngLat, fromClick = true) {
     id: Date.now() + Math.random()
   };
 
+  // Log the operation before making changes
+  if (fromClick) {
+    logOperation('addPoint', {
+      point: { lat: lngLat.lat, lng: lngLat.lng },
+      fromClick: fromClick
+    });
+  }
+
   routePoints.push(point);
   createPointMarker(point, routePoints.length - 1);
   recalculateRoute();
@@ -141,6 +150,12 @@ function removeRoutePoint(index) {
   if (index < 0 || index >= routePoints.length) return;
 
   saveState();
+
+  // Log the operation before making changes
+  logOperation('removePoint', {
+    index: index,
+    point: routePoints[index] ? { lat: routePoints[index].lat, lng: routePoints[index].lng } : null
+  });
 
   if (!routeManager) {
     console.warn('RouteManager not initialized');
@@ -375,7 +390,158 @@ function updateUndoRedoButtons() {
   document.getElementById('reset-btn').disabled = selectedSegments.length === 0 && routePoints.length === 0;
 }
 
+// Function to log user operations for export
+function logOperation(type, data) {
+  // Get current route state before the operation
+  const currentState = {
+    pointsCount: routePoints.length,
+    segmentsCount: selectedSegments.length,
+    selectedSegments: [...selectedSegments],
+    segmentIds: selectedSegments.map(name => {
+      const segmentInfo = segmentsData[name];
+      return segmentInfo ? segmentInfo.id : 0;
+    }).filter(id => id > 0)
+  };
+
+  operationsLog.push({
+    timestamp: Date.now(),
+    type: type,
+    data: data,
+    routeState: currentState
+  });
+
+  console.log('Logged operation:', operationsLog[operationsLog.length - 1]);
+}
+
+// Function to export operations as JSON
+function exportOperationsJSON() {
+  // Get final route state
+  const finalSegmentIds = selectedSegments.map(name => {
+    const segmentInfo = segmentsData[name];
+    return segmentInfo ? segmentInfo.id : 0;
+  }).filter(id => id > 0);
+
+  // Create export object
+  const exportData = {
+    name: `User Test Case - ${new Date().toLocaleString('en-CA', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false 
+    }).replace(/[/:]/g, '-').replace(', ', ' ')}`,
+    description: `Test case generated from user operations (${operationsLog.length} operations)`,
+    geoJsonFile: 'bike_roads_v12.geojson',
+    segmentsFile: 'segments.json',
+    operations: operationsLog.map(op => ({
+      type: op.type,
+      data: op.data,
+      expectedSegmentIds: op.routeState.segmentIds,
+      expectedSegmentsCount: op.routeState.segmentsCount
+    })),
+    summary: {
+      totalOperations: operationsLog.length,
+      operationTypes: [...new Set(operationsLog.map(op => op.type))],
+      finalSegmentIds: finalSegmentIds,
+      finalSegmentsCount: selectedSegments.length
+    }
+  };
+
+  console.log('Exported test case:', exportData);
+  return exportData;
+}
+
+// Function to show export modal
+function showExportModal() {
+  const exportData = exportOperationsJSON();
+  const jsonString = JSON.stringify(exportData, null, 2);
+
+  // Create modal elements
+  const modal = document.createElement('div');
+  modal.className = 'export-modal';
+  modal.innerHTML = `
+    <div class="export-modal-content">
+      <div class="export-modal-header">
+        <h3>📋 Export Operations JSON</h3>
+        <button class="export-modal-close">&times;</button>
+      </div>
+      <div class="export-modal-body">
+        <p>Operations exported: <strong>${exportData.operations.length}</strong></p>
+        <p>Final segments: <strong>${exportData.summary.finalSegmentsCount}</strong></p>
+        <div class="json-container">
+          <textarea class="json-textarea" readonly>${jsonString}</textarea>
+        </div>
+        <div class="export-modal-actions">
+          <button id="copy-json-btn" class="copy-json-btn">📄 Copy JSON</button>
+          <button id="clear-operations-btn" class="clear-operations-btn">🗑️ Clear Log</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Add event listeners
+  const closeBtn = modal.querySelector('.export-modal-close');
+  const copyBtn = modal.querySelector('#copy-json-btn');
+  const clearBtn = modal.querySelector('#clear-operations-btn');
+  const textarea = modal.querySelector('.json-textarea');
+
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  copyBtn.addEventListener('click', () => {
+    textarea.select();
+    navigator.clipboard.writeText(jsonString).then(() => {
+      copyBtn.textContent = '✅ Copied!';
+      copyBtn.style.background = '#4CAF50';
+      setTimeout(() => {
+        copyBtn.textContent = '📄 Copy JSON';
+        copyBtn.style.background = '#4682B4';
+      }, 2000);
+    }).catch(() => {
+      document.execCommand('copy');
+      copyBtn.textContent = '✅ Copied!';
+      copyBtn.style.background = '#4CAF50';
+      setTimeout(() => {
+        copyBtn.textContent = '📄 Copy JSON';
+        copyBtn.style.background = '#4682B4';
+      }, 2000);
+    });
+  });
+
+  clearBtn.addEventListener('click', () => {
+    operationsLog = [];
+    document.body.removeChild(modal);
+    alert('Operations log cleared!');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+
+  // Add escape key listener
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+}
+
 function resetRoute() {
+  // Log the reset operation
+  logOperation('reset', {
+    clearedPointsCount: routePoints.length,
+    clearedSegmentsCount: selectedSegments.length
+  });
+
   // Save current state for potential undo
   if (selectedSegments.length > 0 || routePoints.length > 0) {
     saveState();
@@ -2904,7 +3070,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts for undo/redo and export
   document.addEventListener('keydown', function(e) {
     //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
 
@@ -2914,6 +3080,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
       e.preventDefault();
       redo();
+    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+      e.preventDefault();
+      showExportModal();
     }
   });
 });
