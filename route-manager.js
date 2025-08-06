@@ -443,7 +443,60 @@ class RouteManager {
         if (lastSegmentOfRoute !== closestSegmentToPoint) {
           return [closestSegmentToPoint];
         } else {
-          return []; // Segment is already part of the route
+          // Same segment - check if the new point continues in the same direction
+          const targetPointPosition = this._getPositionAlongSegment(targetPoint, targetCoords);
+          
+          // Get the current route's last point position on this segment
+          const currentRouteEndPosition = this._getPositionAlongSegment(routeEndpoint, targetCoords);
+          
+          // Determine the current direction of the route on this segment
+          let routeDirection = 1; // 1 for forward, -1 for reverse
+          if (currentRouteSegments.length > 1) {
+            // Look at how we entered this segment to determine direction
+            const secondLastSegment = currentRouteSegments[currentRouteSegments.length - 2];
+            const secondLastData = this.segments.get(secondLastSegment);
+            if (secondLastData) {
+              const secondLastCoords = secondLastData.coordinates;
+              const secondLastEnd = secondLastCoords[secondLastCoords.length - 1];
+              const secondLastStart = secondLastCoords[0];
+              
+              // Check which end of the last segment we entered from
+              const distanceFromSecondLastEndToTargetStart = this._getDistance(secondLastEnd, targetStart);
+              const distanceFromSecondLastEndToTargetEnd = this._getDistance(secondLastEnd, targetEnd);
+              const distanceFromSecondLastStartToTargetStart = this._getDistance(secondLastStart, targetStart);
+              const distanceFromSecondLastStartToTargetEnd = this._getDistance(secondLastStart, targetEnd);
+              
+              const minDistance = Math.min(
+                distanceFromSecondLastEndToTargetStart,
+                distanceFromSecondLastEndToTargetEnd,
+                distanceFromSecondLastStartToTargetStart,
+                distanceFromSecondLastStartToTargetEnd
+              );
+              
+              // If we connected to the start of the target segment, we're going forward
+              // If we connected to the end of the target segment, we're going backward
+              if (minDistance === distanceFromSecondLastEndToTargetStart || minDistance === distanceFromSecondLastStartToTargetStart) {
+                routeDirection = 1; // Forward direction
+              } else {
+                routeDirection = -1; // Reverse direction
+              }
+            }
+          }
+          
+          // Check if the new point continues in the same direction
+          const isMovingForward = routeDirection === 1 ? 
+            targetPointPosition > currentRouteEndPosition : 
+            targetPointPosition < currentRouteEndPosition;
+          
+          if (isMovingForward) {
+            // Continuing in the same direction - no need to add the segment again
+            console.log("Point continues in same direction on same segment - no reversal needed");
+            return [];
+          } else {
+            // Point is going backward - need to add the segment in reverse
+            console.log("Point reverses direction on same segment - adding reversal");
+            return [lastSegmentOfRoute];
+          }
         }
       } else {
         // Need to reverse through the last segment first to reach the other end
