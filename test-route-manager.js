@@ -400,6 +400,108 @@ async function testUserTestCase7() {
   await runTestFromJson("tests/test7.json");
 }
 
+// Enhanced test runner with summary
+async function runAllTestsWithSummary() {
+  console.log("=".repeat(60));
+  console.log("RUNNING ALL TESTS");
+  console.log("=".repeat(60));
+
+  const testResults = [];
+
+  // Run basic tests
+  console.log("\n--- Running Basic Tests ---");
+  try {
+    await testRouteManager();
+    testResults.push({ name: "RouteManager Basic Tests", status: "PASS" });
+  } catch (error) {
+    testResults.push({ name: "RouteManager Basic Tests", status: "FAIL", error: error.message });
+  }
+
+  try {
+    await testErrorHandling();
+    testResults.push({ name: "Error Handling Tests", status: "PASS" });
+  } catch (error) {
+    testResults.push({ name: "Error Handling Tests", status: "FAIL", error: error.message });
+  }
+
+  // Run JSON test cases
+  const jsonTests = [
+    { name: "test1.json", func: testUserTestCase1 },
+    { name: "test2.json", func: testUserTestCase2 },
+    { name: "test3.json", func: testUserTestCase3 },
+    { name: "test4.json", func: testUserTestCase4 },
+    { name: "test5.json", func: testUserTestCase5 },
+    { name: "test6.json", func: testUserTestCase6 },
+    { name: "test7.json", func: testUserTestCase7 }
+  ];
+
+  for (const test of jsonTests) {
+    try {
+      // Capture console output to detect failures
+      const originalConsoleLog = console.log;
+      let consoleOutput = "";
+      
+      console.log = (...args) => {
+        const message = args.join(" ");
+        consoleOutput += message + "\n";
+        originalConsoleLog(...args);
+      };
+
+      await test.func();
+      
+      // Restore console.log
+      console.log = originalConsoleLog;
+
+      // Check if there were any failures in the output
+      const hasFailed = consoleOutput.includes("❌") || consoleOutput.includes("validation failures");
+      
+      testResults.push({
+        name: test.name,
+        status: hasFailed ? "FAIL" : "PASS"
+      });
+      
+    } catch (error) {
+      testResults.push({
+        name: test.name,
+        status: "FAIL",
+        error: error.message
+      });
+    }
+  }
+
+  // Print comprehensive summary
+  console.log("\n" + "=".repeat(60));
+  console.log("TEST RESULTS SUMMARY");
+  console.log("=".repeat(60));
+
+  let passCount = 0;
+  let failCount = 0;
+
+  testResults.forEach(result => {
+    const status = result.status === "PASS" ? "✅ PASS" : "❌ FAIL";
+    console.log(`${result.name.padEnd(35)} ${status}`);
+    
+    if (result.error) {
+      console.log(`    Error: ${result.error}`);
+    }
+    
+    if (result.status === "PASS") {
+      passCount++;
+    } else {
+      failCount++;
+    }
+  });
+
+  console.log("-".repeat(60));
+  console.log(`Total Tests: ${testResults.length}`);
+  console.log(`Passed: ${passCount}`);
+  console.log(`Failed: ${failCount}`);
+  console.log(`Success Rate: ${((passCount / testResults.length) * 100).toFixed(1)}%`);
+  console.log("=".repeat(60));
+
+  return testResults;
+}
+
 // Run tests if in Node.js environment
 if (typeof module !== "undefined" && module.exports) {
   // Export test functions for use in test runners
@@ -414,22 +516,13 @@ if (typeof module !== "undefined" && module.exports) {
     testUserTestCase6,
     testUserTestCase7,
     runTestFromJson,
+    runAllTestsWithSummary,
     mockGeoJsonData,
     mockSegmentsData,
   };
 
   // Auto-run tests if this file is executed directly
   if (require.main === module) {
-    testRouteManager()
-      .then(() => testErrorHandling())
-      .then(() => {
-        testUserTestCase1();
-        testUserTestCase2();
-        testUserTestCase3();
-        testUserTestCase4();
-        testUserTestCase5();
-        testUserTestCase6();
-        testUserTestCase7();
-      });
+    runAllTestsWithSummary();
   }
 }
