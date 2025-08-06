@@ -423,10 +423,10 @@ if (typeof module !== "undefined" && module.exports) {
     testRouteManager()
       .then(() => testErrorHandling())
       .then(() => {
-        // testUserTestCase1();
-        // testUserTestCase2();
-        // testUserTestCase3();
-        // testUserTestCase4();
+        testUserTestCase1();
+        testUserTestCase2();
+        testUserTestCase3();
+        testUserTestCase4();
         testUserTestCase5();
       });
   }
