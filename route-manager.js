@@ -360,22 +360,30 @@ class RouteManager {
         continue;
       }
 
+      // Check if we need route reversal for disconnected points
+      if (i > 0 && allSegments.length > 0) {
+        const isConnected = this._checkIfPointConnectsToRoute(nextPoint, allSegments);
+        if (!isConnected) {
+          // Point is not connected to current route, try route reversal
+          const reversalPath = this._tryRouteReversalAndConnect(allSegments, nextPoint);
+          if (reversalPath.length > 0) {
+            allSegments.push(...reversalPath);
+            continue;
+          }
+        }
+      }
+
       // Find path between current and next point
       const pathSegments = this._findPathBetweenPoints(currentPoint, nextPoint);
       
-      // Add all path segments, including duplicates if they represent actual traversal
+      // Add all path segments
       for (const segmentName of pathSegments) {
-        // For test4 specifically, we need to handle the case where we traverse the same segment
-        // multiple times or in different directions
-        if (segmentName === 'כביש גישה אגמון החולה' || segmentName === 'אגמון החולה מבואה') {
-          // These segments might need to be traversed multiple times
-          allSegments.push(segmentName);
-        } else {
-          // For other segments, avoid immediate consecutive duplicates but allow later duplicates
-          if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
-            allSegments.push(segmentName);
-          }
+        // Skip the first segment if it's the same as the last one we already have
+        if (allSegments.length > 0 && allSegments[allSegments.length - 1] === segmentName && 
+            pathSegments.indexOf(segmentName) === 0) {
+          continue;
         }
+        allSegments.push(segmentName);
       }
     }
 
@@ -388,12 +396,6 @@ class RouteManager {
 
     if (!startSegment || !endSegment) return [];
     if (startSegment === endSegment) return [startSegment];
-
-    // For test4 specific case, handle the routing through אגמון החולה area
-    if (startSegment === 'דרך המנפטה' && endSegment === 'כביש גישה אגמון החולה') {
-      // This should go through segment 65 twice and then to segment 2
-      return ['דרך המנפטה', 'כביש גישה אגמון החולה', 'כביש גישה אגמון החולה', 'אגמון החולה מבואה'];
-    }
 
     // Check if segments are directly connected first
     const startConnections = this.adjacencyMap.get(startSegment) || [];
@@ -751,6 +753,47 @@ class RouteManager {
     }
     
     return bestPosition;
+  }
+
+  _checkIfPointConnectsToRoute(point, currentSegments) {
+    if (currentSegments.length === 0) return true;
+    
+    const pointSegment = this._findSegmentForPoint(point);
+    if (!pointSegment) return false;
+    
+    // Check if point's segment is directly connected to any segment in the route
+    const lastSegment = currentSegments[currentSegments.length - 1];
+    const lastSegmentConnections = this.adjacencyMap.get(lastSegment) || [];
+    
+    return lastSegmentConnections.includes(pointSegment);
+  }
+
+  _tryRouteReversalAndConnect(currentSegments, targetPoint) {
+    if (currentSegments.length === 0) return [];
+    
+    const targetSegment = this._findSegmentForPoint(targetPoint);
+    if (!targetSegment) return [];
+    
+    // Try to connect from the first segment of the current route (route reversal)
+    const firstSegment = currentSegments[0];
+    const firstSegmentConnections = this.adjacencyMap.get(firstSegment) || [];
+    
+    if (firstSegmentConnections.includes(targetSegment)) {
+      // We can connect by going back through the route and then to target
+      const reversePath = [...currentSegments].reverse();
+      return [...reversePath, targetSegment];
+    }
+    
+    // Check if we can connect through an intermediate segment
+    for (const intermediateSegment of firstSegmentConnections) {
+      const intermediateConnections = this.adjacencyMap.get(intermediateSegment) || [];
+      if (intermediateConnections.includes(targetSegment)) {
+        const reversePath = [...currentSegments].reverse();
+        return [...reversePath, intermediateSegment, targetSegment];
+      }
+    }
+    
+    return [];
   }
 
   _distanceWindowSmoothing(points, distanceWindow, accumulate, compute) {
