@@ -93,7 +93,7 @@ function addRoutePoint(lngLat, fromClick = true) {
   clearRouteFromUrl();
 }
 
-// Create a draggable marker for a route point
+// Create a custom draggable marker for a route point
 function createPointMarker(point, index) {
   const el = document.createElement('div');
   el.className = 'route-point-marker';
@@ -105,50 +105,104 @@ function createPointMarker(point, index) {
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     cursor: grab;
+    pointer-events: auto;
   `;
 
+  // Create non-draggable marker
   const marker = new mapboxgl.Marker({
     element: el,
-    draggable: true,
+    draggable: false,
     anchor: 'center'
   })
   .setLngLat([point.lng, point.lat])
   .addTo(map);
 
-  // Ensure marker position is properly set immediately
-  setTimeout(() => {
-    marker.setLngLat([point.lng, point.lat]);
-  }, 0);
+  // Custom drag implementation
+  let isDragging = false;
+  let startX, startY;
+  let startLngLat;
 
-  // Handle marker drag
-  marker.on('dragstart', () => {
+  const handleStart = (clientX, clientY) => {
+    isDragging = true;
     isDraggingPoint = true;
     draggedPointIndex = index;
     el.style.cursor = 'grabbing';
-    // Ensure we have the exact position at drag start
-    const currentLngLat = marker.getLngLat();
-    routePoints[index].lng = currentLngLat.lng;
-    routePoints[index].lat = currentLngLat.lat;
-  });
+    
+    startX = clientX;
+    startY = clientY;
+    startLngLat = marker.getLngLat();
+    
+    // Prevent default behavior
+    document.body.style.userSelect = 'none';
+    map.dragPan.disable();
+  };
 
-  marker.on('drag', () => {
-    const lngLat = marker.getLngLat();
-    routePoints[index].lng = lngLat.lng;
-    routePoints[index].lat = lngLat.lat;
+  const handleMove = (clientX, clientY) => {
+    if (!isDragging) return;
+
+    const deltaX = clientX - startX;
+    const deltaY = clientY - startY;
+
+    // Convert pixel movement to map coordinates
+    const startPixel = map.project(startLngLat);
+    const newPixel = { x: startPixel.x + deltaX, y: startPixel.y + deltaY };
+    const newLngLat = map.unproject(newPixel);
+
+    // Update marker position
+    marker.setLngLat(newLngLat);
+    
+    // Update route point
+    routePoints[index].lng = newLngLat.lng;
+    routePoints[index].lat = newLngLat.lat;
+    
     recalculateRoute();
-  });
+  };
 
-  marker.on('dragend', () => {
+  const handleEnd = () => {
+    if (!isDragging) return;
+    
+    isDragging = false;
     isDraggingPoint = false;
     draggedPointIndex = -1;
     el.style.cursor = 'grab';
-    // Ensure final position is properly set
-    const finalLngLat = marker.getLngLat();
-    routePoints[index].lng = finalLngLat.lng;
-    routePoints[index].lat = finalLngLat.lat;
+    
+    document.body.style.userSelect = '';
+    map.dragPan.enable();
+    
     saveState();
     clearRouteFromUrl();
+  };
+
+  // Mouse events
+  el.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleStart(e.clientX, e.clientY);
   });
+
+  document.addEventListener('mousemove', (e) => {
+    handleMove(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('mouseup', handleEnd);
+
+  // Touch events
+  el.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const touch = e.touches[0];
+    handleStart(touch.clientX, touch.clientY);
+  });
+
+  document.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleMove(touch.clientX, touch.clientY);
+    }
+  });
+
+  document.addEventListener('touchend', handleEnd);
 
   // Handle right-click to remove point
   el.addEventListener('contextmenu', (e) => {
@@ -216,15 +270,10 @@ function removeRoutePoint(index) {
   }
 }
 
-// Update all point markers with correct numbering and ensure proper positioning
+// Update all point markers with correct numbering
 function updatePointMarkers() {
-  // Ensure all markers are properly positioned
-  pointMarkers.forEach((marker, index) => {
-    if (marker && routePoints[index]) {
-      // Force marker to be at correct coordinates
-      marker.setLngLat([routePoints[index].lng, routePoints[index].lat]);
-    }
-  });
+  // With custom drag implementation, markers stay in sync automatically
+  // This function is kept for compatibility but no longer needs to force positioning
 }
 
 // Clear all route points
@@ -789,24 +838,7 @@ function initMap() {
       }
     });
 
-    // Add map move event handlers to maintain marker stability
-    map.on('movestart', () => {
-      // Ensure all markers maintain their positions during map movement
-      pointMarkers.forEach((marker, index) => {
-        if (marker && routePoints[index]) {
-          marker.setLngLat([routePoints[index].lng, routePoints[index].lat]);
-        }
-      });
-    });
-
-    map.on('moveend', () => {
-      // Re-sync marker positions after map movement completes
-      pointMarkers.forEach((marker, index) => {
-        if (marker && routePoints[index]) {
-          marker.setLngLat([routePoints[index].lng, routePoints[index].lat]);
-        }
-      });
-    });
+    // Map move handlers are no longer needed with custom drag implementation
 
     // Add context menu handler to prevent browser context menu on map
     map.on('contextmenu', (e) => {
