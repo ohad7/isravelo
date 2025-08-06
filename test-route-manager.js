@@ -317,34 +317,24 @@ function validateSummary(manager, summary) {
 
   let hasFailures = false;
 
-  // Check if we have actual segments vs expected
   if (summary.finalSegmentIds && segmentIds.length > 0) {
     // Check if the actual segments match the expected final segments
     const expectedIds = summary.finalSegmentIds;
     const actualIds = segmentIds;
 
-    if (
-      actualIds.length === expectedIds.length &&
-      expectedIds.every((id) => actualIds.includes(id))
-    ) {
+    // Check if arrays match exactly (same length and same elements in same order)
+    const arraysMatch = actualIds.length === expectedIds.length &&
+      actualIds.every((id, index) => id === expectedIds[index]);
+
+    if (arraysMatch) {
       console.log(
         `✓ Final segment IDs match expected: [${expectedIds.join(", ")}]`,
       );
     } else {
-      // Only consider this a failure if we have no segments at all when we expected some
-      if (actualIds.length === 0 && expectedIds.length > 0) {
-        console.log(
-          `❌ Expected segments but got none. Expected: [${expectedIds.join(", ")}]`,
-        );
-        hasFailures = true;
-      } else {
-        console.log(
-          `ℹ️ Segment IDs differ from recorded test case (expected: [${expectedIds.join(", ")}], got: [${actualIds.join(", ")}])`,
-        );
-        console.log(
-          `   This may be due to route calculation differences and is not necessarily an error.`,
-        );
-      }
+      console.log(
+        `❌ Segment IDs differ from recorded test case. Expected: [${expectedIds.join(", ")}], Got: [${actualIds.join(", ")}]`,
+      );
+      hasFailures = true;
     }
   } else if (summary.finalSegmentsCount !== undefined) {
     if (routeInfo.segments.length === summary.finalSegmentsCount) {
