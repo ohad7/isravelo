@@ -109,16 +109,26 @@ function createPointMarker(point, index) {
 
   const marker = new mapboxgl.Marker({
     element: el,
-    draggable: true
+    draggable: true,
+    anchor: 'center'
   })
   .setLngLat([point.lng, point.lat])
   .addTo(map);
+
+  // Ensure marker position is properly set immediately
+  setTimeout(() => {
+    marker.setLngLat([point.lng, point.lat]);
+  }, 0);
 
   // Handle marker drag
   marker.on('dragstart', () => {
     isDraggingPoint = true;
     draggedPointIndex = index;
     el.style.cursor = 'grabbing';
+    // Ensure we have the exact position at drag start
+    const currentLngLat = marker.getLngLat();
+    routePoints[index].lng = currentLngLat.lng;
+    routePoints[index].lat = currentLngLat.lat;
   });
 
   marker.on('drag', () => {
@@ -132,6 +142,10 @@ function createPointMarker(point, index) {
     isDraggingPoint = false;
     draggedPointIndex = -1;
     el.style.cursor = 'grab';
+    // Ensure final position is properly set
+    const finalLngLat = marker.getLngLat();
+    routePoints[index].lng = finalLngLat.lng;
+    routePoints[index].lat = finalLngLat.lat;
     saveState();
     clearRouteFromUrl();
   });
@@ -202,9 +216,15 @@ function removeRoutePoint(index) {
   }
 }
 
-// Update all point markers with correct numbering
+// Update all point markers with correct numbering and ensure proper positioning
 function updatePointMarkers() {
-  // Point markers no longer have numbers to update
+  // Ensure all markers are properly positioned
+  pointMarkers.forEach((marker, index) => {
+    if (marker && routePoints[index]) {
+      // Force marker to be at correct coordinates
+      marker.setLngLat([routePoints[index].lng, routePoints[index].lat]);
+    }
+  });
 }
 
 // Clear all route points
@@ -767,6 +787,25 @@ function initMap() {
       if (closestSegment && closestPointOnSegment) {
         addRoutePoint({ lng: closestPointOnSegment.lng, lat: closestPointOnSegment.lat });
       }
+    });
+
+    // Add map move event handlers to maintain marker stability
+    map.on('movestart', () => {
+      // Ensure all markers maintain their positions during map movement
+      pointMarkers.forEach((marker, index) => {
+        if (marker && routePoints[index]) {
+          marker.setLngLat([routePoints[index].lng, routePoints[index].lat]);
+        }
+      });
+    });
+
+    map.on('moveend', () => {
+      // Re-sync marker positions after map movement completes
+      pointMarkers.forEach((marker, index) => {
+        if (marker && routePoints[index]) {
+          marker.setLngLat([routePoints[index].lng, routePoints[index].lat]);
+        }
+      });
     });
 
     // Add context menu handler to prevent browser context menu on map
