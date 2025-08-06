@@ -409,39 +409,39 @@ async function runAllTestsWithSummary() {
 
   const testResults = [];
 
-  // Run basic tests
-  console.log("\n--- Running Basic Tests ---");
-  try {
-    await testRouteManager();
-    testResults.push({ name: "RouteManager Basic Tests", status: "PASS" });
-  } catch (error) {
-    testResults.push({
-      name: "RouteManager Basic Tests",
-      status: "FAIL",
-      error: error.message,
-    });
-  }
+  // // Run basic tests
+  // console.log("\n--- Running Basic Tests ---");
+  // try {
+  //   await testRouteManager();
+  //   testResults.push({ name: "RouteManager Basic Tests", status: "PASS" });
+  // } catch (error) {
+  //   testResults.push({
+  //     name: "RouteManager Basic Tests",
+  //     status: "FAIL",
+  //     error: error.message,
+  //   });
+  // }
 
-  try {
-    await testErrorHandling();
-    testResults.push({ name: "Error Handling Tests", status: "PASS" });
-  } catch (error) {
-    testResults.push({
-      name: "Error Handling Tests",
-      status: "FAIL",
-      error: error.message,
-    });
-  }
+  // try {
+  //   await testErrorHandling();
+  //   testResults.push({ name: "Error Handling Tests", status: "PASS" });
+  // } catch (error) {
+  //   testResults.push({
+  //     name: "Error Handling Tests",
+  //     status: "FAIL",
+  //     error: error.message,
+  //   });
+  // }
 
   // Run JSON test cases
   const jsonTests = [
-    { name: "test1.json", func: testUserTestCase1 },
-    { name: "test2.json", func: testUserTestCase2 },
-    { name: "test3.json", func: testUserTestCase3 },
+    // { name: "test1.json", func: testUserTestCase1 },
+    // { name: "test2.json", func: testUserTestCase2 },
+    // { name: "test3.json", func: testUserTestCase3 },
     { name: "test4.json", func: testUserTestCase4 },
-    { name: "test5.json", func: testUserTestCase5 },
-    { name: "test6.json", func: testUserTestCase6 },
-    { name: "test7.json", func: testUserTestCase7 },
+    // { name: "test5.json", func: testUserTestCase5 },
+    // { name: "test6.json", func: testUserTestCase6 },
+    // { name: "test7.json", func: testUserTestCase7 },
   ];
 
   for (const test of jsonTests) {

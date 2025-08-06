@@ -23,31 +23,31 @@ class RouteManager {
     this.segmentsMetadata = segmentsData || {};
 
     if (!geoJsonData?.features) {
-      throw new Error('Invalid geojson data');
+      throw new Error("Invalid geojson data");
     }
 
     // Load segments from geojson
-    geoJsonData.features.forEach(feature => {
-      if (feature.geometry?.type !== 'LineString') return;
+    geoJsonData.features.forEach((feature) => {
+      if (feature.geometry?.type !== "LineString") return;
 
-      const name = feature.properties?.name || 'Unnamed Route';
-      const coordinates = feature.geometry.coordinates.map(coord => ({
+      const name = feature.properties?.name || "Unnamed Route";
+      const coordinates = feature.geometry.coordinates.map((coord) => ({
         lat: coord[1],
         lng: coord[0],
-        elevation: coord[2] || 0
+        elevation: coord[2] || 0,
       }));
 
       // Merge geojson properties with segments metadata
       const segmentMetadata = this.segmentsMetadata[name] || {};
       const mergedProperties = {
         ...feature.properties,
-        ...segmentMetadata
+        ...segmentMetadata,
       };
 
       this.segments.set(name, {
         name,
         coordinates,
-        properties: mergedProperties
+        properties: mergedProperties,
       });
     });
 
@@ -67,7 +67,7 @@ class RouteManager {
    */
   addPoint(point) {
     if (!point?.lat || !point?.lng) {
-      throw new Error('Invalid point coordinates');
+      throw new Error("Invalid point coordinates");
     }
 
     // Snap point to nearest segment
@@ -78,7 +78,7 @@ class RouteManager {
 
     this.routePoints.push({
       ...snappedPoint,
-      id: Date.now() + Math.random()
+      id: Date.now() + Math.random(),
     });
 
     this._recalculateRoute();
@@ -99,7 +99,11 @@ class RouteManager {
     for (const [segmentName, segment] of this.segments) {
       const coords = segment.coordinates;
       for (let i = 0; i < coords.length - 1; i++) {
-        const distance = this._distanceToLineSegment(point, coords[i], coords[i + 1]);
+        const distance = this._distanceToLineSegment(
+          point,
+          coords[i],
+          coords[i + 1],
+        );
         if (distance <= threshold) {
           nearbySegments.push(segmentName);
           break;
@@ -180,13 +184,13 @@ class RouteManager {
       distance: totalDistance,
       elevationGain: elevation.gain,
       elevationLoss: elevation.loss,
-      orderedCoordinates: this._getOrderedCoordinates()
+      orderedCoordinates: this._getOrderedCoordinates(),
     };
   }
 
   /**
    * Get segment information by name
-   * @param {string} segmentName 
+   * @param {string} segmentName
    * @returns {Object|null} Segment data with metrics
    */
   getSegmentInfo(segmentName) {
@@ -197,7 +201,7 @@ class RouteManager {
 
     return {
       ...segment,
-      metrics: metrics || null
+      metrics: metrics || null,
     };
   }
 
@@ -222,7 +226,8 @@ class RouteManager {
       const minElevationChange = 1.0;
 
       for (let i = 0; i < smoothedCoords.length - 1; i++) {
-        const elevationChange = smoothedCoords[i + 1].elevation - smoothedCoords[i].elevation;
+        const elevationChange =
+          smoothedCoords[i + 1].elevation - smoothedCoords[i].elevation;
 
         if (Math.abs(elevationChange) >= minElevationChange) {
           if (elevationChange > 0) {
@@ -238,15 +243,15 @@ class RouteManager {
         distanceKm: (distance / 1000).toFixed(1),
         forward: {
           elevationGain: Math.round(elevationGainForward),
-          elevationLoss: Math.round(elevationLossForward)
+          elevationLoss: Math.round(elevationLossForward),
         },
         reverse: {
           elevationGain: Math.round(elevationLossForward),
-          elevationLoss: Math.round(elevationGainForward)
+          elevationLoss: Math.round(elevationGainForward),
         },
         startPoint: coords[0],
         endPoint: coords[coords.length - 1],
-        smoothedCoords
+        smoothedCoords,
       });
     }
   }
@@ -265,7 +270,9 @@ class RouteManager {
         const [name1, segment1] = segmentArray[i];
         const [name2, segment2] = segmentArray[j];
 
-        if (this._areSegmentsConnected(segment1, segment2, connectionThreshold)) {
+        if (
+          this._areSegmentsConnected(segment1, segment2, connectionThreshold)
+        ) {
           this.adjacencyMap.get(name1).push(name2);
           this.adjacencyMap.get(name2).push(name1);
         }
@@ -305,7 +312,11 @@ class RouteManager {
       for (let i = 0; i < coords.length - 1; i++) {
         const segmentStart = coords[i];
         const segmentEnd = coords[i + 1];
-        const pointOnSegment = this._getClosestPointOnLineSegment(point, segmentStart, segmentEnd);
+        const pointOnSegment = this._getClosestPointOnLineSegment(
+          point,
+          segmentStart,
+          segmentEnd,
+        );
         const distance = this._getDistance(point, pointOnSegment);
 
         if (distance < threshold && distance < minDistance) {
@@ -316,7 +327,9 @@ class RouteManager {
       }
     }
 
-    return closestPoint ? { ...closestPoint, segmentName: closestSegment } : null;
+    return closestPoint
+      ? { ...closestPoint, segmentName: closestSegment }
+      : null;
   }
 
   _recalculateRoute() {
@@ -334,7 +347,9 @@ class RouteManager {
     }
 
     // Find optimal route through all points
-    this.selectedSegments = this._findOptimalRouteThroughPoints(this.routePoints);
+    this.selectedSegments = this._findOptimalRouteThroughPoints(
+      this.routePoints,
+    );
   }
 
   _findOptimalRouteThroughPoints(points) {
@@ -356,7 +371,12 @@ class RouteManager {
         }
       } else {
         // Extend route to reach this new point
-        const extensionSegments = this._findRouteExtensionToPoint(point, allSegments);
+        const extensionSegments = this._findRouteExtensionToPoint(
+          point,
+          allSegments,
+        );
+
+        console.log("Pushing extension segments:", extensionSegments);
         allSegments.push(...extensionSegments);
       }
     }
@@ -365,19 +385,29 @@ class RouteManager {
   }
 
   _findRouteExtensionToPoint(targetPoint, currentRouteSegments) {
+    console.log("_findRouteExtensionToPoint");
     if (!targetPoint.segmentName) return [];
 
     const closestSegmentToPoint = targetPoint.segmentName;
-    
+
     // If the route is empty, the extension is just the target point's segment
     if (currentRouteSegments.length === 0) {
       return [closestSegmentToPoint];
     }
 
-    const lastSegmentOfRoute = currentRouteSegments[currentRouteSegments.length - 1];
+    const lastSegmentOfRoute =
+      currentRouteSegments[currentRouteSegments.length - 1];
 
     // Check if the closest segment to the new point is directly connected to the end of the current route
-    const connectionsFromLastSegment = this.adjacencyMap.get(lastSegmentOfRoute) || [];
+    const connectionsFromLastSegment =
+      this.adjacencyMap.get(lastSegmentOfRoute) || [];
+
+    console.log(
+      "adjacent to",
+      lastSegmentOfRoute,
+      ":",
+      connectionsFromLastSegment,
+    );
 
     if (connectionsFromLastSegment.includes(closestSegmentToPoint)) {
       // If directly connected, the extension is just this segment
@@ -395,11 +425,22 @@ class RouteManager {
       const coords = segmentData.coordinates;
       const segmentStartPoint = coords[0];
       const segmentEndPoint = coords[coords.length - 1];
-      
+
       // Find paths to both entry points of the target segment
-      const pathToStart = this._findPathToSegmentEntryPoint(lastSegmentOfRoute, closestSegmentToPoint, segmentStartPoint);
-      const pathToEnd = this._findPathToSegmentEntryPoint(lastSegmentOfRoute, closestSegmentToPoint, segmentEndPoint);
-      
+      const pathToStart = this._findPathToSegmentEntryPoint(
+        lastSegmentOfRoute,
+        closestSegmentToPoint,
+        segmentStartPoint,
+      );
+      const pathToEnd = this._findPathToSegmentEntryPoint(
+        lastSegmentOfRoute,
+        closestSegmentToPoint,
+        segmentEndPoint,
+      );
+
+      console.log("pathToStart", pathToStart);
+      console.log("pathToEnd", pathToEnd);
+
       // Choose the path with shorter total distance
       let shortestExtension;
       if (pathToStart.length === 0 && pathToEnd.length === 0) {
@@ -413,18 +454,24 @@ class RouteManager {
         // Calculate total distance for both paths and choose shorter one
         const distanceToStart = this._calculatePathDistance(pathToStart);
         const distanceToEnd = this._calculatePathDistance(pathToEnd);
-        shortestExtension = distanceToStart <= distanceToEnd ? pathToStart : pathToEnd;
+        shortestExtension =
+          distanceToStart <= distanceToEnd ? pathToStart : pathToEnd;
       }
-      
+
+      console.log("distanceToStart", distanceToStart);
+      console.log("distanceToEnd", distanceToEnd);
+
       // Remove the first segment if it's the same as the last segment in current route
-      if (shortestExtension.length > 0 && shortestExtension[0] === lastSegmentOfRoute) {
+      if (
+        shortestExtension.length > 0 &&
+        shortestExtension[0] === lastSegmentOfRoute
+      ) {
         shortestExtension = shortestExtension.slice(1);
       }
-      
+
       return shortestExtension;
     }
   }
-
 
   _findPathBetweenPoints(startPoint, endPoint, usedSegments = new Set()) {
     const startSegment = this._findSegmentForPoint(startPoint);
@@ -442,7 +489,10 @@ class RouteManager {
     }
 
     // Use shortest path algorithm
-    const shortestPath = this._findShortestSegmentPath(startSegment, endSegment);
+    const shortestPath = this._findShortestSegmentPath(
+      startSegment,
+      endSegment,
+    );
 
     return shortestPath;
   }
@@ -482,7 +532,11 @@ class RouteManager {
     return [startSegmentName, endSegmentName];
   }
 
-  _findPathToSegmentEntryPoint(startSegmentName, targetSegmentName, targetEntryPoint) {
+  _findPathToSegmentEntryPoint(
+    startSegmentName,
+    targetSegmentName,
+    targetEntryPoint,
+  ) {
     // Get the end point of the current route (last segment)
     const startSegmentData = this.segments.get(startSegmentName);
     if (!startSegmentData) return [];
@@ -500,25 +554,43 @@ class RouteManager {
     const targetEnd = targetCoords[targetCoords.length - 1];
 
     // Calculate paths to both entry points of target segment
-    const pathToTargetStart = this._findShortestSegmentPath(startSegmentName, targetSegmentName);
-    const pathToTargetEnd = this._findShortestSegmentPath(startSegmentName, targetSegmentName);
+    const pathToTargetStart = this._findShortestSegmentPath(
+      startSegmentName,
+      targetSegmentName,
+    );
+    const pathToTargetEnd = this._findShortestSegmentPath(
+      startSegmentName,
+      targetSegmentName,
+    );
 
     // Calculate total distance for path to start of target segment
     let distanceToStart = 0;
     // First check if we need to reverse through current segment
-    const distanceFromRouteEndToTargetStart = this._getDistance(routeEndPoint, targetStart);
-    const distanceFromRouteStartToTargetStart = this._getDistance(routeStartPoint, targetStart);
-    
-    if (distanceFromRouteStartToTargetStart < distanceFromRouteEndToTargetStart) {
+    const distanceFromRouteEndToTargetStart = this._getDistance(
+      routeEndPoint,
+      targetStart,
+    );
+    const distanceFromRouteStartToTargetStart = this._getDistance(
+      routeStartPoint,
+      targetStart,
+    );
+
+    if (
+      distanceFromRouteStartToTargetStart < distanceFromRouteEndToTargetStart
+    ) {
       // Need to reverse through current segment
       const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
       if (startSegmentMetrics) {
         distanceToStart += startSegmentMetrics.distance; // Add distance to traverse current segment in reverse
       }
     }
-    
+
     // Add distances for intermediate segments in the path
-    for (let i = (pathToTargetStart[0] === startSegmentName ? 1 : 0); i < pathToTargetStart.length; i++) {
+    for (
+      let i = pathToTargetStart[0] === startSegmentName ? 1 : 0;
+      i < pathToTargetStart.length;
+      i++
+    ) {
       const segmentMetrics = this.segmentMetrics.get(pathToTargetStart[i]);
       if (segmentMetrics) {
         distanceToStart += segmentMetrics.distance;
@@ -528,9 +600,15 @@ class RouteManager {
     // Calculate total distance for path to end of target segment
     let distanceToEnd = 0;
     // First check if we need to reverse through current segment
-    const distanceFromRouteEndToTargetEnd = this._getDistance(routeEndPoint, targetEnd);
-    const distanceFromRouteStartToTargetEnd = this._getDistance(routeStartPoint, targetEnd);
-    
+    const distanceFromRouteEndToTargetEnd = this._getDistance(
+      routeEndPoint,
+      targetEnd,
+    );
+    const distanceFromRouteStartToTargetEnd = this._getDistance(
+      routeStartPoint,
+      targetEnd,
+    );
+
     if (distanceFromRouteStartToTargetEnd < distanceFromRouteEndToTargetEnd) {
       // Need to reverse through current segment
       const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
@@ -538,9 +616,13 @@ class RouteManager {
         distanceToEnd += startSegmentMetrics.distance; // Add distance to traverse current segment in reverse
       }
     }
-    
+
     // Add distances for intermediate segments in the path
-    for (let i = (pathToTargetEnd[0] === startSegmentName ? 1 : 0); i < pathToTargetEnd.length; i++) {
+    for (
+      let i = pathToTargetEnd[0] === startSegmentName ? 1 : 0;
+      i < pathToTargetEnd.length;
+      i++
+    ) {
       const segmentMetrics = this.segmentMetrics.get(pathToTargetEnd[i]);
       if (segmentMetrics) {
         distanceToEnd += segmentMetrics.distance;
@@ -550,7 +632,9 @@ class RouteManager {
     // Choose the path with shorter total distance
     if (distanceToStart <= distanceToEnd) {
       // Path to start of target segment is shorter
-      if (distanceFromRouteStartToTargetStart < distanceFromRouteEndToTargetStart) {
+      if (
+        distanceFromRouteStartToTargetStart < distanceFromRouteEndToTargetStart
+      ) {
         return [startSegmentName, ...pathToTargetStart];
       } else {
         return pathToTargetStart;
@@ -569,10 +653,16 @@ class RouteManager {
     if (segments.length === 0) return null;
 
     const orderedCoords = this._getOrderedCoordinatesForSegments(segments);
-    return orderedCoords.length > 0 ? orderedCoords[orderedCoords.length - 1] : null;
+    return orderedCoords.length > 0
+      ? orderedCoords[orderedCoords.length - 1]
+      : null;
   }
 
-  _isSegmentNecessaryForConnection(existingSegments, candidateSegment, pathSegments) {
+  _isSegmentNecessaryForConnection(
+    existingSegments,
+    candidateSegment,
+    pathSegments,
+  ) {
     // If this is one of only two segments in the path, it's necessary
     if (pathSegments.length <= 2) return true;
 
@@ -616,14 +706,23 @@ class RouteManager {
         if (segments.length > 1) {
           const nextSegment = this.segments.get(segments[1]);
           if (nextSegment) {
-            coords = this._orientSegmentForConnection(coords, nextSegment.coordinates, true);
+            coords = this._orientSegmentForConnection(
+              coords,
+              nextSegment.coordinates,
+              true,
+            );
           }
         }
         orderedCoords = [...coords];
       } else {
         // Orient subsequent segments to connect with previous
         const lastPoint = orderedCoords[orderedCoords.length - 1];
-        coords = this._orientSegmentForConnection(coords, null, false, lastPoint);
+        coords = this._orientSegmentForConnection(
+          coords,
+          null,
+          false,
+          lastPoint,
+        );
 
         const firstPoint = coords[0];
         const connectionDistance = this._getDistance(lastPoint, firstPoint);
@@ -650,11 +749,11 @@ class RouteManager {
         this._getDistance(firstEnd, nextStart),
         this._getDistance(firstEnd, nextEnd),
         this._getDistance(firstStart, nextStart),
-        this._getDistance(firstStart, nextEnd)
+        this._getDistance(firstStart, nextEnd),
       ];
 
       const minIndex = distances.indexOf(Math.min(...distances));
-      return (minIndex === 2 || minIndex === 3) ? coords.reverse() : coords;
+      return minIndex === 2 || minIndex === 3 ? coords.reverse() : coords;
     }
 
     if (lastPoint) {
@@ -719,7 +818,7 @@ class RouteManager {
 
     return {
       gain: Math.round(totalGain),
-      loss: Math.round(totalLoss)
+      loss: Math.round(totalLoss),
     };
   }
 
@@ -727,14 +826,14 @@ class RouteManager {
 
   _getDistance(point1, point2) {
     const R = 6371e3; // Earth's radius in meters
-    const φ1 = point1.lat * Math.PI / 180;
-    const φ2 = point2.lat * Math.PI / 180;
-    const Δφ = (point2.lat - point1.lat) * Math.PI / 180;
-    const Δλ = (point2.lng - point1.lng) * Math.PI / 180;
+    const φ1 = (point1.lat * Math.PI) / 180;
+    const φ2 = (point2.lat * Math.PI) / 180;
+    const Δφ = ((point2.lat - point1.lat) * Math.PI) / 180;
+    const Δλ = ((point2.lng - point1.lng) * Math.PI) / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) *
-      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
@@ -799,29 +898,32 @@ class RouteManager {
   _smoothElevations(coords, distanceWindow = 100) {
     if (coords.length === 0) return coords;
 
-    const coordsWithElevation = coords.map(coord => ({
+    const coordsWithElevation = coords.map((coord) => ({
       lat: coord.lat,
       lng: coord.lng,
-      elevation: coord.elevation !== undefined ? coord.elevation : 
-        200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50
+      elevation:
+        coord.elevation !== undefined
+          ? coord.elevation
+          : 200 + Math.sin(coord.lat * 10) * 100 + Math.cos(coord.lng * 8) * 50,
     }));
 
     const smoothedElevations = this._distanceWindowSmoothing(
       coordsWithElevation,
       distanceWindow,
       (index) => coordsWithElevation[index].elevation,
-      (accumulated, start, end) => accumulated / (end - start + 1)
+      (accumulated, start, end) => accumulated / (end - start + 1),
     );
 
     if (coordsWithElevation.length > 0) {
       smoothedElevations[0] = coordsWithElevation[0].elevation;
-      smoothedElevations[coordsWithElevation.length - 1] = coordsWithElevation[coordsWithElevation.length - 1].elevation;
+      smoothedElevations[coordsWithElevation.length - 1] =
+        coordsWithElevation[coordsWithElevation.length - 1].elevation;
     }
 
     return coordsWithElevation.map((coord, index) => ({
       lat: coord.lat,
       lng: coord.lng,
-      elevation: smoothedElevations[index]
+      elevation: smoothedElevations[index],
     }));
   }
 
@@ -842,8 +944,14 @@ class RouteManager {
     if (!startSegmentData || !endSegmentData) return true;
 
     // Find positions of points along their segments
-    const startPosition = this._getPositionAlongSegment(startPoint, startSegmentData.coordinates);
-    const endPosition = this._getPositionAlongSegment(endPoint, endSegmentData.coordinates);
+    const startPosition = this._getPositionAlongSegment(
+      startPoint,
+      startSegmentData.coordinates,
+    );
+    const endPosition = this._getPositionAlongSegment(
+      endPoint,
+      endSegmentData.coordinates,
+    );
 
     // If same segment, ensure end point is after start point
     if (startSegment === endSegment) {
@@ -861,7 +969,11 @@ class RouteManager {
     for (let i = 0; i < segmentCoords.length - 1; i++) {
       const segmentStart = segmentCoords[i];
       const segmentEnd = segmentCoords[i + 1];
-      const closestPoint = this._getClosestPointOnLineSegment(point, segmentStart, segmentEnd);
+      const closestPoint = this._getClosestPointOnLineSegment(
+        point,
+        segmentStart,
+        segmentEnd,
+      );
       const distance = this._getDistance(point, closestPoint);
 
       if (distance < minDistance) {
@@ -890,15 +1002,23 @@ class RouteManager {
 
   _distanceWindowSmoothing(points, distanceWindow, accumulate, compute) {
     let result = [];
-    let start = 0, end = 0, accumulated = 0;
+    let start = 0,
+      end = 0,
+      accumulated = 0;
 
     for (let i = 0; i < points.length; i++) {
-      while (start + 1 < i && this._getDistance(points[start], points[i]) > distanceWindow) {
+      while (
+        start + 1 < i &&
+        this._getDistance(points[start], points[i]) > distanceWindow
+      ) {
         accumulated -= accumulate(start);
         start++;
       }
 
-      while (end < points.length && this._getDistance(points[i], points[end]) <= distanceWindow) {
+      while (
+        end < points.length &&
+        this._getDistance(points[i], points[end]) <= distanceWindow
+      ) {
         accumulated += accumulate(end);
         end++;
       }
@@ -911,6 +1031,6 @@ class RouteManager {
 }
 
 // Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
   module.exports = RouteManager;
 }
