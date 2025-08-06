@@ -93,124 +93,196 @@ function addRoutePoint(lngLat, fromClick = true) {
   clearRouteFromUrl();
 }
 
-// Create a custom draggable marker for a route point
+// Create a map-integrated point feature for a route point
 function createPointMarker(point, index) {
-  const el = document.createElement('div');
-  el.className = 'route-point-marker';
-  el.style.cssText = `
-    width: 12px;
-    height: 12px;
-    background: #ff4444;
-    border: 2px solid white;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    cursor: grab;
-    pointer-events: auto;
-  `;
-
-  // Create non-draggable marker
-  const marker = new mapboxgl.Marker({
-    element: el,
-    draggable: false,
-    anchor: 'center'
-  })
-  .setLngLat([point.lng, point.lat])
-  .addTo(map);
-
-  // Custom drag implementation
-  let isDragging = false;
-  let startX, startY;
-  let startLngLat;
-
-  const handleStart = (clientX, clientY) => {
-    isDragging = true;
-    isDraggingPoint = true;
-    draggedPointIndex = index;
-    el.style.cursor = 'grabbing';
-    
-    startX = clientX;
-    startY = clientY;
-    startLngLat = marker.getLngLat();
-    
-    // Prevent default behavior
-    document.body.style.userSelect = 'none';
-    map.dragPan.disable();
-  };
-
-  const handleMove = (clientX, clientY) => {
-    if (!isDragging) return;
-
-    const deltaX = clientX - startX;
-    const deltaY = clientY - startY;
-
-    // Convert pixel movement to map coordinates
-    const startPixel = map.project(startLngLat);
-    const newPixel = { x: startPixel.x + deltaX, y: startPixel.y + deltaY };
-    const newLngLat = map.unproject(newPixel);
-
-    // Update marker position
-    marker.setLngLat(newLngLat);
-    
-    // Update route point
-    routePoints[index].lng = newLngLat.lng;
-    routePoints[index].lat = newLngLat.lat;
-    
-    recalculateRoute();
-  };
-
-  const handleEnd = () => {
-    if (!isDragging) return;
-    
-    isDragging = false;
-    isDraggingPoint = false;
-    draggedPointIndex = -1;
-    el.style.cursor = 'grab';
-    
-    document.body.style.userSelect = '';
-    map.dragPan.enable();
-    
-    saveState();
-    clearRouteFromUrl();
-  };
-
-  // Mouse events
-  el.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    handleStart(e.clientX, e.clientY);
-  });
-
-  document.addEventListener('mousemove', (e) => {
-    handleMove(e.clientX, e.clientY);
-  });
-
-  document.addEventListener('mouseup', handleEnd);
-
-  // Touch events
-  el.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const touch = e.touches[0];
-    handleStart(touch.clientX, touch.clientY);
-  });
-
-  document.addEventListener('touchmove', (e) => {
-    if (isDragging) {
-      e.preventDefault();
-      const touch = e.touches[0];
-      handleMove(touch.clientX, touch.clientY);
+  const pointId = `route-point-${point.id}`;
+  
+  // Create GeoJSON point feature
+  const pointFeature = {
+    type: 'Feature',
+    id: pointId,
+    geometry: {
+      type: 'Point',
+      coordinates: [point.lng, point.lat]
+    },
+    properties: {
+      index: index,
+      pointId: point.id,
+      type: 'route-point'
     }
+  };
+
+  // Add or update the source for route points
+  if (!map.getSource('route-points')) {
+    map.addSource('route-points', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: []
+      }
+    });
+
+    // Add circle layer for points
+    map.addLayer({
+      id: 'route-points-circle',
+      type: 'circle',
+      source: 'route-points',
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#ff4444',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff'
+      }
+    });
+
+    // Add drag functionality
+    let isDragging = false;
+    let draggedFeature = null;
+
+    map.on('mousedown', 'route-points-circle', (e) => {
+      e.preventDefault();
+      isDragging = true;
+      isDraggingPoint = true;
+      draggedFeature = e.features[0];
+      draggedPointIndex = draggedFeature.properties.index;
+      
+      map.getCanvas().style.cursor = 'grabbing';
+      map.dragPan.disable();
+      document.body.style.userSelect = 'none';
+    });
+
+    map.on('mousemove', (e) => {
+      if (!isDragging || !draggedFeature) return;
+
+      const coords = [e.lngLat.lng, e.lngLat.lat];
+      
+      // Update the feature coordinates
+      draggedFeature.geometry.coordinates = coords;
+      
+      // Update route point
+      const pointIndex = draggedFeature.properties.index;
+      routePoints[pointIndex].lng = e.lngLat.lng;
+      routePoints[pointIndex].lat = e.lngLat.lat;
+
+      // Update the source
+      const currentData = map.getSource('route-points')._data;
+      const featureIndex = currentData.features.findIndex(f => f.id === draggedFeature.id);
+      if (featureIndex !== -1) {
+        currentData.features[featureIndex] = draggedFeature;
+        map.getSource('route-points').setData(currentData);
+      }
+      
+      recalculateRoute();
+    });
+
+    map.on('mouseup', () => {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      isDraggingPoint = false;
+      draggedPointIndex = -1;
+      draggedFeature = null;
+      
+      map.getCanvas().style.cursor = '';
+      map.dragPan.enable();
+      document.body.style.userSelect = '';
+      
+      saveState();
+      clearRouteFromUrl();
+    });
+
+    // Touch events for mobile
+    map.on('touchstart', 'route-points-circle', (e) => {
+      if (e.points.length !== 1) return;
+      
+      e.preventDefault();
+      isDragging = true;
+      isDraggingPoint = true;
+      draggedFeature = e.features[0];
+      draggedPointIndex = draggedFeature.properties.index;
+      
+      map.dragPan.disable();
+    });
+
+    map.on('touchmove', (e) => {
+      if (!isDragging || !draggedFeature) return;
+      e.preventDefault();
+
+      const coords = [e.lngLat.lng, e.lngLat.lat];
+      
+      // Update the feature coordinates
+      draggedFeature.geometry.coordinates = coords;
+      
+      // Update route point
+      const pointIndex = draggedFeature.properties.index;
+      routePoints[pointIndex].lng = e.lngLat.lng;
+      routePoints[pointIndex].lat = e.lngLat.lat;
+
+      // Update the source
+      const currentData = map.getSource('route-points')._data;
+      const featureIndex = currentData.features.findIndex(f => f.id === draggedFeature.id);
+      if (featureIndex !== -1) {
+        currentData.features[featureIndex] = draggedFeature;
+        map.getSource('route-points').setData(currentData);
+      }
+      
+      recalculateRoute();
+    });
+
+    map.on('touchend', () => {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      isDraggingPoint = false;
+      draggedPointIndex = -1;
+      draggedFeature = null;
+      
+      map.dragPan.enable();
+      
+      saveState();
+      clearRouteFromUrl();
+    });
+
+    // Right-click to remove point
+    map.on('contextmenu', 'route-points-circle', (e) => {
+      e.preventDefault();
+      const feature = e.features[0];
+      if (feature) {
+        removeRoutePoint(feature.properties.index);
+      }
+    });
+
+    // Hover effects
+    map.on('mouseenter', 'route-points-circle', () => {
+      map.getCanvas().style.cursor = 'grab';
+    });
+
+    map.on('mouseleave', 'route-points-circle', () => {
+      if (!isDragging) {
+        map.getCanvas().style.cursor = '';
+      }
+    });
+  }
+
+  // Update the source data with the new point
+  const source = map.getSource('route-points');
+  const currentData = source._data;
+  
+  // Remove any existing point with the same index
+  currentData.features = currentData.features.filter(f => f.properties.index !== index);
+  
+  // Add the new point
+  currentData.features.push(pointFeature);
+  
+  // Update indices for all points
+  currentData.features.forEach((feature, idx) => {
+    feature.properties.index = idx;
   });
+  
+  source.setData(currentData);
 
-  document.addEventListener('touchend', handleEnd);
-
-  // Handle right-click to remove point
-  el.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    removeRoutePoint(index);
-  });
-
-  pointMarkers[index] = marker;
+  // Store reference for compatibility
+  pointMarkers[index] = { pointId: pointId };
 }
 
 // Remove a route point
@@ -249,17 +321,31 @@ function removeRoutePoint(index) {
     const updatedSegments = routeManager.removePoint(index);
     selectedSegments = updatedSegments;
 
-    // Remove the marker
-    if (pointMarkers[index]) {
-      pointMarkers[index].remove();
-    }
-
     // Remove from local arrays
     routePoints.splice(index, 1);
     pointMarkers.splice(index, 1);
 
-    // Update remaining markers with correct numbering
-    updatePointMarkers();
+    // Update map-integrated points
+    if (map.getSource('route-points')) {
+      const features = routePoints.map((point, idx) => ({
+        type: 'Feature',
+        id: `route-point-${point.id}`,
+        geometry: {
+          type: 'Point',
+          coordinates: [point.lng, point.lat]
+        },
+        properties: {
+          index: idx,
+          pointId: point.id,
+          type: 'route-point'
+        }
+      }));
+
+      map.getSource('route-points').setData({
+        type: 'FeatureCollection',
+        features: features
+      });
+    }
 
     // Update UI
     updateSegmentStyles();
@@ -278,9 +364,14 @@ function updatePointMarkers() {
 
 // Clear all route points
 function clearRoutePoints() {
-  pointMarkers.forEach(marker => {
-    if (marker) marker.remove();
-  });
+  // Clear map-integrated points
+  if (map.getSource('route-points')) {
+    map.getSource('route-points').setData({
+      type: 'FeatureCollection',
+      features: []
+    });
+  }
+  
   pointMarkers = [];
   routePoints = [];
 }
