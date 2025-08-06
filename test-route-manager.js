@@ -169,16 +169,37 @@ if (typeof window !== 'undefined') {
     testButton.style.background = '#4CAF50';
     testButton.style.color = 'white';
     testButton.style.border = 'none';
-    testButton.style.padding = '10px';
+    testButton.style.padding = '12px 16px';
     testButton.style.borderRadius = '5px';
     testButton.style.cursor = 'pointer';
+    testButton.style.fontSize = '14px';
+    testButton.style.fontWeight = 'bold';
+    testButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+    testButton.title = 'Press Ctrl+Shift+T to run tests';
     
-    testButton.addEventListener('click', async () => {
+    async function runTests() {
       console.clear();
+      console.log('🧪 Running RouteManager tests...');
+      console.log('=' .repeat(50));
       await testRouteManager();
       await testErrorHandling();
+      console.log('=' .repeat(50));
+      console.log('✅ Test run complete! Check console above for results.');
+    }
+
+    testButton.addEventListener('click', runTests);
+    
+    // Add keyboard shortcut Ctrl+Shift+T
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        runTests();
+      }
     });
     
     document.body.appendChild(testButton);
+    
+    // Show notification that tests are available
+    console.log('🧪 RouteManager tests loaded! Click the green "Run RouteManager Tests" button or press Ctrl+Shift+T to run tests.');
   });
 }
