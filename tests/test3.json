@@ -1,0 +1,50 @@
+{
+  "name": "User Test Case - 2025-08-06 17-57-20",
+  "description": "Test case generated from user operations (3 operations)",
+  "geoJsonFile": "bike_roads_v12.geojson",
+  "segmentsFile": "segments.json",
+  "operations": [
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.187052,
+          "lng": 35.611447
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [],
+      "expectedSegmentsCount": 0
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.18592293103448,
+          "lng": 35.593006413793105
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [89],
+      "expectedSegmentsCount": 1
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.160637219398204,
+          "lng": 35.57461381490792
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [89, 105],
+      "expectedSegmentsCount": 2
+    }
+  ],
+  "summary": {
+    "totalOperations": 3,
+    "operationTypes": ["addPoint"],
+    "finalSegmentIds": [89, 105, 8, 122],
+    "finalSegmentsCount": 4
+  }
+}
