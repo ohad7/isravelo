@@ -227,7 +227,7 @@ function executeOperation(manager, operation) {
       const routeInfoAfterRemove = manager.getRouteInfo();
       
       // Get segment IDs by looking up segment names
-      const segmentIds = routeInfoAfterRemove.segments.map(segmentName => {
+      const segmentIdsAfterRemove = routeInfoAfterRemove.segments.map(segmentName => {
         const segmentData = manager.getSegmentInfo(segmentName);
         return segmentData?.properties?.id || null;
       }).filter(id => id !== null);
@@ -235,7 +235,7 @@ function executeOperation(manager, operation) {
       return {
         removedSegments: removedSegments,
         routeInfo: routeInfoAfterRemove,
-        segmentIds: segmentIds
+        segmentIds: segmentIdsAfterRemove
       };
     
     case 'clearRoute':
