@@ -151,17 +151,9 @@ async function runTestFromJson(testFilePath) {
   console.log(`\n--- Running test from ${testFilePath} ---`);
   
   try {
-    // Load test case JSON
-    let testCase;
-    if (typeof fetch !== 'undefined') {
-      const response = await fetch(testFilePath);
-      if (!response.ok) {
-        throw new Error(`Failed to load test file: ${testFilePath}`);
-      }
-      testCase = await response.json();
-    } else {
-      throw new Error('Cannot load test file in Node.js environment');
-    }
+    // Load test case JSON using Node.js fs module
+    const fs = require('fs');
+    const testCase = JSON.parse(fs.readFileSync(testFilePath, 'utf8'));
     
     console.log(`Test: ${testCase.name}`);
     console.log(`Description: ${testCase.description}`);
@@ -287,18 +279,12 @@ async function loadTestData(testCase) {
   let segmentsData = mockSegmentsData;
   
   // Try to load real files if specified in test case
-  if (typeof fetch !== 'undefined' && testCase.geoJsonFile && testCase.segmentsFile) {
+  if (testCase.geoJsonFile && testCase.segmentsFile) {
     try {
-      const geoResponse = await fetch(testCase.geoJsonFile);
-      const segResponse = await fetch(testCase.segmentsFile);
-      
-      if (geoResponse.ok && segResponse.ok) {
-        geoJsonData = await geoResponse.json();
-        segmentsData = await segResponse.json();
-        console.log('✓ Using real test data files');
-      } else {
-        console.log('⚠️ Could not load real files, using mock data');
-      }
+      const fs = require('fs');
+      geoJsonData = JSON.parse(fs.readFileSync(testCase.geoJsonFile, 'utf8'));
+      segmentsData = JSON.parse(fs.readFileSync(testCase.segmentsFile, 'utf8'));
+      console.log('✓ Using real test data files');
     } catch (e) {
       console.log('⚠️ Error loading real files, using mock data:', e.message);
     }
@@ -319,6 +305,7 @@ if (typeof module !== 'undefined' && module.exports) {
     testRouteManager,
     testErrorHandling,
     testUserTestCase1,
+    runTestFromJson,
     mockGeoJsonData,
     mockSegmentsData
   };
@@ -327,53 +314,4 @@ if (typeof module !== 'undefined' && module.exports) {
   if (require.main === module) {
     testRouteManager().then(() => testErrorHandling()).then(() => testUserTestCase1());
   }
-}
-
-// Run tests if in browser environment
-if (typeof window !== 'undefined') {
-  // Add test button to page
-  document.addEventListener('DOMContentLoaded', () => {
-    const testButton = document.createElement('button');
-    testButton.textContent = 'Run RouteManager Tests';
-    testButton.style.position = 'fixed';
-    testButton.style.top = '10px';
-    testButton.style.right = '10px';
-    testButton.style.zIndex = '10000';
-    testButton.style.background = '#4CAF50';
-    testButton.style.color = 'white';
-    testButton.style.border = 'none';
-    testButton.style.padding = '12px 16px';
-    testButton.style.borderRadius = '5px';
-    testButton.style.cursor = 'pointer';
-    testButton.style.fontSize = '14px';
-    testButton.style.fontWeight = 'bold';
-    testButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-    testButton.title = 'Press Ctrl+Shift+T to run tests';
-    
-    async function runTests() {
-      console.clear();
-      console.log('🧪 Running RouteManager tests...');
-      console.log('=' .repeat(50));
-      await testRouteManager();
-      await testErrorHandling();
-      await testUserTestCase1();
-      console.log('=' .repeat(50));
-      console.log('✅ Test run complete! Check console above for results.');
-    }
-
-    testButton.addEventListener('click', runTests);
-    
-    // Add keyboard shortcut Ctrl+Shift+T
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
-        e.preventDefault();
-        runTests();
-      }
-    });
-    
-    document.body.appendChild(testButton);
-    
-    // Show notification that tests are available
-    console.log('🧪 RouteManager tests loaded! Click the green "Run RouteManager Tests" button or press Ctrl+Shift+T to run tests.');
-  });
 }
