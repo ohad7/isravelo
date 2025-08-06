@@ -144,7 +144,7 @@ function createPointMarker(point, index) {
       type: "circle",
       source: "route-points",
       paint: {
-        "circle-radius": 8,
+        "circle-radius": 4,
         "circle-color": "#ff4444",
         "circle-stroke-width": 2,
         "circle-stroke-color": "#ffffff",
