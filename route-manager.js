@@ -21,6 +21,7 @@ class RouteManager {
     this.segments.clear();
     this.segmentMetrics.clear();
     this.adjacencyMap.clear();
+    this.segmentsMetadata = segmentsData || {};
 
     if (!geoJsonData?.features) {
       throw new Error('Invalid geojson data');
@@ -37,10 +38,17 @@ class RouteManager {
         elevation: coord[2] || 0
       }));
 
+      // Merge geojson properties with segments metadata
+      const segmentMetadata = this.segmentsMetadata[name] || {};
+      const mergedProperties = {
+        ...feature.properties,
+        ...segmentMetadata
+      };
+
       this.segments.set(name, {
         name,
         coordinates,
-        properties: feature.properties || {}
+        properties: mergedProperties
       });
     });
 

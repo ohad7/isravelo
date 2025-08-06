@@ -167,20 +167,35 @@ async function runTestFromJson(testFilePath) {
     // Execute test operations
     manager.clearRoute();
     
+    let totalFailures = 0;
+    
     for (let i = 0; i < testCase.operations.length; i++) {
       const operation = testCase.operations[i];
       console.log(`\nOperation ${i + 1}: ${operation.type}`);
       
       const result = executeOperation(manager, operation);
-      validateOperation(operation, result, segmentsData);
+      const operationHasFailures = validateOperation(operation, result, segmentsData);
+      if (operationHasFailures) {
+        totalFailures++;
+      }
     }
     
     // Final validation against summary if provided
     if (testCase.summary) {
-      validateSummary(manager, testCase.summary);
+      const summaryHasFailures = validateSummary(manager, testCase.summary);
+      if (summaryHasFailures) {
+        totalFailures++;
+      }
     }
     
-    console.log(`\n✅ Test ${testCase.name} completed successfully!`);
+    // Count failures from operations (we'll need to track this during validation)
+    // For now, let's just report completion status based on whether we got here without exceptions
+    
+    if (totalFailures > 0) {
+      console.log(`\n⚠️ Test ${testCase.name} completed with ${totalFailures} validation failures`);
+    } else {
+      console.log(`\n✅ Test ${testCase.name} completed successfully!`);
+    }
     
   } catch (error) {
     console.error(`❌ Test failed: ${error.message}`);
@@ -193,19 +208,34 @@ function executeOperation(manager, operation) {
     case 'addPoint':
       const segments = manager.addPoint(operation.data.point);
       const routeInfo = manager.getRouteInfo();
+      
+      // Get segment IDs by looking up segment names in the segments data
+      const segmentIds = routeInfo.segments.map(segmentName => {
+        // Find the segment ID in the global segments data that was loaded
+        const segmentData = manager.getSegmentInfo(segmentName);
+        return segmentData?.properties?.id || null;
+      }).filter(id => id !== null);
+      
       return {
         addedSegments: segments,
         routeInfo: routeInfo,
-        segmentIds: routeInfo.segments.map(s => s.id).filter(id => id !== undefined)
+        segmentIds: segmentIds
       };
     
     case 'removePoint':
       const removedSegments = manager.removePoint(operation.data.index);
       const routeInfoAfterRemove = manager.getRouteInfo();
+      
+      // Get segment IDs by looking up segment names
+      const segmentIds = routeInfoAfterRemove.segments.map(segmentName => {
+        const segmentData = manager.getSegmentInfo(segmentName);
+        return segmentData?.properties?.id || null;
+      }).filter(id => id !== null);
+      
       return {
         removedSegments: removedSegments,
         routeInfo: routeInfoAfterRemove,
-        segmentIds: routeInfoAfterRemove.segments.map(s => s.id).filter(id => id !== undefined)
+        segmentIds: segmentIds
       };
     
     case 'clearRoute':
@@ -224,6 +254,7 @@ function executeOperation(manager, operation) {
 // Validate operation results against expected values
 function validateOperation(operation, result, segmentsData) {
   const { routeInfo, segmentIds } = result;
+  let hasFailures = false;
   
   // Validate segment count
   if (operation.expectedSegmentsCount !== undefined) {
@@ -231,6 +262,7 @@ function validateOperation(operation, result, segmentsData) {
       console.log(`  ✓ Segment count matches expected: ${operation.expectedSegmentsCount}`);
     } else {
       console.log(`  ❌ Segment count mismatch. Expected: ${operation.expectedSegmentsCount}, Got: ${routeInfo.segments.length}`);
+      hasFailures = true;
     }
   }
   
@@ -241,25 +273,37 @@ function validateOperation(operation, result, segmentsData) {
     if (segmentIds.length === expectedIds.length && expectedIds.every(id => segmentIds.includes(id))) {
       console.log(`  ✓ Segment IDs match expected: [${expectedIds.join(', ')}]`);
     } else {
-      console.log(`  ⚠️ Segment ID validation (expected: [${expectedIds.join(', ')}], got: [${segmentIds.join(', ')}])`);
+      console.log(`  ❌ Segment ID validation (expected: [${expectedIds.join(', ')}], got: [${segmentIds.join(', ')}])`);
+      hasFailures = true;
     }
   }
   
   console.log(`  Result: ${routeInfo.segments.length} segments, IDs: [${segmentIds.join(', ')}]`);
+  console.log(`  Segment names: [${routeInfo.segments.join(', ')}]`);
+  
+  return hasFailures;
 }
 
 // Validate final results against test summary
 function validateSummary(manager, summary) {
   const routeInfo = manager.getRouteInfo();
-  const segmentIds = routeInfo.segments.map(s => s.id).filter(id => id !== undefined);
+  
+  // Get segment IDs by looking up segment names
+  const segmentIds = routeInfo.segments.map(segmentName => {
+    const segmentData = manager.getSegmentInfo(segmentName);
+    return segmentData?.properties?.id || null;
+  }).filter(id => id !== null);
   
   console.log('\n--- Final Summary Validation ---');
+  
+  let hasFailures = false;
   
   if (summary.finalSegmentsCount !== undefined) {
     if (routeInfo.segments.length === summary.finalSegmentsCount) {
       console.log(`✓ Final segment count matches: ${summary.finalSegmentsCount}`);
     } else {
       console.log(`❌ Final segment count mismatch. Expected: ${summary.finalSegmentsCount}, Got: ${routeInfo.segments.length}`);
+      hasFailures = true;
     }
   }
   
@@ -268,9 +312,12 @@ function validateSummary(manager, summary) {
         summary.finalSegmentIds.every(id => segmentIds.includes(id))) {
       console.log(`✓ Final segment IDs match: [${summary.finalSegmentIds.join(', ')}]`);
     } else {
-      console.log(`⚠️ Final segment IDs (expected: [${summary.finalSegmentIds.join(', ')}], got: [${segmentIds.join(', ')}])`);
+      console.log(`❌ Final segment IDs (expected: [${summary.finalSegmentIds.join(', ')}], got: [${segmentIds.join(', ')}])`);
+      hasFailures = true;
     }
   }
+  
+  return hasFailures;
 }
 
 // Load test data (real files or mock data)
