@@ -10,6 +10,7 @@ let routePoints = []; // Array of points that define the route
 let pointMarkers = []; // Array of map markers for the points
 let isDraggingPoint = false;
 let draggedPointIndex = -1;
+let routeManager = null; // Instance of RouteManager
 
 const COLORS = {
   WARNING_ORANGE: '#ff9800',
@@ -141,19 +142,49 @@ function removeRoutePoint(index) {
 
   saveState();
 
-  // Remove the marker
-  if (pointMarkers[index]) {
-    pointMarkers[index].remove();
+  if (!routeManager) {
+    console.warn('RouteManager not initialized');
+    // Fallback to old logic if RouteManager is not available
+    // Remove the marker
+    if (pointMarkers[index]) {
+      pointMarkers[index].remove();
+    }
+
+    // Remove from arrays
+    routePoints.splice(index, 1);
+    pointMarkers.splice(index, 1);
+
+    // Update remaining markers with correct numbering
+    updatePointMarkers();
+    recalculateRoute();
+    clearRouteFromUrl();
+    return;
   }
 
-  // Remove from arrays
-  routePoints.splice(index, 1);
-  pointMarkers.splice(index, 1);
+  try {
+    // Use RouteManager to remove point and get updated segments
+    const updatedSegments = routeManager.removePoint(index);
+    selectedSegments = updatedSegments;
 
-  // Update remaining markers with new numbers
-  updatePointMarkers();
-  recalculateRoute();
-  clearRouteFromUrl();
+    // Remove the marker
+    if (pointMarkers[index]) {
+      pointMarkers[index].remove();
+    }
+
+    // Remove from local arrays
+    routePoints.splice(index, 1);
+    pointMarkers.splice(index, 1);
+
+    // Update remaining markers with correct numbering
+    updatePointMarkers();
+
+    // Update UI
+    updateSegmentStyles();
+    updateRouteListAndDescription();
+    clearRouteFromUrl();
+  } catch (error) {
+    console.error('Error removing route point:', error);
+  }
 }
 
 // Update all point markers with correct numbering
@@ -172,33 +203,11 @@ function clearRoutePoints() {
 
 // Find the closest segment to a point
 function findClosestSegment(point) {
-  let closestSegment = null;
-  let minDistance = Infinity;
-  const threshold = 100; // meters
-
-  routePolylines.forEach(polylineData => {
-    const coords = polylineData.coordinates;
-    for (let i = 0; i < coords.length - 1; i++) {
-      const segmentStart = coords[i];
-      const segmentEnd = coords[i + 1];
-
-      const closestPoint = getClosestPointOnLineSegment(point, segmentStart, segmentEnd);
-      const distance = getDistance(point, closestPoint);
-
-      if (distance < threshold && distance < minDistance) {
-        minDistance = distance;
-        closestSegment = {
-          name: polylineData.segmentName,
-          distance: distance,
-          pointOnSegment: closestPoint,
-          segmentStart: segmentStart,
-          segmentEnd: segmentEnd
-        };
-      }
-    }
-  });
-
-  return closestSegment;
+  if (!routeManager) {
+    console.warn('RouteManager not initialized, cannot find closest segment.');
+    return null;
+  }
+  return routeManager.findClosestSegment(point);
 }
 
 // Recalculate the route based on current points
@@ -210,355 +219,64 @@ function recalculateRoute() {
     return;
   }
 
-  if (routePoints.length === 1) {
-    // Single point - just find closest segment
-    const closestSegment = findClosestSegment(routePoints[0]);
-    selectedSegments = closestSegment ? [closestSegment.name] : [];
-    updateSegmentStyles();
-    updateRouteListAndDescription();
+  if (!routeManager) {
+    console.warn('RouteManager not initialized, cannot recalculate route.');
     return;
   }
 
-  // Find optimal route through all points
-  const newSelectedSegments = findOptimalRouteThoughPoints(routePoints);
-  selectedSegments = newSelectedSegments;
-  updateSegmentStyles();
-  updateRouteListAndDescription();
-}
-
-// Find optimal route that goes through all points in order
-function findOptimalRouteThoughPoints(points) {
-  if (points.length === 0) return [];
-  if (points.length === 1) {
-    const closestSegment = findClosestSegment(points[0]);
-    return closestSegment ? [closestSegment.name] : [];
+  try {
+    const newSelectedSegments = routeManager.recalculateRoute(routePoints);
+    selectedSegments = newSelectedSegments;
+    updateSegmentStyles();
+    updateRouteListAndDescription();
+  } catch (error) {
+    console.error('Error recalculating route:', error);
   }
-
-  const allSegments = [];
-  const usedSegments = new Set();
-
-  // For each consecutive pair of points, find the best path
-  for (let i = 0; i < points.length - 1; i++) {
-    const currentPoint = points[i];
-    const nextPoint = points[i + 1];
-
-    // Check if the next point is on the last segment of the current route
-    if (allSegments.length > 0) {
-      const lastSegmentName = allSegments[allSegments.length - 1];
-      const lastSegment = findClosestSegment(nextPoint);
-      
-      if (lastSegment && lastSegment.name === lastSegmentName) {
-        // Next point is on the last segment, no need to add more segments
-        continue;
-      }
-    }
-
-    // Determine the actual start point for pathfinding
-    let actualStartPoint;
-    
-    if (i === 0) {
-      // For the first point, use the point itself
-      actualStartPoint = currentPoint;
-    } else {
-      // For subsequent points, use the end of the current route
-      const currentRouteCoords = getCurrentRouteEndpoint(allSegments);
-      actualStartPoint = currentRouteCoords || currentPoint;
-    }
-
-    const pathSegments = findPathBetweenPointsOptimal(actualStartPoint, nextPoint, usedSegments);
-    
-    // Validate path continuity before adding
-    for (const segmentName of pathSegments) {
-      // Check if adding this segment would maintain continuity
-      const testSegments = [...allSegments, segmentName];
-      const testContinuity = checkSegmentsContinuity(testSegments);
-      
-      if (testContinuity.isContinuous || allSegments.length === 0) {
-        // Only avoid immediate duplicates (same segment right after itself)
-        if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
-          allSegments.push(segmentName);
-          usedSegments.add(segmentName);
-        }
-      }
-    }
-  }
-
-  return allSegments;
-}
-
-// Helper function to get the endpoint of the current route
-function getCurrentRouteEndpoint(segments) {
-  if (segments.length === 0) return null;
-  
-  // Get the ordered coordinates of the current route
-  const tempSelectedSegments = [...selectedSegments];
-  selectedSegments.length = 0;
-  selectedSegments.push(...segments);
-  
-  const orderedCoords = getOrderedCoordinates();
-  
-  // Restore original selected segments
-  selectedSegments.length = 0;
-  selectedSegments.push(...tempSelectedSegments);
-  
-  if (orderedCoords.length === 0) return null;
-  
-  // Return the last coordinate of the route
-  return orderedCoords[orderedCoords.length - 1];
 }
 
 // Find path between two points using breadth-first search on connected segments
 function findPathBetweenPoints(startPoint, endPoint) {
-  const startSegment = findClosestSegment(startPoint);
-  const endSegment = findClosestSegment(endPoint);
-
-  if (!startSegment || !endSegment) {
+  if (!routeManager) {
+    console.warn('RouteManager not initialized, cannot find path between points.');
     return [];
   }
-
-  if (startSegment.name === endSegment.name) {
-    // Both points are on the same segment
-    return [startSegment.name];
-  }
-
-  // Use BFS to find shortest path between segments
-  return findShortestSegmentPath(startSegment.name, endSegment.name);
+  return routeManager.findPathBetweenPoints(startPoint, endPoint);
 }
 
 // Enhanced pathfinding that considers used segments and tries to minimize backtracking
 function findPathBetweenPointsOptimal(startPoint, endPoint, usedSegments = new Set()) {
-  const startSegment = findClosestSegment(startPoint);
-  const endSegment = findClosestSegment(endPoint);
-
-  if (!startSegment || !endSegment) {
+  if (!routeManager) {
+    console.warn('RouteManager not initialized, cannot find optimal path between points.');
     return [];
   }
-
-  if (startSegment.name === endSegment.name) {
-    return [startSegment.name];
-  }
-
-  // Use enhanced BFS that considers segment usage and connectivity
-  return findShortestSegmentPathOptimal(startSegment.name, endSegment.name, usedSegments);
+  return routeManager.findPathBetweenPointsOptimal(startPoint, endPoint, usedSegments);
 }
 
 // Find shortest path between two segments using BFS
 function findShortestSegmentPath(startSegmentName, endSegmentName) {
-  if (startSegmentName === endSegmentName) {
-    return [startSegmentName];
+  if (!routeManager) {
+    console.warn('RouteManager not initialized, cannot find shortest segment path.');
+    return [];
   }
-
-  // Build adjacency map of connected segments (within 100m)
-  const adjacencyMap = buildSegmentAdjacencyMap();
-
-  // BFS to find shortest path
-  const queue = [[startSegmentName]];
-  const visited = new Set([startSegmentName]);
-
-  while (queue.length > 0) {
-    const currentPath = queue.shift();
-    const currentSegment = currentPath[currentPath.length - 1];
-
-    // Check all connected segments
-    const connectedSegments = adjacencyMap.get(currentSegment) || [];
-    
-    for (const neighborSegment of connectedSegments) {
-      if (neighborSegment === endSegmentName) {
-        // Found the target segment
-        return [...currentPath, neighborSegment];
-      }
-
-      if (!visited.has(neighborSegment)) {
-        visited.add(neighborSegment);
-        queue.push([...currentPath, neighborSegment]);
-      }
-    }
-  }
-
-  // No path found, return direct connection
-  return [startSegmentName, endSegmentName];
+  return routeManager.findShortestSegmentPath(startSegmentName, endSegmentName);
 }
 
 // Enhanced pathfinding that considers already used segments and prefers unused routes
 function findShortestSegmentPathOptimal(startSegmentName, endSegmentName, usedSegments = new Set()) {
-  if (startSegmentName === endSegmentName) {
-    return [startSegmentName];
+  if (!routeManager) {
+    console.warn('RouteManager not initialized, cannot find optimal shortest segment path.');
+    return [];
   }
-
-  const adjacencyMap = buildSegmentAdjacencyMap();
-
-  // Priority queue: [path, score] where lower score is better
-  // Score considers: path length + penalty for reusing segments
-  const queue = [[startSegmentName]];
-  const visited = new Set([startSegmentName]);
-  const pathScores = new Map();
-  pathScores.set(startSegmentName, 0);
-
-  let bestPath = null;
-  let bestScore = Infinity;
-
-  while (queue.length > 0) {
-    // Sort queue by score (simple approach, could use proper priority queue for better performance)
-    queue.sort((a, b) => {
-      const scoreA = calculatePathScore(a, usedSegments);
-      const scoreB = calculatePathScore(b, usedSegments);
-      return scoreA - scoreB;
-    });
-
-    const currentPath = queue.shift();
-    const currentSegment = currentPath[currentPath.length - 1];
-    const currentScore = calculatePathScore(currentPath, usedSegments);
-
-    // If we've found a path that's clearly worse than our best, skip it
-    if (bestPath && currentScore > bestScore + 2) {
-      continue;
-    }
-
-    const connectedSegments = adjacencyMap.get(currentSegment) || [];
-    
-    for (const neighborSegment of connectedSegments) {
-      // Avoid immediate backtracking (going back to the previous segment)
-      if (currentPath.length > 1 && neighborSegment === currentPath[currentPath.length - 2]) {
-        continue;
-      }
-
-      const newPath = [...currentPath, neighborSegment];
-      const newScore = calculatePathScore(newPath, usedSegments);
-
-      if (neighborSegment === endSegmentName) {
-        // Found target - check if this is better than current best
-        if (!bestPath || newScore < bestScore) {
-          bestPath = newPath;
-          bestScore = newScore;
-        }
-        continue;
-      }
-
-      // Only continue exploring if this path hasn't been visited with a better score
-      const existingScore = pathScores.get(neighborSegment);
-      if (!visited.has(neighborSegment) || (existingScore && newScore < existingScore)) {
-        visited.add(neighborSegment);
-        pathScores.set(neighborSegment, newScore);
-        queue.push(newPath);
-      }
-    }
-
-    // Limit search depth to prevent infinite loops
-    if (currentPath.length > 10) {
-      break;
-    }
-  }
-
-  // Return best path found, or fallback to direct connection
-  return bestPath || [startSegmentName, endSegmentName];
-}
-
-// Calculate a score for a path, considering only length
-function calculatePathScore(path, usedSegments) {
-  let score = path.length; // Base score is path length only
-  
-  // No penalties for reusing segments or reverse direction
-  return score;
-}
-
-// Build adjacency map of segments connected within 100 meters
-function buildSegmentAdjacencyMap() {
-  const adjacencyMap = new Map();
-  const connectionThreshold = 100; // 100 meters
-
-  // Initialize adjacency map
-  routePolylines.forEach(polyline => {
-    adjacencyMap.set(polyline.segmentName, []);
-  });
-
-  // Find connections between segments
-  for (let i = 0; i < routePolylines.length; i++) {
-    for (let j = i + 1; j < routePolylines.length; j++) {
-      const segment1 = routePolylines[i];
-      const segment2 = routePolylines[j];
-
-      if (areSegmentsConnected(segment1, segment2, connectionThreshold)) {
-        adjacencyMap.get(segment1.segmentName).push(segment2.segmentName);
-        adjacencyMap.get(segment2.segmentName).push(segment1.segmentName);
-      }
-    }
-  }
-
-  return adjacencyMap;
-}
-
-// Check if two segments are connected within threshold distance
-function areSegmentsConnected(segment1, segment2, threshold) {
-  const coords1 = segment1.coordinates;
-  const coords2 = segment2.coordinates;
-
-  if (coords1.length === 0 || coords2.length === 0) {
-    return false;
-  }
-
-  // Check all combinations of endpoints
-  const endpoints1 = [coords1[0], coords1[coords1.length - 1]];
-  const endpoints2 = [coords2[0], coords2[coords2.length - 1]];
-
-  for (const point1 of endpoints1) {
-    for (const point2 of endpoints2) {
-      if (getDistance(point1, point2) <= threshold) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  return routeManager.findShortestSegmentPathOptimal(startSegmentName, endSegmentName, usedSegments);
 }
 
 // Helper function to check continuity of a list of segments
 function checkSegmentsContinuity(segments) {
-  if (segments.length <= 1) {
+  if (!routeManager) {
+    console.warn('RouteManager not initialized, cannot check segment continuity.');
     return { isContinuous: true, brokenSegmentIndex: -1 };
   }
-
-  const tolerance = 100; // 100 meters tolerance
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const currentSegmentName = segments[i];
-    const nextSegmentName = segments[i + 1];
-
-    const currentPolyline = routePolylines.find(p => p.segmentName === currentSegmentName);
-    const nextPolyline = routePolylines.find(p => p.segmentName === nextSegmentName);
-
-    if (!currentPolyline || !nextPolyline) {
-      continue;
-    }
-
-    // Check connectivity between segments
-    const currentCoords = currentPolyline.coordinates;
-    const nextCoords = nextPolyline.coordinates;
-
-    if (currentCoords.length === 0 || nextCoords.length === 0) {
-      return { isContinuous: false, brokenSegmentIndex: i };
-    }
-
-    // Check all endpoint combinations to find best connection
-    const currentStart = currentCoords[0];
-    const currentEnd = currentCoords[currentCoords.length - 1];
-    const nextStart = nextCoords[0];
-    const nextEnd = nextCoords[nextCoords.length - 1];
-
-    const distances = [
-      getDistance(currentEnd, nextStart),   // normal forward connection
-      getDistance(currentEnd, nextEnd),     // current forward, next reverse
-      getDistance(currentStart, nextStart), // current reverse, next forward
-      getDistance(currentStart, nextEnd)    // both reverse
-    ];
-
-    const minDistance = Math.min(...distances);
-
-    if (minDistance > tolerance) {
-      return { isContinuous: false, brokenSegmentIndex: i };
-    }
-  }
-
-  return { isContinuous: true, brokenSegmentIndex: -1 };
+  return routeManager.checkSegmentsContinuity(segments);
 }
 
 function clearRouteFromUrl() {
@@ -836,7 +554,7 @@ function initMap() {
           if (distance < threshold && distance < minDistance) {
             minDistance = distance;
             closestSegment = polylineData;
-            
+
             // Calculate the closest point on this segment
             const segmentStart = coords[i];
             const segmentEnd = coords[i + 1];
@@ -1549,6 +1267,10 @@ function parseGeoJSON(geoJsonData) {
     // Pre-calculate all segment metrics for fast access
     preCalculateSegmentMetrics();
 
+    // Initialize RouteManager with parsed data
+    routeManager = new RouteManager(segmentsData, routePolylines);
+    console.log('RouteManager initialized.');
+
     // Keep map at current position instead of auto-fitting to all segments
     // if (!bounds.isEmpty()) {
     //   map.fitBounds(bounds, { padding: 20 });
@@ -1970,93 +1692,6 @@ function focusOnSegment(segmentName) {
   const coords = polyline.coordinates;
   if (coords.length === 0) return;
 
-  // Calculate bounds for the segment
-  let minLat = coords[0].lat, maxLat = coords[0].lat;
-  let minLng = coords[0].lng, maxLng = coords[0].lng;
-
-  coords.forEach(coord => {
-    minLat = Math.min(minLat, coord.lat);
-    maxLat = Math.max(maxLat, coord.lat);
-    minLng = Math.min(minLng, coord.lng);
-    maxLng = Math.max(maxLng, coord.lng);
-  });
-
-  // Add some padding around the segment
-  const latPadding = (maxLat - minLat) * 0.2 || 0.01;
-  const lngPadding = (maxLng - minLng) * 0.2 || 0.01;
-
-  const bounds = new mapboxgl.LngLatBounds(
-    [minLng - lngPadding, minLat - latPadding],
-    [maxLng + lngPadding, maxLat + latPadding]
-  );
-
-  map.fitBounds(bounds, {
-    padding: 50,
-    duration: 1000,
-    maxZoom: MIN_ZOOM_LEVEL
-  });
-
-  // Temporarily highlight the segment
-  const layerId = polyline.layerId;
-  const originalColor = map.getPaintProperty(layerId, 'line-color');
-  const originalWidth = map.getPaintProperty(layerId, 'line-width');
-
-  map.setPaintProperty(layerId, 'line-color', '#ff0000');
-  map.setPaintProperty(layerId, 'line-width', originalWidth + 3);
-
-  // Reset after 2 seconds
-  setTimeout(() => {
-    if (selectedSegments.includes(segmentName)) {
-      map.setPaintProperty(layerId, 'line-color', COLORS.SEGMENT_SELECTED);
-      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight + 1);
-    } else {
-      map.setPaintProperty(layerId, 'line-color', polyline.originalStyle.color);
-      map.setPaintProperty(layerId, 'line-width', polyline.originalStyle.weight);
-    }
-  }, 2000);
-}
-
-// Function to focus map on the entire selected route
-function focusMapOnRoute() {
-  if (selectedSegments.length === 0) {
-    return;
-  }
-
-  // Calculate bounds for all selected segments
-  let bounds = new mapboxgl.LngLatBounds();
-  let hasCoordinates = false;
-
-  selectedSegments.forEach(segmentName => {
-    const polyline = routePolylines.find(p => p.segmentName === segmentName);
-    if (polyline && polyline.coordinates.length > 0) {
-      polyline.coordinates.forEach(coord => {
-        bounds.extend([coord.lng, coord.lat]);
-        hasCoordinates = true;
-      });
-    }
-  });
-
-  if (hasCoordinates && !bounds.isEmpty()) {
-    // Zoom to fit the route bounds with padding
-    map.fitBounds(bounds, {
-      padding: 80,
-      duration: 1500,
-      maxZoom: 14 // Don't zoom in too much for long routes
-    });
-  }
-}
-
-// Function to focus map on a segment by name and highlight it briefly
-function focusOnSegmentByName(segmentName) {
-  const polyline = routePolylines.find(p => p.segmentName === segmentName);
-  if (!polyline) {
-    console.warn(`Segment "${segmentName}" not found`);
-    return;
-  }
-
-  const coords = polyline.coordinates;
-  if (coords.length === 0) return;
-
   returnToStartingPosition();
 
   // Show segment details in display
@@ -2150,6 +1785,36 @@ function focusOnSegmentByName(segmentName) {
       }
     }, 250); // 250ms intervals = 4 blinks in 1 second
   }, 200);
+}
+
+// Function to focus map on the entire selected route
+function focusMapOnRoute() {
+  if (selectedSegments.length === 0) {
+    return;
+  }
+
+  // Calculate bounds for all selected segments
+  let bounds = new mapboxgl.LngLatBounds();
+  let hasCoordinates = false;
+
+  selectedSegments.forEach(segmentName => {
+    const polyline = routePolylines.find(p => p.segmentName === segmentName);
+    if (polyline && polyline.coordinates.length > 0) {
+      polyline.coordinates.forEach(coord => {
+        bounds.extend([coord.lng, coord.lat]);
+        hasCoordinates = true;
+      });
+    }
+  });
+
+  if (hasCoordinates && !bounds.isEmpty()) {
+    // Zoom to fit the route bounds with padding
+    map.fitBounds(bounds, {
+      padding: 80,
+      duration: 1500,
+      maxZoom: 14 // Don't zoom in too much for long routes
+    });
+  }
 }
 
 // Function to load route from encoding and select segments (with undo stack management)
@@ -3223,3 +2888,407 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 const ROUTE_VERSION = 2;
+
+// RouteManager Class (for refactoring route logic)
+class RouteManager {
+  constructor(segmentsData, routePolylines) {
+    this.segmentsData = segmentsData;
+    this.routePolylines = routePolylines;
+    this.adjacencyMap = this.buildSegmentAdjacencyMap();
+  }
+
+  // Load segments and prepare internal data structures
+  load(segmentsData, routePolylines) {
+    this.segmentsData = segmentsData;
+    this.routePolylines = routePolylines;
+    this.adjacencyMap = this.buildSegmentAdjacencyMap();
+    console.log('RouteManager loaded with', Object.keys(this.segmentsData).length, 'segments and', this.routePolylines.length, 'polylines.');
+  }
+
+  // Add a point to the route and return the updated list of selected segments
+  addPoint(point) {
+    const startSegment = this.findClosestSegment(point);
+    if (!startSegment) {
+      return []; // Point not close to any segment
+    }
+
+    // If no segments are selected, just select the segment the point is closest to
+    if (selectedSegments.length === 0) {
+      return [startSegment.name];
+    }
+
+    // If the point is on the current last segment, do nothing.
+    // Otherwise, find the best path to the new segment.
+    const lastSelectedSegmentName = selectedSegments[selectedSegments.length - 1];
+    if (lastSelectedSegmentName === startSegment.name) {
+      return selectedSegments; // Point is on the last segment
+    }
+
+    const pathSegments = this.findPathBetweenPointsOptimal(
+      { lat: point.lat, lng: point.lng }, // The new point
+      null, // No specific end point needed, just the segment it's on
+      new Set(selectedSegments) // Pass current selected segments as used
+    );
+
+    // Append the new path segments to the existing route
+    // Avoid immediate duplicates
+    let updatedSegments = [...selectedSegments];
+    for (const segmentName of pathSegments) {
+      if (updatedSegments.length === 0 || updatedSegments[updatedSegments.length - 1] !== segmentName) {
+        updatedSegments.push(segmentName);
+      }
+    }
+    return updatedSegments;
+  }
+
+  // Remove a point from the route and return the updated list of selected segments
+  removePoint(index) {
+    if (index < 0 || index >= routePoints.length) {
+      console.error("Invalid index for removePoint");
+      return selectedSegments; // Return current segments if index is invalid
+    }
+
+    // If no segments are selected, return empty
+    if (selectedSegments.length === 0) {
+      return [];
+    }
+
+    // If removing the only point, clear all segments
+    if (routePoints.length === 1) {
+      return [];
+    }
+
+    // Re-calculate route based on remaining points
+    const remainingPoints = routePoints.filter((_, i) => i !== index);
+    if (remainingPoints.length === 0) {
+      return [];
+    }
+
+    // Find the closest segment for each remaining point and then recalculate the path
+    const recalculatePoints = remainingPoints.map(p => ({ lat: p.lat, lng: p.lng }));
+    return this.recalculateRoute(recalculatePoints);
+  }
+
+  // Hover functionality (e.g., highlight segment on hover) - could be expanded
+  hover(segmentName) {
+    // Logic to highlight segment on map
+  }
+
+  // Recalculate the route based on a list of points
+  recalculateRoute(points) {
+    if (points.length === 0) return [];
+    if (points.length === 1) {
+      const closestSegment = this.findClosestSegment(points[0]);
+      return closestSegment ? [closestSegment.name] : [];
+    }
+
+    const allSegments = [];
+    const usedSegments = new Set();
+
+    // For each consecutive pair of points, find the best path
+    for (let i = 0; i < points.length - 1; i++) {
+      const currentPoint = points[i];
+      const nextPoint = points[i + 1];
+
+      // Check if the next point is on the last segment of the current route
+      if (allSegments.length > 0) {
+        const lastSegmentName = allSegments[allSegments.length - 1];
+        const lastSegment = this.findClosestSegment(nextPoint);
+
+        if (lastSegment && lastSegment.name === lastSegmentName) {
+          // Next point is on the last segment, no need to add more segments
+          continue;
+        }
+      }
+
+      // Determine the actual start point for pathfinding
+      let actualStartPoint;
+
+      if (i === 0) {
+        // For the first point, use the point itself
+        actualStartPoint = currentPoint;
+      } else {
+        // For subsequent points, use the end of the current route
+        const currentRouteCoords = this.getCurrentRouteEndpoint(allSegments);
+        actualStartPoint = currentRouteCoords || currentPoint;
+      }
+
+      const pathSegments = this.findPathBetweenPointsOptimal(actualStartPoint, nextPoint, usedSegments);
+
+      // Validate path continuity before adding
+      for (const segmentName of pathSegments) {
+        // Check if adding this segment would maintain continuity
+        const testSegments = [...allSegments, segmentName];
+        const testContinuity = this.checkSegmentsContinuity(testSegments);
+
+        if (testContinuity.isContinuous || allSegments.length === 0) {
+          // Only avoid immediate duplicates (same segment right after itself)
+          if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
+            allSegments.push(segmentName);
+            usedSegments.add(segmentName);
+          }
+        }
+      }
+    }
+
+    return allSegments;
+  }
+
+  // Find the closest segment to a given point
+  findClosestSegment(point) {
+    let closestSegment = null;
+    let minDistance = Infinity;
+    const threshold = 100; // meters
+
+    for (const polylineData of this.routePolylines) {
+      const coords = polylineData.coordinates;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const segmentStart = coords[i];
+        const segmentEnd = coords[i + 1];
+
+        const closestPoint = getClosestPointOnLineSegment(point, segmentStart, segmentEnd);
+        const distance = getDistance(point, closestPoint);
+
+        if (distance < threshold && distance < minDistance) {
+          minDistance = distance;
+          closestSegment = {
+            name: polylineData.segmentName,
+            distance: distance,
+            pointOnSegment: closestPoint,
+            segmentStart: segmentStart,
+            segmentEnd: segmentEnd
+          };
+        }
+      }
+    }
+    return closestSegment;
+  }
+
+  // Helper to get the end point of the current route based on selected segments
+  getCurrentRouteEndpoint(segments) {
+    if (segments.length === 0) return null;
+
+    // Temporarily use the provided segments to get ordered coordinates
+    const originalSelectedSegments = [...selectedSegments];
+    selectedSegments.length = 0;
+    selectedSegments.push(...segments);
+
+    const orderedCoords = getOrderedCoordinates();
+
+    // Restore original selected segments
+    selectedSegments.length = 0;
+    selectedSegments.push(...originalSelectedSegments);
+
+    if (orderedCoords.length === 0) return null;
+    return orderedCoords[orderedCoords.length - 1];
+  }
+
+  // Find path between two points, considering segment connectivity
+  findPathBetweenPoints(startPoint, endPoint) {
+    const startSegment = this.findClosestSegment(startPoint);
+    const endSegment = this.findClosestSegment(endPoint);
+
+    if (!startSegment || !endSegment) {
+      return [];
+    }
+
+    if (startSegment.name === endSegment.name) {
+      return [startSegment.name]; // Both points on the same segment
+    }
+
+    return this.findShortestSegmentPath(startSegment.name, endSegment.name);
+  }
+
+  // Find path between two points, optimally considering used segments
+  findPathBetweenPointsOptimal(startPoint, endPoint, usedSegments = new Set()) {
+    const startSegment = this.findClosestSegment(startPoint);
+    const endSegment = this.findClosestSegment(endPoint);
+
+    if (!startSegment || !endSegment) {
+      return [];
+    }
+
+    if (startSegment.name === endSegment.name) {
+      return [startSegment.name];
+    }
+
+    return this.findShortestSegmentPathOptimal(startSegment.name, endSegment.name, usedSegments);
+  }
+
+  // Find shortest path between two segments using BFS
+  findShortestSegmentPath(startSegmentName, endSegmentName) {
+    if (startSegmentName === endSegmentName) {
+      return [startSegmentName];
+    }
+
+    const queue = [[startSegmentName]];
+    const visited = new Set([startSegmentName]);
+
+    while (queue.length > 0) {
+      const currentPath = queue.shift();
+      const currentSegment = currentPath[currentPath.length - 1];
+
+      const connectedSegments = this.adjacencyMap.get(currentSegment) || [];
+
+      for (const neighborSegment of connectedSegments) {
+        if (neighborSegment === endSegmentName) {
+          return [...currentPath, neighborSegment];
+        }
+
+        if (!visited.has(neighborSegment)) {
+          visited.add(neighborSegment);
+          queue.push([...currentPath, neighborSegment]);
+        }
+      }
+    }
+    return [startSegmentName, endSegmentName]; // Fallback if no path found
+  }
+
+  // Find shortest path between two segments, optimally considering used segments
+  findShortestSegmentPathOptimal(startSegmentName, endSegmentName, usedSegments = new Set()) {
+    if (startSegmentName === endSegmentName) {
+      return [startSegmentName];
+    }
+
+    const queue = [[startSegmentName]];
+    const visited = new Set([startSegmentName]);
+    const pathScores = new Map();
+    pathScores.set(startSegmentName, 0);
+
+    let bestPath = null;
+    let bestScore = Infinity;
+
+    while (queue.length > 0) {
+      queue.sort((a, b) => {
+        const scoreA = this.calculatePathScore(a, usedSegments);
+        const scoreB = this.calculatePathScore(b, usedSegments);
+        return scoreA - scoreB;
+      });
+
+      const currentPath = queue.shift();
+      const currentSegment = currentPath[currentPath.length - 1];
+      const currentScore = this.calculatePathScore(currentPath, usedSegments);
+
+      if (bestPath && currentScore > bestScore + 2) continue;
+
+      const connectedSegments = this.adjacencyMap.get(currentSegment) || [];
+
+      for (const neighborSegment of connectedSegments) {
+        if (currentPath.length > 1 && neighborSegment === currentPath[currentPath.length - 2]) continue;
+
+        const newPath = [...currentPath, neighborSegment];
+        const newScore = this.calculatePathScore(newPath, usedSegments);
+
+        if (neighborSegment === endSegmentName) {
+          if (!bestPath || newScore < bestScore) {
+            bestPath = newPath;
+            bestScore = newScore;
+          }
+          continue;
+        }
+
+        const existingScore = pathScores.get(neighborSegment);
+        if (!visited.has(neighborSegment) || (existingScore && newScore < existingScore)) {
+          visited.add(neighborSegment);
+          pathScores.set(neighborSegment, newScore);
+          queue.push(newPath);
+        }
+      }
+
+      if (currentPath.length > 10) break;
+    }
+    return bestPath || [startSegmentName, endSegmentName];
+  }
+
+  // Score calculation (currently only by length)
+  calculatePathScore(path, usedSegments) {
+    return path.length; // Penalties can be added here
+  }
+
+  // Build adjacency map of segments connected within 100 meters
+  buildSegmentAdjacencyMap() {
+    const adjacencyMap = new Map();
+    const connectionThreshold = 100; // 100 meters
+
+    this.routePolylines.forEach(polyline => adjacencyMap.set(polyline.segmentName, []));
+
+    for (let i = 0; i < this.routePolylines.length; i++) {
+      for (let j = i + 1; j < this.routePolylines.length; j++) {
+        const segment1 = this.routePolylines[i];
+        const segment2 = this.routePolylines[j];
+
+        if (this.areSegmentsConnected(segment1, segment2, connectionThreshold)) {
+          adjacencyMap.get(segment1.segmentName).push(segment2.segmentName);
+          adjacencyMap.get(segment2.segmentName).push(segment1.segmentName);
+        }
+      }
+    }
+    return adjacencyMap;
+  }
+
+  // Check if two segments are connected within threshold distance
+  areSegmentsConnected(segment1, segment2, threshold) {
+    const coords1 = segment1.coordinates;
+    const coords2 = segment2.coordinates;
+
+    if (coords1.length === 0 || coords2.length === 0) return false;
+
+    const endpoints1 = [coords1[0], coords1[coords1.length - 1]];
+    const endpoints2 = [coords2[0], coords2[coords2.length - 1]];
+
+    for (const point1 of endpoints1) {
+      for (const point2 of endpoints2) {
+        if (getDistance(point1, point2) <= threshold) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Helper function to check continuity of a list of segments
+  checkSegmentsContinuity(segments) {
+    if (segments.length <= 1) {
+      return { isContinuous: true, brokenSegmentIndex: -1 };
+    }
+
+    const tolerance = 100; // 100 meters tolerance
+    const orderedCoords = getOrderedCoordinates(); // Assumes selectedSegments is up-to-date
+
+    if (orderedCoords.length === 0) {
+      return { isContinuous: true, brokenSegmentIndex: -1 };
+    }
+
+    let coordIndex = 0;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const currentSegmentName = segments[i];
+      const nextSegmentName = segments[i + 1];
+
+      const currentPolyline = this.routePolylines.find(p => p.segmentName === currentSegmentName);
+      const nextPolyline = this.routePolylines.find(p => p.segmentName === nextSegmentName);
+
+      if (!currentPolyline || !nextPolyline) continue;
+
+      const currentSegmentLength = currentPolyline.coordinates.length;
+      const currentSegmentEndIndex = coordIndex + currentSegmentLength - 1;
+
+      if (currentSegmentEndIndex >= orderedCoords.length - 1) {
+        return { isContinuous: false, brokenSegmentIndex: i };
+      }
+
+      const currentEnd = orderedCoords[currentSegmentEndIndex];
+      const nextStart = orderedCoords[currentSegmentEndIndex + 1];
+      const distance = getDistance(currentEnd, nextStart);
+
+      if (distance > tolerance) {
+        return { isContinuous: false, brokenSegmentIndex: i };
+      }
+
+      coordIndex += currentSegmentLength;
+      if (distance <= 50) { // Well connected segments
+        coordIndex -= 1;
+      }
+    }
+    return { isContinuous: true, brokenSegmentIndex: -1 };
+  }
+}
