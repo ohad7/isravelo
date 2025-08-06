@@ -4,6 +4,12 @@
  * This demonstrates how to test the RouteManager in isolation
  */
 
+// Import RouteManager for Node.js environment
+let RouteManager;
+if (typeof module !== 'undefined' && module.exports) {
+  RouteManager = require('./route-manager.js');
+}
+
 // Mock data for testing
 const mockGeoJsonData = {
   "type": "FeatureCollection",
