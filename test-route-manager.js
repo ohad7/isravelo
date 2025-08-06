@@ -323,7 +323,8 @@ function validateSummary(manager, summary) {
     const actualIds = segmentIds;
 
     // Check if arrays match exactly (same length and same elements in same order)
-    const arraysMatch = actualIds.length === expectedIds.length &&
+    const arraysMatch =
+      actualIds.length === expectedIds.length &&
       actualIds.every((id, index) => id === expectedIds[index]);
 
     if (arraysMatch) {
@@ -414,14 +415,22 @@ async function runAllTestsWithSummary() {
     await testRouteManager();
     testResults.push({ name: "RouteManager Basic Tests", status: "PASS" });
   } catch (error) {
-    testResults.push({ name: "RouteManager Basic Tests", status: "FAIL", error: error.message });
+    testResults.push({
+      name: "RouteManager Basic Tests",
+      status: "FAIL",
+      error: error.message,
+    });
   }
 
   try {
     await testErrorHandling();
     testResults.push({ name: "Error Handling Tests", status: "PASS" });
   } catch (error) {
-    testResults.push({ name: "Error Handling Tests", status: "FAIL", error: error.message });
+    testResults.push({
+      name: "Error Handling Tests",
+      status: "FAIL",
+      error: error.message,
+    });
   }
 
   // Run JSON test cases
@@ -432,7 +441,7 @@ async function runAllTestsWithSummary() {
     { name: "test4.json", func: testUserTestCase4 },
     { name: "test5.json", func: testUserTestCase5 },
     { name: "test6.json", func: testUserTestCase6 },
-    { name: "test7.json", func: testUserTestCase7 }
+    { name: "test7.json", func: testUserTestCase7 },
   ];
 
   for (const test of jsonTests) {
@@ -440,7 +449,7 @@ async function runAllTestsWithSummary() {
       // Capture console output to detect failures
       const originalConsoleLog = console.log;
       let consoleOutput = "";
-      
+
       console.log = (...args) => {
         const message = args.join(" ");
         consoleOutput += message + "\n";
@@ -448,23 +457,24 @@ async function runAllTestsWithSummary() {
       };
 
       await test.func();
-      
+
       // Restore console.log
       console.log = originalConsoleLog;
 
       // Check if there were any failures in the output
-      const hasFailed = consoleOutput.includes("❌") || consoleOutput.includes("validation failures");
-      
+      const hasFailed =
+        consoleOutput.includes("❌") ||
+        consoleOutput.includes("validation failures");
+
       testResults.push({
         name: test.name,
-        status: hasFailed ? "FAIL" : "PASS"
+        status: hasFailed ? "FAIL" : "PASS",
       });
-      
     } catch (error) {
       testResults.push({
         name: test.name,
         status: "FAIL",
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -477,14 +487,14 @@ async function runAllTestsWithSummary() {
   let passCount = 0;
   let failCount = 0;
 
-  testResults.forEach(result => {
+  testResults.forEach((result) => {
     const status = result.status === "PASS" ? "✅ PASS" : "❌ FAIL";
     console.log(`${result.name.padEnd(35)} ${status}`);
-    
+
     if (result.error) {
       console.log(`    Error: ${result.error}`);
     }
-    
+
     if (result.status === "PASS") {
       passCount++;
     } else {
@@ -496,7 +506,9 @@ async function runAllTestsWithSummary() {
   console.log(`Total Tests: ${testResults.length}`);
   console.log(`Passed: ${passCount}`);
   console.log(`Failed: ${failCount}`);
-  console.log(`Success Rate: ${((passCount / testResults.length) * 100).toFixed(1)}%`);
+  console.log(
+    `Success Rate: ${((passCount / testResults.length) * 100).toFixed(1)}%`,
+  );
   console.log("=".repeat(60));
 
   return testResults;
