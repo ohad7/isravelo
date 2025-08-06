@@ -402,6 +402,10 @@ async function testUserTestCase5() {
   await runTestFromJson("tests/test5.json");
 }
 
+async function testUserTestCase6() {
+  await runTestFromJson("tests/test6.json");
+}
+
 // Run tests if in Node.js environment
 if (typeof module !== "undefined" && module.exports) {
   // Export test functions for use in test runners
@@ -413,6 +417,7 @@ if (typeof module !== "undefined" && module.exports) {
     testUserTestCase3,
     testUserTestCase4,
     testUserTestCase5,
+    testUserTestCase6,
     runTestFromJson,
     mockGeoJsonData,
     mockSegmentsData,
@@ -428,6 +433,7 @@ if (typeof module !== "undefined" && module.exports) {
         testUserTestCase3();
         testUserTestCase4();
         testUserTestCase5();
+        testUserTestCase6();
       });
   }
 }
