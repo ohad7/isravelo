@@ -405,27 +405,26 @@ class RouteManager {
 
       const segmentCoords = segmentData.coordinates;
 
-      // Determine the actual endpoint of the current route
-      const routeEndpoint = this._getCurrentRouteEndpoint(currentRouteSegments);
-      if (!routeEndpoint) return [];
-
-      // Get positions along the segment
-      const targetPointPosition = this._getPositionAlongSegment(targetPoint, segmentCoords);
-      const currentRouteEndPosition = this._getPositionAlongSegment(routeEndpoint, segmentCoords);
+      // Determine if the last segment is being used in reverse in the current route
+      const isLastSegmentReversed = this._isSegmentReversedInRoute(lastSegmentOfRoute, currentRouteSegments);
 
       // To determine if we're moving forward, compare the current click position
-      // with the previous click position on this segment
+      // with the previous click position on this segment, accounting for directionality
       let isMovingForward = true; // default assumption
 
       if (this.routePoints.length >= 2) {
         // Get the previous point (second to last) 
         const previousPoint = this.routePoints[this.routePoints.length - 2];
-        const previousPointPosition = this._getPositionAlongSegment(previousPoint, segmentCoords);
+        
+        // Get positions accounting for the segment's current directionality in the route
+        const previousPointPosition = this._getPositionAlongSegment(previousPoint, segmentCoords, isLastSegmentReversed);
+        const targetPointPosition = this._getPositionAlongSegment(targetPoint, segmentCoords, isLastSegmentReversed);
 
         // Compare positions: if current point is further along the segment than previous point,
         // we're moving forward. If it's closer to the start, we're moving backward.
         isMovingForward = targetPointPosition > previousPointPosition;
 
+        console.log("Segment reversed in route:", isLastSegmentReversed);
         console.log("Previous point position:", previousPointPosition);
         console.log("Target point position:", targetPointPosition);
         console.log("Is moving forward:", isMovingForward);
@@ -590,6 +589,39 @@ class RouteManager {
     // This is a complex check and might require more context about how `potentialPath` is generated.
     // For now, a simple check: if the path starts with the same segment, it's potentially a reversal.
     return potentialPath[0] === lastSegmentOfRoute;
+  }
+
+  _isSegmentReversedInRoute(segmentName, routeSegments) {
+    const segmentIndex = routeSegments.lastIndexOf(segmentName);
+    if (segmentIndex === -1 || segmentIndex === 0) return false;
+
+    // Get the segment and its predecessor in the route
+    const segment = this.segments.get(segmentName);
+    const prevSegmentName = routeSegments[segmentIndex - 1];
+    const prevSegment = this.segments.get(prevSegmentName);
+
+    if (!segment || !prevSegment) return false;
+
+    const segmentStart = segment.coordinates[0];
+    const segmentEnd = segment.coordinates[segment.coordinates.length - 1];
+    const prevSegmentStart = prevSegment.coordinates[0];
+    const prevSegmentEnd = prevSegment.coordinates[prevSegment.coordinates.length - 1];
+
+    // Determine how the previous segment connects to this segment
+    const distanceFromPrevEndToSegmentStart = this._getDistance(prevSegmentEnd, segmentStart);
+    const distanceFromPrevEndToSegmentEnd = this._getDistance(prevSegmentEnd, segmentEnd);
+    const distanceFromPrevStartToSegmentStart = this._getDistance(prevSegmentStart, segmentStart);
+    const distanceFromPrevStartToSegmentEnd = this._getDistance(prevSegmentStart, segmentEnd);
+
+    const minDistance = Math.min(
+      distanceFromPrevEndToSegmentStart,
+      distanceFromPrevEndToSegmentEnd,
+      distanceFromPrevStartToSegmentStart,
+      distanceFromPrevStartToSegmentEnd
+    );
+
+    // If the closest connection is to the end of the current segment, it's reversed
+    return minDistance === distanceFromPrevEndToSegmentEnd || minDistance === distanceFromPrevStartToSegmentEnd;
   }
 
 
@@ -1124,14 +1156,17 @@ class RouteManager {
     return true; // For different segments, assume direction is correct
   }
 
-  _getPositionAlongSegment(point, segmentCoords) {
+  _getPositionAlongSegment(point, segmentCoords, isReversed = false) {
     let minDistance = Infinity;
     let bestPosition = 0;
     let accumulatedDistance = 0;
 
-    for (let i = 0; i < segmentCoords.length - 1; i++) {
-      const segmentStart = segmentCoords[i];
-      const segmentEnd = segmentCoords[i + 1];
+    // If segment is reversed, we need to calculate position from the end
+    const coords = isReversed ? [...segmentCoords].reverse() : segmentCoords;
+
+    for (let i = 0; i < coords.length - 1; i++) {
+      const segmentStart = coords[i];
+      const segmentEnd = coords[i + 1];
       const closestPoint = this._getClosestPointOnLineSegment(
         point,
         segmentStart,
