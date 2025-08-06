@@ -129,6 +129,37 @@ class RouteManager {
   }
 
   /**
+   * Recalculate route based on current points
+   * @param {Array} points - Array of route points
+   * @returns {Array} Updated list of selected segments
+   */
+  recalculateRoute(points) {
+    this.routePoints = [...points];
+    this._recalculateRoute();
+    return [...this.selectedSegments];
+  }
+
+  /**
+   * Find closest segment to a point
+   * @param {Object} point - {lat, lng}
+   * @returns {string|null} Closest segment name
+   */
+  findClosestSegment(point) {
+    const snapped = this._snapToNearestSegment(point);
+    return snapped ? snapped.segmentName : null;
+  }
+
+  /**
+   * Find path between two points
+   * @param {Object} startPoint - {lat, lng}
+   * @param {Object} endPoint - {lat, lng}
+   * @returns {Array} Array of segment names forming the path
+   */
+  findPathBetweenPoints(startPoint, endPoint) {
+    return this._findPathBetweenPoints(startPoint, endPoint);
+  }
+
+  /**
    * Get current route information
    * @returns {Object} Route data including points, segments, and metrics
    */

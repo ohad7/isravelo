@@ -225,8 +225,38 @@ function recalculateRoute() {
   }
 
   try {
-    const newSelectedSegments = routeManager.recalculateRoute(routePoints);
-    selectedSegments = newSelectedSegments;
+    // Use RouteManager to calculate route through points
+    const routeInfo = routeManager.getRouteInfo();
+    
+    // Find path through all route points
+    if (routePoints.length === 1) {
+      // Single point - find closest segment
+      const closestSegment = findClosestSegment(routePoints[0]);
+      if (closestSegment) {
+        selectedSegments = [closestSegment];
+      }
+    } else {
+      // Multiple points - find optimal path
+      const pathSegments = [];
+      const usedSegments = new Set();
+      
+      for (let i = 0; i < routePoints.length - 1; i++) {
+        const startPoint = routePoints[i];
+        const endPoint = routePoints[i + 1];
+        
+        const segmentPath = findPathBetweenPoints(startPoint, endPoint);
+        
+        // Add segments to path, avoiding duplicates
+        for (const segmentName of segmentPath) {
+          if (pathSegments.length === 0 || pathSegments[pathSegments.length - 1] !== segmentName) {
+            pathSegments.push(segmentName);
+          }
+        }
+      }
+      
+      selectedSegments = pathSegments;
+    }
+    
     updateSegmentStyles();
     updateRouteListAndDescription();
   } catch (error) {
