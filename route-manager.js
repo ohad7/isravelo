@@ -396,15 +396,28 @@ class RouteManager {
       const segmentStartPoint = coords[0];
       const segmentEndPoint = coords[coords.length - 1];
       
-      // Try both entry points of the target segment
-      const pathToStart = this._findShortestSegmentPath(lastSegmentOfRoute, closestSegmentToPoint);
-      const pathToEnd = this._findShortestSegmentPath(lastSegmentOfRoute, closestSegmentToPoint);
+      // Get the coordinates of the target segment to find both entry points
+      const coords = segmentData.coordinates;
+      const segmentStartPoint = coords[0];
+      const segmentEndPoint = coords[coords.length - 1];
       
-      // For now, use the direct shortest path approach
-      // The key insight is that we need to calculate distance to both ends of target segment
-      // and choose the path that results in the shortest overall route
+      // Find paths to both entry points of the target segment
+      const pathToStart = this._findPathToSegmentEntryPoint(lastSegmentOfRoute, closestSegmentToPoint, segmentStartPoint);
+      const pathToEnd = this._findPathToSegmentEntryPoint(lastSegmentOfRoute, closestSegmentToPoint, segmentEndPoint);
       
-      let shortestExtension = pathToStart;
+      // Choose the shorter path
+      let shortestExtension;
+      if (pathToStart.length === 0 && pathToEnd.length === 0) {
+        // If no path found to either end, fallback to direct connection
+        shortestExtension = [closestSegmentToPoint];
+      } else if (pathToStart.length === 0) {
+        shortestExtension = pathToEnd;
+      } else if (pathToEnd.length === 0) {
+        shortestExtension = pathToStart;
+      } else {
+        // Compare path lengths and choose shorter one
+        shortestExtension = pathToStart.length <= pathToEnd.length ? pathToStart : pathToEnd;
+      }
       
       // Remove the first segment if it's the same as the last segment in current route
       if (shortestExtension.length > 0 && shortestExtension[0] === lastSegmentOfRoute) {
@@ -470,6 +483,33 @@ class RouteManager {
 
     // Fallback: if no path found, assume direct connection (though this might be an error state)
     return [startSegmentName, endSegmentName];
+  }
+
+  _findPathToSegmentEntryPoint(startSegmentName, targetSegmentName, targetEntryPoint) {
+    // Get the end point of the current route (last segment)
+    const startSegmentData = this.segments.get(startSegmentName);
+    if (!startSegmentData) return [];
+
+    const startCoords = startSegmentData.coordinates;
+    const routeEndPoint = startCoords[startCoords.length - 1];
+
+    // Calculate which end of the start segment is closer to target entry point
+    const startSegmentStart = startCoords[0];
+    const startSegmentEnd = startCoords[startCoords.length - 1];
+    
+    const distanceFromRouteEnd = this._getDistance(routeEndPoint, targetEntryPoint);
+    const distanceFromRouteStart = this._getDistance(startSegmentStart, targetEntryPoint);
+
+    // If we need to go back through the current segment (reverse it)
+    if (distanceFromRouteStart < distanceFromRouteEnd) {
+      // We need to traverse the start segment in reverse to reach the target
+      const pathFromStart = this._findShortestSegmentPath(startSegmentName, targetSegmentName);
+      // Add the reverse traversal by including the start segment again
+      return [startSegmentName, ...pathFromStart];
+    } else {
+      // Normal forward path
+      return this._findShortestSegmentPath(startSegmentName, targetSegmentName);
+    }
   }
 
   _getCurrentRouteEndpoint(segments) {
