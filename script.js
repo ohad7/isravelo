@@ -156,10 +156,12 @@ function createPointMarker(point, index) {
     let draggedFeature = null;
 
     map.on("mousedown", "route-points-circle", (e) => {
+      if (e.features.length === 0) return;
+      
       e.preventDefault();
       isDragging = true;
       isDraggingPoint = true;
-      draggedFeature = e.features[0];
+      draggedFeature = { ...e.features[0] }; // Create a copy
       draggedPointIndex = draggedFeature.properties.index;
 
       map.getCanvas().style.cursor = "grabbing";
@@ -168,27 +170,35 @@ function createPointMarker(point, index) {
     });
 
     map.on("mousemove", (e) => {
-      if (!isDragging || !draggedFeature) return;
+      if (!isDragging || !draggedFeature || draggedPointIndex === -1) return;
 
       const coords = [e.lngLat.lng, e.lngLat.lat];
 
-      // Update the feature coordinates
-      draggedFeature.geometry.coordinates = coords;
-
-      // Update route point
-      const pointIndex = draggedFeature.properties.index;
-      routePoints[pointIndex].lng = e.lngLat.lng;
-      routePoints[pointIndex].lat = e.lngLat.lat;
-
-      // Update the source
-      const currentData = map.getSource("route-points")._data;
-      const featureIndex = currentData.features.findIndex(
-        (f) => f.id === draggedFeature.id,
-      );
-      if (featureIndex !== -1) {
-        currentData.features[featureIndex] = draggedFeature;
-        map.getSource("route-points").setData(currentData);
+      // Update route point data
+      if (routePoints[draggedPointIndex]) {
+        routePoints[draggedPointIndex].lng = e.lngLat.lng;
+        routePoints[draggedPointIndex].lat = e.lngLat.lat;
       }
+
+      // Update the source data by recreating all features
+      const features = routePoints.map((point, idx) => ({
+        type: "Feature",
+        id: `route-point-${point.id}`,
+        geometry: {
+          type: "Point",
+          coordinates: [point.lng, point.lat],
+        },
+        properties: {
+          index: idx,
+          pointId: point.id,
+          type: "route-point",
+        },
+      }));
+
+      map.getSource("route-points").setData({
+        type: "FeatureCollection",
+        features: features,
+      });
 
       recalculateRoute();
     });
@@ -211,40 +221,46 @@ function createPointMarker(point, index) {
 
     // Touch events for mobile
     map.on("touchstart", "route-points-circle", (e) => {
-      if (e.points.length !== 1) return;
+      if (e.points.length !== 1 || e.features.length === 0) return;
 
       e.preventDefault();
       isDragging = true;
       isDraggingPoint = true;
-      draggedFeature = e.features[0];
+      draggedFeature = { ...e.features[0] }; // Create a copy
       draggedPointIndex = draggedFeature.properties.index;
 
       map.dragPan.disable();
     });
 
     map.on("touchmove", (e) => {
-      if (!isDragging || !draggedFeature) return;
+      if (!isDragging || !draggedFeature || draggedPointIndex === -1) return;
       e.preventDefault();
 
-      const coords = [e.lngLat.lng, e.lngLat.lat];
-
-      // Update the feature coordinates
-      draggedFeature.geometry.coordinates = coords;
-
-      // Update route point
-      const pointIndex = draggedFeature.properties.index;
-      routePoints[pointIndex].lng = e.lngLat.lng;
-      routePoints[pointIndex].lat = e.lngLat.lat;
-
-      // Update the source
-      const currentData = map.getSource("route-points")._data;
-      const featureIndex = currentData.features.findIndex(
-        (f) => f.id === draggedFeature.id,
-      );
-      if (featureIndex !== -1) {
-        currentData.features[featureIndex] = draggedFeature;
-        map.getSource("route-points").setData(currentData);
+      // Update route point data
+      if (routePoints[draggedPointIndex]) {
+        routePoints[draggedPointIndex].lng = e.lngLat.lng;
+        routePoints[draggedPointIndex].lat = e.lngLat.lat;
       }
+
+      // Update the source data by recreating all features
+      const features = routePoints.map((point, idx) => ({
+        type: "Feature",
+        id: `route-point-${point.id}`,
+        geometry: {
+          type: "Point",
+          coordinates: [point.lng, point.lat],
+        },
+        properties: {
+          index: idx,
+          pointId: point.id,
+          type: "route-point",
+        },
+      }));
+
+      map.getSource("route-points").setData({
+        type: "FeatureCollection",
+        features: features,
+      });
 
       recalculateRoute();
     });
