@@ -361,14 +361,10 @@ class RouteManager {
 
       const pathSegments = this._findPathBetweenPoints(actualStartPoint, nextPoint, usedSegments);
       
-      // Only add segments that are directly under the clicked points or necessary for connection
+      // Add all segments in the path to ensure proper connectivity
       for (const segmentName of pathSegments) {
-        // Check if this segment is directly under one of the clicked points
-        const isDirectSegment = points.some(point => point.segmentName === segmentName);
-        
-        // Always add the first segment, direct segments, or if it's needed to connect
-        if (allSegments.length === 0 || isDirectSegment || 
-            (allSegments[allSegments.length - 1] !== segmentName && this._isSegmentNecessaryForConnection(allSegments, segmentName, pathSegments))) {
+        // Avoid duplicates
+        if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
           allSegments.push(segmentName);
           usedSegments.add(segmentName);
         }
