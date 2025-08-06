@@ -361,8 +361,14 @@ class RouteManager {
 
       const pathSegments = this._findPathBetweenPoints(actualStartPoint, nextPoint, usedSegments);
       
+      // Only add segments that are directly under the clicked points or necessary for connection
       for (const segmentName of pathSegments) {
-        if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
+        // Check if this segment is directly under one of the clicked points
+        const isDirectSegment = points.some(point => point.segmentName === segmentName);
+        
+        // Always add the first segment, direct segments, or if it's needed to connect
+        if (allSegments.length === 0 || isDirectSegment || 
+            (allSegments[allSegments.length - 1] !== segmentName && this._isSegmentNecessaryForConnection(allSegments, segmentName, pathSegments))) {
           allSegments.push(segmentName);
           usedSegments.add(segmentName);
         }
@@ -379,7 +385,22 @@ class RouteManager {
     if (!startSegment || !endSegment) return [];
     if (startSegment === endSegment) return [startSegment];
 
-    return this._findShortestSegmentPath(startSegment, endSegment);
+    // Check if segments are directly connected first
+    const startConnections = this.adjacencyMap.get(startSegment) || [];
+    if (startConnections.includes(endSegment)) {
+      return [startSegment, endSegment];
+    }
+
+    // Use shortest path only if direct connection isn't possible
+    const shortestPath = this._findShortestSegmentPath(startSegment, endSegment);
+    
+    // For simple cases, prefer direct segments only
+    if (shortestPath.length <= 2) {
+      return shortestPath;
+    }
+    
+    // For longer paths, try to minimize intermediate segments
+    return this._minimizePath(shortestPath, startSegment, endSegment);
   }
 
   _findSegmentForPoint(point) {
@@ -421,6 +442,23 @@ class RouteManager {
     
     const orderedCoords = this._getOrderedCoordinatesForSegments(segments);
     return orderedCoords.length > 0 ? orderedCoords[orderedCoords.length - 1] : null;
+  }
+
+  _isSegmentNecessaryForConnection(existingSegments, candidateSegment, pathSegments) {
+    // If this is one of only two segments in the path, it's necessary
+    if (pathSegments.length <= 2) return true;
+    
+    // If we already have segments and this creates a gap, it's necessary
+    if (existingSegments.length > 0) {
+      const lastSegment = existingSegments[existingSegments.length - 1];
+      const candidateIndex = pathSegments.indexOf(candidateSegment);
+      const lastSegmentIndex = pathSegments.indexOf(lastSegment);
+      
+      // If this segment immediately follows the last one in the path, it's necessary
+      return candidateIndex === lastSegmentIndex + 1;
+    }
+    
+    return false;
   }
 
   _getOrderedCoordinates() {
@@ -651,6 +689,15 @@ class RouteManager {
       lng: coord.lng,
       elevation: smoothedElevations[index]
     }));
+  }
+
+  _minimizePath(fullPath, startSegment, endSegment) {
+    // If path is short, return as is
+    if (fullPath.length <= 3) return fullPath;
+    
+    // Try to find a shorter connection
+    // For now, just return the start and end segments if they represent the user's clicks
+    return [startSegment, endSegment];
   }
 
   _distanceWindowSmoothing(points, distanceWindow, accumulate, compute) {
