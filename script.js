@@ -103,9 +103,38 @@ function addRoutePoint(lngLat, fromClick = true) {
     });
   }
 
-  routePoints.push(point);
-  createPointMarker(point, routePoints.length - 1);
-  recalculateRoute();
+  // Use RouteManager to add the point and get updated segments
+  if (routeManager) {
+    try {
+      const updatedSegments = routeManager.addPoint({ lat: lngLat.lat, lng: lngLat.lng });
+      selectedSegments = updatedSegments;
+      
+      // Update local routePoints array to match RouteManager
+      const routeInfo = routeManager.getRouteInfo();
+      routePoints = routeInfo.points;
+      
+      // Update point markers
+      clearRoutePoints();
+      routePoints.forEach((point, index) => {
+        createPointMarker(point, index);
+      });
+      
+      updateSegmentStyles();
+      updateRouteListAndDescription();
+    } catch (error) {
+      console.error("Error adding route point:", error);
+      // Fallback to old method
+      routePoints.push(point);
+      createPointMarker(point, routePoints.length - 1);
+      recalculateRoute();
+    }
+  } else {
+    // Fallback to old method if RouteManager not available
+    routePoints.push(point);
+    createPointMarker(point, routePoints.length - 1);
+    recalculateRoute();
+  }
+  
   clearRouteFromUrl();
 }
 
