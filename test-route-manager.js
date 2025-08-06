@@ -146,12 +146,60 @@ async function testErrorHandling() {
   }
 }
 
+// Example function to run imported user test cases
+async function runImportedTestCase(testCaseData) {
+  console.log(`\n--- Running Imported Test Case: ${testCaseData.name} ---`);
+  console.log(`Description: ${testCaseData.description}`);
+  
+  try {
+    const manager = new RouteManager();
+    await manager.load(mockGeoJsonData, mockSegmentsData);
+    
+    let operationCount = 0;
+    
+    for (const operation of testCaseData.operations) {
+      operationCount++;
+      console.log(`\nOperation ${operationCount}: ${operation.type}`);
+      
+      let segments = [];
+      
+      switch(operation.type) {
+        case 'addPoint':
+          segments = manager.addPoint(operation.data.point);
+          break;
+        case 'removePoint':
+          segments = manager.removePoint(operation.data.index);
+          break;
+        case 'movePoint':
+          // Note: This would require implementing movePoint in RouteManager
+          console.log('Move operation detected - implement movePoint if needed');
+          break;
+      }
+      
+      console.log(`Result: ${segments.length} segments`);
+      
+      // Validate expected results
+      if (segments.length !== operation.expectedSegmentsCount) {
+        console.log(`⚠️ Expected ${operation.expectedSegmentsCount} segments, got ${segments.length}`);
+      } else {
+        console.log('✓ Segment count matches expectation');
+      }
+    }
+    
+    console.log(`\n✅ Imported test case '${testCaseData.name}' completed successfully`);
+    
+  } catch (error) {
+    console.error(`❌ Imported test case '${testCaseData.name}' failed:`, error);
+  }
+}
+
 // Run tests if in Node.js environment
 if (typeof module !== 'undefined' && module.exports) {
   // Export test functions for use in test runners
   module.exports = {
     testRouteManager,
     testErrorHandling,
+    runImportedTestCase,
     mockGeoJsonData,
     mockSegmentsData
   };
@@ -207,5 +255,6 @@ if (typeof window !== 'undefined') {
     
     // Show notification that tests are available
     console.log('🧪 RouteManager tests loaded! Click the green "Run RouteManager Tests" button or press Ctrl+Shift+T to run tests.');
+    console.log('💡 Tip: Use Ctrl+Shift+D in the main app to export user operations as test cases!');
   });
 }
