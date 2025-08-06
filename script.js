@@ -11,7 +11,6 @@ let pointMarkers = []; // Array of map markers for the points
 let isDraggingPoint = false;
 let draggedPointIndex = -1;
 let routeManager = null; // Instance of RouteManager
-let operationLog = []; // Log of user operations for test case generation
 
 const COLORS = {
   WARNING_ORANGE: '#ff9800',
@@ -79,12 +78,6 @@ function addRoutePoint(lngLat, fromClick = true) {
     id: Date.now() + Math.random()
   };
 
-  // Log operation for test case generation
-  logOperation('addPoint', {
-    point: { lat: point.lat, lng: point.lng },
-    fromClick
-  });
-
   routePoints.push(point);
   createPointMarker(point, routePoints.length - 1);
   recalculateRoute();
@@ -128,14 +121,6 @@ function createPointMarker(point, index) {
 
   marker.on('dragend', () => {
     isDraggingPoint = false;
-    
-    // Log operation for test case generation
-    logOperation('movePoint', {
-      index: draggedPointIndex,
-      newPoint: { lat: routePoints[index].lat, lng: routePoints[index].lng },
-      originalIndex: draggedPointIndex
-    });
-    
     draggedPointIndex = -1;
     el.style.cursor = 'grab';
     saveState();
@@ -154,13 +139,6 @@ function createPointMarker(point, index) {
 // Remove a route point
 function removeRoutePoint(index) {
   if (index < 0 || index >= routePoints.length) return;
-
-  // Log operation for test case generation
-  const pointToRemove = routePoints[index];
-  logOperation('removePoint', {
-    index,
-    point: pointToRemove ? { lat: pointToRemove.lat, lng: pointToRemove.lng } : null
-  });
 
   saveState();
 
@@ -337,193 +315,6 @@ function clearRouteFromUrl() {
     url.searchParams.delete('route');
     window.history.replaceState({}, document.title, url.toString());
   }
-}
-
-// Operation logging for test case generation
-function logOperation(operationType, data) {
-  const operation = {
-    timestamp: Date.now(),
-    type: operationType,
-    data: data,
-    routeState: {
-      pointsCount: routePoints.length,
-      segmentsCount: selectedSegments.length,
-      selectedSegments: [...selectedSegments]
-    }
-  };
-  
-  // Convert segment names to IDs for test compatibility
-  if (segmentsData && operation.routeState.selectedSegments) {
-    operation.routeState.segmentIds = operation.routeState.selectedSegments.map(segmentName => {
-      const segmentInfo = segmentsData[segmentName];
-      return segmentInfo ? segmentInfo.id : null;
-    }).filter(id => id !== null);
-  }
-  
-  operationLog.push(operation);
-  console.log('Logged operation:', operation);
-}
-
-function exportTestCase() {
-  if (operationLog.length === 0) {
-    alert('אין פעולות לייצוא. בצע כמה פעולות תחילה (הוסף נקודות, הזז או הסר).');
-    return;
-  }
-
-  // Generate test case data
-  const testCase = {
-    name: `User Test Case - ${new Date().toISOString().substring(0, 19).replace('T', ' ')}`,
-    description: `Test case generated from user operations (${operationLog.length} operations)`,
-    operations: operationLog.map(op => ({
-      type: op.type,
-      data: op.data,
-      expectedSegmentIds: op.routeState.segmentIds || [],
-      expectedSegmentsCount: op.routeState.segmentsCount
-    })),
-    summary: {
-      totalOperations: operationLog.length,
-      operationTypes: [...new Set(operationLog.map(op => op.type))],
-      finalSegmentIds: operationLog.length > 0 ? 
-        operationLog[operationLog.length - 1].routeState.segmentIds || [] : [],
-      finalSegmentsCount: operationLog.length > 0 ? 
-        operationLog[operationLog.length - 1].routeState.segmentsCount : 0
-    }
-  };
-
-  // Convert to JSON and download
-  const jsonString = JSON.stringify(testCase, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `route-test-case-${Date.now()}.json`;
-  a.click();
-  
-  URL.revokeObjectURL(url);
-  
-  console.log('Exported test case:', testCase);
-  
-  // Show success message with instructions
-  const modal = document.createElement('div');
-  modal.className = 'export-modal';
-  modal.innerHTML = `
-    <div class="export-modal-content">
-      <div class="export-modal-header">
-        <h3>✅ Test Case Exported</h3>
-        <button class="export-modal-close">&times;</button>
-      </div>
-      <div class="export-modal-body">
-        <p><strong>נוצר בהצלחה קובץ בדיקה עם ${testCase.operations.length} פעולות!</strong></p>
-        <p>הקובץ ירד למחשב שלך ויכול להיות מוסף ל-test-route-manager.js</p>
-        <div class="test-operations-summary">
-          <h4>פעולות שנוצרו:</h4>
-          <ul>
-            ${testCase.summary.operationTypes.map(type => 
-              `<li>${type}: ${testCase.operations.filter(op => op.type === type).length} פעמים</li>`
-            ).join('')}
-          </ul>
-        </div>
-        <button id="clear-log-btn" class="clear-log-btn">נקה יומן הפעולות</button>
-        <button id="copy-test-code-btn" class="copy-test-btn">העתק קוד בדיקה</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  // Add event listeners
-  const closeBtn = modal.querySelector('.export-modal-close');
-  const clearLogBtn = modal.querySelector('#clear-log-btn');
-  const copyTestBtn = modal.querySelector('#copy-test-code-btn');
-
-  closeBtn.addEventListener('click', () => {
-    document.body.removeChild(modal);
-  });
-
-  clearLogBtn.addEventListener('click', () => {
-    operationLog = [];
-    console.log('Operation log cleared');
-    closeBtn.click();
-  });
-
-  copyTestBtn.addEventListener('click', () => {
-    const testCode = generateTestCode(testCase);
-    navigator.clipboard.writeText(testCode).then(() => {
-      copyTestBtn.textContent = 'הועתק!';
-      copyTestBtn.style.background = '#4CAF50';
-      setTimeout(() => {
-        copyTestBtn.textContent = 'העתק קוד בדיקה';
-        copyTestBtn.style.background = '#2196F3';
-      }, 2000);
-    }).catch(() => {
-      console.log('Could not copy to clipboard, code in console');
-      console.log(testCode);
-    });
-  });
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      document.body.removeChild(modal);
-    }
-  });
-}
-
-function generateTestCode(testCase) {
-  return `
-// ${testCase.name}
-async function ${testCase.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}() {
-  console.log('--- ${testCase.name} ---');
-  
-  try {
-    const manager = new RouteManager();
-    await manager.load(mockGeoJsonData, mockSegmentsData);
-    
-    ${testCase.operations.map((op, index) => {
-      switch(op.type) {
-        case 'addPoint':
-          return `
-    // Operation ${index + 1}: Add point
-    const segments${index} = manager.addPoint(${JSON.stringify(op.data.point)});
-    console.log('Added point, segments:', segments${index});
-    
-    // Check expected results
-    if (segments${index}.length !== ${op.expectedSegmentsCount}) {
-      console.log('❌ Expected ${op.expectedSegmentsCount} segments, got', segments${index}.length);
-    } else {
-      console.log('✓ Correct number of segments');
-    }`;
-    
-        case 'removePoint':
-          return `
-    // Operation ${index + 1}: Remove point at index ${op.data.index}
-    const segments${index} = manager.removePoint(${op.data.index});
-    console.log('Removed point, segments:', segments${index});
-    
-    // Check expected results
-    if (segments${index}.length !== ${op.expectedSegmentsCount}) {
-      console.log('❌ Expected ${op.expectedSegmentsCount} segments, got', segments${index}.length);
-    } else {
-      console.log('✓ Correct number of segments');
-    }`;
-    
-        case 'movePoint':
-          return `
-    // Operation ${index + 1}: Move point ${op.data.originalIndex} to new position
-    // Note: movePoint would need to be implemented in RouteManager
-    console.log('Move operation logged (implement movePoint in RouteManager if needed)');`;
-    
-        default:
-          return `// Unknown operation: ${op.type}`;
-      }
-    }).join('\n')}
-    
-    console.log('✅ ${testCase.name} completed');
-    
-  } catch (error) {
-    console.error('❌ Test failed:', error);
-  }
-}`;
 }
 
 function undo() {
@@ -3113,7 +2904,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Keyboard shortcuts for undo/redo and test export
+  // Keyboard shortcuts for undo/redo
   document.addEventListener('keydown', function(e) {
     //console.log('e.ctrlKey:' + e.ctrlKey + ' key:' + e.key)
 
@@ -3123,9 +2914,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
       e.preventDefault();
       redo();
-    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
-      e.preventDefault();
-      exportTestCase();
     }
   });
 });
