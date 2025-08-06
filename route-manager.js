@@ -354,10 +354,25 @@ class RouteManager {
       // Check if both points are on the same segment
       if (currentPoint.segmentName && nextPoint.segmentName && 
           currentPoint.segmentName === nextPoint.segmentName) {
-        // Only add the segment if it's not already in the route
-        if (!allSegments.includes(currentPoint.segmentName)) {
-          allSegments.push(currentPoint.segmentName);
-          usedSegments.add(currentPoint.segmentName);
+        const segmentName = currentPoint.segmentName;
+        
+        // Check if this is the first occurrence of this segment
+        if (!allSegments.includes(segmentName)) {
+          allSegments.push(segmentName);
+          usedSegments.add(segmentName);
+        } else {
+          // Segment already exists, check if we're going backwards
+          const segmentData = this.segments.get(segmentName);
+          if (segmentData) {
+            const currentPos = this._getPositionAlongSegment(currentPoint, segmentData.coordinates);
+            const nextPos = this._getPositionAlongSegment(nextPoint, segmentData.coordinates);
+            
+            // If next point is before current point, we're going backwards
+            if (nextPos < currentPos) {
+              // Add the segment again (in reverse direction)
+              allSegments.push(segmentName);
+            }
+          }
         }
         continue;
       }
