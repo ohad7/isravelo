@@ -393,10 +393,6 @@ class RouteManager {
       if (!segmentData) return [];
 
       const coords = segmentData.coordinates;
-      const segmentStartPoint = coords[0];
-      const segmentEndPoint = coords[coords.length - 1];
-      
-      // Get the coordinates of the target segment to find both entry points
       const coords = segmentData.coordinates;
       const segmentStartPoint = coords[0];
       const segmentEndPoint = coords[coords.length - 1];
