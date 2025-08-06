@@ -1,0 +1,74 @@
+{
+  "name": "User Test Case - 2025-08-06 23-43-44",
+  "description": "Test case generated from user operations (5 operations)",
+  "geoJsonFile": "bike_roads_v12.geojson",
+  "segmentsFile": "segments.json",
+  "operations": [
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.120570062363676,
+          "lng": 35.65014042603739
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [],
+      "expectedSegmentsCount": 0
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.1278304,
+          "lng": 35.6589812
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [53],
+      "expectedSegmentsCount": 1
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.13643579214179,
+          "lng": 35.66546148865699
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [53, 54],
+      "expectedSegmentsCount": 2
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.124259247168396,
+          "lng": 35.68113675313076
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [53, 54],
+      "expectedSegmentsCount": 2
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.12859056079645,
+          "lng": 35.67253632939421
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [53, 54],
+      "expectedSegmentsCount": 2
+    }
+  ],
+  "summary": {
+    "totalOperations": 5,
+    "operationTypes": ["addPoint"],
+    "finalSegmentIds": [53, 54, 54],
+    "finalSegmentsCount": 3
+  }
+}
