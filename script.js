@@ -77,6 +77,23 @@ function addRoutePoint(lngLat, fromClick = true) {
     id: Date.now() + Math.random()
   };
 
+  // Check if this point is on the last segment and if we need to reverse direction
+  if (selectedSegments.length > 0) {
+    const lastSegmentName = selectedSegments[selectedSegments.length - 1];
+    const closestSegment = findClosestSegment(point);
+    
+    if (closestSegment && closestSegment.name === lastSegmentName) {
+      // Point is on the last segment, check if we need to reverse direction
+      const shouldReverse = checkIfShouldReverseLastSegment(point);
+      if (shouldReverse) {
+        // Reverse the last segment by removing it and re-adding it
+        selectedSegments.pop();
+        selectedSegments.push(lastSegmentName);
+        updateSegmentStyles();
+      }
+    }
+  }
+
   routePoints.push(point);
   createPointMarker(point, routePoints.length - 1);
   recalculateRoute();
@@ -305,6 +322,108 @@ function getCurrentRouteEndpoint(segments) {
   
   // Return the last coordinate of the route
   return orderedCoords[orderedCoords.length - 1];
+}
+
+// Check if adding a point on the last segment should reverse that segment's direction
+function checkIfShouldReverseLastSegment(newPoint) {
+  if (selectedSegments.length === 0) return false;
+  
+  const lastSegmentName = selectedSegments[selectedSegments.length - 1];
+  const lastSegmentPolyline = routePolylines.find(p => p.segmentName === lastSegmentName);
+  
+  if (!lastSegmentPolyline) return false;
+  
+  // Get current route endpoint
+  const currentRouteEnd = getCurrentRouteEndpoint(selectedSegments);
+  if (!currentRouteEnd) return false;
+  
+  // Get the coordinates of the last segment
+  const segmentCoords = lastSegmentPolyline.coordinates;
+  const segmentStart = segmentCoords[0];
+  const segmentEnd = segmentCoords[segmentCoords.length - 1];
+  
+  // Determine current orientation of the last segment in the route
+  const distanceToStart = getDistance(currentRouteEnd, segmentStart);
+  const distanceToEnd = getDistance(currentRouteEnd, segmentEnd);
+  
+  // The segment is currently oriented with its end closer to the route end
+  const isCurrentlyReversed = distanceToEnd < distanceToStart;
+  
+  // Find where the new point lies on the segment
+  const closestPointOnSegment = getClosestPointOnLineSegment(newPoint, segmentStart, segmentEnd);
+  
+  // Calculate distances from new point to both ends of the segment
+  const newPointToStart = getDistance(newPoint, segmentStart);
+  const newPointToEnd = getDistance(newPoint, segmentEnd);
+  
+  // Calculate distance from new point to current route end along the segment
+  let distanceAlongSegment = 0;
+  let foundNewPointPosition = false;
+  
+  // Find the position of the new point along the segment
+  for (let i = 0; i < segmentCoords.length - 1; i++) {
+    const segmentPointStart = segmentCoords[i];
+    const segmentPointEnd = segmentCoords[i + 1];
+    
+    // Check if new point is between these two segment points
+    const distToSegmentStart = getDistance(newPoint, segmentPointStart);
+    const distToSegmentEnd = getDistance(newPoint, segmentPointEnd);
+    const segmentLength = getDistance(segmentPointStart, segmentPointEnd);
+    
+    // If the sum of distances to both ends is approximately equal to segment length,
+    // the point lies on this segment
+    if (Math.abs((distToSegmentStart + distToSegmentEnd) - segmentLength) < 10) {
+      distanceAlongSegment += distToSegmentStart;
+      foundNewPointPosition = true;
+      break;
+    } else {
+      distanceAlongSegment += segmentLength;
+    }
+  }
+  
+  if (!foundNewPointPosition) {
+    // Fallback: use distance comparison to ends
+    const segmentLength = segmentCoords.reduce((total, coord, index) => {
+      if (index === 0) return 0;
+      return total + getDistance(segmentCoords[index - 1], coord);
+    }, 0);
+    
+    // Estimate position along segment based on distance to ends
+    const totalDistance = newPointToStart + newPointToEnd;
+    if (totalDistance > 0) {
+      distanceAlongSegment = (newPointToStart / totalDistance) * segmentLength;
+    }
+  }
+  
+  // Calculate where the current route end is on the segment
+  let routeEndDistanceAlongSegment = 0;
+  const routeEndToStart = getDistance(currentRouteEnd, segmentStart);
+  const routeEndToEnd = getDistance(currentRouteEnd, segmentEnd);
+  
+  // If route end is closer to segment start, it's at the beginning
+  if (routeEndToStart < routeEndToEnd) {
+    routeEndDistanceAlongSegment = 0;
+  } else {
+    // Route end is closer to segment end
+    const segmentLength = segmentCoords.reduce((total, coord, index) => {
+      if (index === 0) return 0;
+      return total + getDistance(segmentCoords[index - 1], coord);
+    }, 0);
+    routeEndDistanceAlongSegment = segmentLength;
+  }
+  
+  // Determine if new point is "behind" the current route direction
+  const threshold = 50; // 50 meter threshold
+  
+  if (isCurrentlyReversed) {
+    // Segment is currently reversed, so route flows from end to start
+    // New point is "behind" if it's further from start than current route end
+    return distanceAlongSegment > routeEndDistanceAlongSegment + threshold;
+  } else {
+    // Segment flows normally from start to end
+    // New point is "behind" if it's closer to start than current route end
+    return distanceAlongSegment < routeEndDistanceAlongSegment - threshold;
+  }
 }
 
 // Find path between two points using breadth-first search on connected segments
