@@ -810,6 +810,11 @@ function resetRoute() {
     saveState();
   }
 
+  // Clear RouteManager state first
+  if (routeManager) {
+    routeManager.clearRoute();
+  }
+
   // Clear selected segments and points
   selectedSegments = [];
   clearRoutePoints();
