@@ -351,6 +351,17 @@ class RouteManager {
       const currentPoint = points[i];
       const nextPoint = points[i + 1];
 
+      // Skip if both points are on the same segment
+      if (currentPoint.segmentName && nextPoint.segmentName && 
+          currentPoint.segmentName === nextPoint.segmentName) {
+        // Only add the segment if it's not already in the route
+        if (!allSegments.includes(currentPoint.segmentName)) {
+          allSegments.push(currentPoint.segmentName);
+          usedSegments.add(currentPoint.segmentName);
+        }
+        continue;
+      }
+
       let actualStartPoint = currentPoint;
       if (i > 0) {
         const currentRouteCoords = this._getCurrentRouteEndpoint(allSegments);
@@ -363,12 +374,17 @@ class RouteManager {
       
       // Only add segments that are directly under the clicked points or necessary for connection
       for (const segmentName of pathSegments) {
+        // Don't add duplicates
+        if (allSegments[allSegments.length - 1] === segmentName) {
+          continue;
+        }
+        
         // Check if this segment is directly under one of the clicked points
         const isDirectSegment = points.some(point => point.segmentName === segmentName);
         
         // Always add the first segment, direct segments, or if it's needed to connect
         if (allSegments.length === 0 || isDirectSegment || 
-            (allSegments[allSegments.length - 1] !== segmentName && this._isSegmentNecessaryForConnection(allSegments, segmentName, pathSegments))) {
+            this._isSegmentNecessaryForConnection(allSegments, segmentName, pathSegments)) {
           allSegments.push(segmentName);
           usedSegments.add(segmentName);
         }
@@ -388,7 +404,10 @@ class RouteManager {
     // Check if segments are directly connected first
     const startConnections = this.adjacencyMap.get(startSegment) || [];
     if (startConnections.includes(endSegment)) {
-      return [startSegment, endSegment];
+      // Verify the points are in the correct direction on their segments
+      if (this._arePointsInCorrectDirection(startPoint, endPoint, startSegment, endSegment)) {
+        return [startSegment, endSegment];
+      }
     }
 
     // Use shortest path only if direct connection isn't possible
@@ -698,6 +717,49 @@ class RouteManager {
     // Try to find a shorter connection
     // For now, just return the start and end segments if they represent the user's clicks
     return [startSegment, endSegment];
+  }
+
+  _arePointsInCorrectDirection(startPoint, endPoint, startSegment, endSegment) {
+    // Get segment coordinates
+    const startSegmentData = this.segments.get(startSegment);
+    const endSegmentData = this.segments.get(endSegment);
+    
+    if (!startSegmentData || !endSegmentData) return true;
+    
+    // Find positions of points along their segments
+    const startPosition = this._getPositionAlongSegment(startPoint, startSegmentData.coordinates);
+    const endPosition = this._getPositionAlongSegment(endPoint, endSegmentData.coordinates);
+    
+    // If same segment, ensure end point is after start point
+    if (startSegment === endSegment) {
+      return endPosition >= startPosition;
+    }
+    
+    return true; // For different segments, assume direction is correct
+  }
+
+  _getPositionAlongSegment(point, segmentCoords) {
+    let minDistance = Infinity;
+    let bestPosition = 0;
+    let accumulatedDistance = 0;
+    
+    for (let i = 0; i < segmentCoords.length - 1; i++) {
+      const segmentStart = segmentCoords[i];
+      const segmentEnd = segmentCoords[i + 1];
+      const closestPoint = this._getClosestPointOnLineSegment(point, segmentStart, segmentEnd);
+      const distance = this._getDistance(point, closestPoint);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        // Calculate position as distance along segment
+        const distanceToClosest = this._getDistance(segmentStart, closestPoint);
+        bestPosition = accumulatedDistance + distanceToClosest;
+      }
+      
+      accumulatedDistance += this._getDistance(segmentStart, segmentEnd);
+    }
+    
+    return bestPosition;
   }
 
   _distanceWindowSmoothing(points, distanceWindow, accumulate, compute) {
