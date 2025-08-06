@@ -397,27 +397,78 @@ class RouteManager {
 
     const lastSegmentOfRoute = currentRouteSegments[currentRouteSegments.length - 1];
     
-    // Determine the actual endpoint of the current route by analyzing the route's directionality
+    // Check if we're clicking on the same segment as the last one
+    if (lastSegmentOfRoute === closestSegmentToPoint) {
+      // Get segment data
+      const segmentData = this.segments.get(closestSegmentToPoint);
+      if (!segmentData) return [];
+
+      const segmentCoords = segmentData.coordinates;
+      
+      // Determine the actual endpoint of the current route
+      const routeEndpoint = this._getCurrentRouteEndpoint(currentRouteSegments);
+      if (!routeEndpoint) return [];
+
+      // Get positions along the segment
+      const targetPointPosition = this._getPositionAlongSegment(targetPoint, segmentCoords);
+      const currentRouteEndPosition = this._getPositionAlongSegment(routeEndpoint, segmentCoords);
+      
+      // Determine current direction of route on this segment
+      let routeDirection = 1; // 1 for forward (start to end), -1 for reverse (end to start)
+      
+      if (currentRouteSegments.length > 1) {
+        // Look at how we entered this segment from the previous one
+        const secondLastSegment = currentRouteSegments[currentRouteSegments.length - 2];
+        const secondLastData = this.segments.get(secondLastSegment);
+        if (secondLastData) {
+          const secondLastCoords = secondLastData.coordinates;
+          const secondLastEnd = secondLastCoords[secondLastCoords.length - 1];
+          const secondLastStart = secondLastCoords[0];
+          
+          const segmentStart = segmentCoords[0];
+          const segmentEnd = segmentCoords[segmentCoords.length - 1];
+          
+          // Check which end of current segment connects to previous segment
+          const distanceFromPrevEndToSegmentStart = this._getDistance(secondLastEnd, segmentStart);
+          const distanceFromPrevEndToSegmentEnd = this._getDistance(secondLastEnd, segmentEnd);
+          const distanceFromPrevStartToSegmentStart = this._getDistance(secondLastStart, segmentStart);
+          const distanceFromPrevStartToSegmentEnd = this._getDistance(secondLastStart, segmentEnd);
+          
+          const minDistance = Math.min(
+            distanceFromPrevEndToSegmentStart,
+            distanceFromPrevEndToSegmentEnd,
+            distanceFromPrevStartToSegmentStart,
+            distanceFromPrevStartToSegmentEnd
+          );
+          
+          // If we connected to the start of current segment, we're going forward
+          if (minDistance === distanceFromPrevEndToSegmentStart || minDistance === distanceFromPrevStartToSegmentStart) {
+            routeDirection = 1; // Forward direction
+          } else {
+            routeDirection = -1; // Reverse direction
+          }
+        }
+      }
+      
+      // Check if the new point continues in the same direction
+      const isMovingForward = routeDirection === 1 ? 
+        targetPointPosition > currentRouteEndPosition : 
+        targetPointPosition < currentRouteEndPosition;
+      
+      if (isMovingForward) {
+        // Continuing in the same direction - no need to add the segment again
+        console.log("Point continues in same direction on same segment - no reversal needed");
+        return [];
+      } else {
+        // Point is going backward - need to add the segment in reverse
+        console.log("Point reverses direction on same segment - adding reversal");
+        return [lastSegmentOfRoute];
+      }
+    }
+    
+    // Different segment - proceed with normal adjacency logic
     const routeEndpoint = this._getCurrentRouteEndpoint(currentRouteSegments);
     if (!routeEndpoint) return [closestSegmentToPoint];
-
-    // Get the last segment's data to understand its endpoints
-    const lastSegmentData = this.segments.get(lastSegmentOfRoute);
-    if (!lastSegmentData) return [closestSegmentToPoint];
-
-    const lastSegmentCoords = lastSegmentData.coordinates;
-    const lastSegmentStart = lastSegmentCoords[0];
-    const lastSegmentEnd = lastSegmentCoords[lastSegmentCoords.length - 1];
-
-    // Determine which end of the last segment is the actual route endpoint
-    const distanceToStart = this._getDistance(routeEndpoint, lastSegmentStart);
-    const distanceToEnd = this._getDistance(routeEndpoint, lastSegmentEnd);
-    const isRouteEndAtSegmentEnd = distanceToEnd < distanceToStart;
-
-    console.log("Route endpoint:", routeEndpoint);
-    console.log("Last segment start:", lastSegmentStart);
-    console.log("Last segment end:", lastSegmentEnd);
-    console.log("Route end is at segment end:", isRouteEndAtSegmentEnd);
 
     // Check direct connectivity from the actual route endpoint
     const connectionsFromLastSegment = this.adjacencyMap.get(lastSegmentOfRoute) || [];
@@ -440,64 +491,7 @@ class RouteManager {
 
       if (Math.min(distanceToTargetStart, distanceToTargetEnd) <= connectionThreshold) {
         // Direct connection possible
-        if (lastSegmentOfRoute !== closestSegmentToPoint) {
-          return [closestSegmentToPoint];
-        } else {
-          // Same segment - check if the new point continues in the same direction
-          const targetPointPosition = this._getPositionAlongSegment(targetPoint, targetCoords);
-          
-          // Get the current route's last point position on this segment
-          const currentRouteEndPosition = this._getPositionAlongSegment(routeEndpoint, targetCoords);
-          
-          // Determine the current direction of the route on this segment
-          let routeDirection = 1; // 1 for forward, -1 for reverse
-          if (currentRouteSegments.length > 1) {
-            // Look at how we entered this segment to determine direction
-            const secondLastSegment = currentRouteSegments[currentRouteSegments.length - 2];
-            const secondLastData = this.segments.get(secondLastSegment);
-            if (secondLastData) {
-              const secondLastCoords = secondLastData.coordinates;
-              const secondLastEnd = secondLastCoords[secondLastCoords.length - 1];
-              const secondLastStart = secondLastCoords[0];
-              
-              // Check which end of the last segment we entered from
-              const distanceFromSecondLastEndToTargetStart = this._getDistance(secondLastEnd, targetStart);
-              const distanceFromSecondLastEndToTargetEnd = this._getDistance(secondLastEnd, targetEnd);
-              const distanceFromSecondLastStartToTargetStart = this._getDistance(secondLastStart, targetStart);
-              const distanceFromSecondLastStartToTargetEnd = this._getDistance(secondLastStart, targetEnd);
-              
-              const minDistance = Math.min(
-                distanceFromSecondLastEndToTargetStart,
-                distanceFromSecondLastEndToTargetEnd,
-                distanceFromSecondLastStartToTargetStart,
-                distanceFromSecondLastStartToTargetEnd
-              );
-              
-              // If we connected to the start of the target segment, we're going forward
-              // If we connected to the end of the target segment, we're going backward
-              if (minDistance === distanceFromSecondLastEndToTargetStart || minDistance === distanceFromSecondLastStartToTargetStart) {
-                routeDirection = 1; // Forward direction
-              } else {
-                routeDirection = -1; // Reverse direction
-              }
-            }
-          }
-          
-          // Check if the new point continues in the same direction
-          const isMovingForward = routeDirection === 1 ? 
-            targetPointPosition > currentRouteEndPosition : 
-            targetPointPosition < currentRouteEndPosition;
-          
-          if (isMovingForward) {
-            // Continuing in the same direction - no need to add the segment again
-            console.log("Point continues in same direction on same segment - no reversal needed");
-            return [];
-          } else {
-            // Point is going backward - need to add the segment in reverse
-            console.log("Point reverses direction on same segment - adding reversal");
-            return [lastSegmentOfRoute];
-          }
-        }
+        return [closestSegmentToPoint];
       } else {
         // Need to reverse through the last segment first to reach the other end
         console.log("Need to reverse through last segment to reach target");
