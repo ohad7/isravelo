@@ -146,19 +146,115 @@ async function testErrorHandling() {
   }
 }
 
+// Test function for test1.json
+async function testUserTestCase1() {
+  console.log('\n--- Test User Case 1 (from test1.json) ---');
+  
+  try {
+    const manager = new RouteManager();
+    
+    // Load real data if available, otherwise use mock data
+    let geoJsonData = mockGeoJsonData;
+    let segmentsData = mockSegmentsData;
+    
+    // Try to load actual files if in browser environment
+    if (typeof fetch !== 'undefined') {
+      try {
+        const geoResponse = await fetch('bike_roads_v12.geojson');
+        const segResponse = await fetch('segments.json');
+        
+        if (geoResponse.ok && segResponse.ok) {
+          geoJsonData = await geoResponse.json();
+          segmentsData = await segResponse.json();
+        }
+      } catch (e) {
+        console.log('Using mock data (could not load real files)');
+      }
+    }
+    
+    await manager.load(geoJsonData, segmentsData);
+    console.log('✓ Data loaded for user test case');
+    
+    // Test operations from test1.json
+    const testOperations = [
+      {
+        point: { lat: 33.190117, lng: 35.605852 },
+        expectedSegmentIds: [],
+        expectedCount: 0,
+        description: 'First point (no segments expected)'
+      },
+      {
+        point: { lat: 33.18537662752221, lng: 35.592585334199825 },
+        expectedSegmentIds: [89],
+        expectedCount: 1,
+        description: 'Second point (should add segment 89)'
+      },
+      {
+        point: { lat: 33.198527, lng: 35.581632 },
+        expectedSegmentIds: [89, 105],
+        expectedCount: 2,
+        description: 'Third point (should add segment 105)'
+      }
+    ];
+    
+    // Clear route before starting
+    manager.clearRoute();
+    
+    for (let i = 0; i < testOperations.length; i++) {
+      const operation = testOperations[i];
+      console.log(`\nStep ${i + 1}: ${operation.description}`);
+      
+      const segments = manager.addPoint(operation.point);
+      const routeInfo = manager.getRouteInfo();
+      
+      console.log(`  Added segments: ${segments.join(', ')}`);
+      console.log(`  Total segments in route: ${routeInfo.segments.length}`);
+      console.log(`  Segment IDs: ${routeInfo.segments.map(s => s.id || 'unknown')}`);
+      
+      // Validate segment count
+      if (routeInfo.segments.length === operation.expectedCount) {
+        console.log(`  ✓ Segment count matches expected: ${operation.expectedCount}`);
+      } else {
+        console.log(`  ❌ Segment count mismatch. Expected: ${operation.expectedCount}, Got: ${routeInfo.segments.length}`);
+      }
+      
+      // For operations with real data, try to validate segment IDs
+      if (operation.expectedSegmentIds.length > 0 && segmentsData !== mockSegmentsData) {
+        const actualIds = routeInfo.segments.map(s => s.id).filter(id => id !== undefined);
+        const expectedIds = operation.expectedSegmentIds;
+        
+        if (actualIds.length === expectedIds.length && expectedIds.every(id => actualIds.includes(id))) {
+          console.log(`  ✓ Segment IDs match expected: [${expectedIds.join(', ')}]`);
+        } else {
+          console.log(`  ⚠️ Segment ID validation (expected: [${expectedIds.join(', ')}], got: [${actualIds.join(', ')}])`);
+        }
+      }
+    }
+    
+    // Final validation
+    const finalRouteInfo = manager.getRouteInfo();
+    console.log(`\n✓ User test case completed successfully!`);
+    console.log(`  Final route: ${finalRouteInfo.segments.length} segments, ${finalRouteInfo.distance.toFixed(2)}m total`);
+    
+  } catch (error) {
+    console.error('❌ User test case failed:', error);
+  }
+}
+
 // Run tests if in Node.js environment
 if (typeof module !== 'undefined' && module.exports) {
   // Export test functions for use in test runners
   module.exports = {
     testRouteManager,
     testErrorHandling,
+    testUserTestCase1,
     mockGeoJsonData,
     mockSegmentsData
   };
   
   // Auto-run tests if this file is executed directly
   if (require.main === module) {
-    testRouteManager().then(() => testErrorHandling());
+    testRouteManager().then(() => testErrorHandling()).then(() => testUserTestCase1());
   }
 }
 
@@ -189,6 +285,7 @@ if (typeof window !== 'undefined') {
       console.log('=' .repeat(50));
       await testRouteManager();
       await testErrorHandling();
+      await testUserTestCase1();
       console.log('=' .repeat(50));
       console.log('✅ Test run complete! Check console above for results.');
     }
