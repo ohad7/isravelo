@@ -1002,7 +1002,7 @@ async function loadKMLFile() {
     showRouteLoadingIndicator();
     const response = await fetch('./bike_roads_v12.geojson');
     const geoJsonData = await response.json();
-    parseGeoJSON(geoJsonData);
+    await parseGeoJSON(geoJsonData);
 
     // Try to load route from URL after everything is loaded
     setTimeout(() => {
@@ -1019,7 +1019,7 @@ async function loadKMLFile() {
   }
 }
 
-function parseGeoJSON(geoJsonData) {
+async function parseGeoJSON(geoJsonData) {
   try {
     kmlData = JSON.stringify(geoJsonData);
 
