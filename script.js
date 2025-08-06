@@ -113,10 +113,16 @@ function addRoutePoint(lngLat, fromClick = true) {
       const routeInfo = routeManager.getRouteInfo();
       routePoints = routeInfo.points;
       
-      // Update point markers
+      // Update point markers - recreate all markers
       clearRoutePoints();
       routePoints.forEach((point, index) => {
-        createPointMarker(point, index);
+        // Ensure point has required properties for createPointMarker
+        const markerPoint = {
+          lat: point.lat,
+          lng: point.lng,
+          id: point.id || Date.now() + Math.random() + index
+        };
+        createPointMarker(markerPoint, index);
       });
       
       updateSegmentStyles();
