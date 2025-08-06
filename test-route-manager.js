@@ -398,6 +398,10 @@ async function testUserTestCase4() {
   await runTestFromJson("tests/test4.json");
 }
 
+async function testUserTestCase5() {
+  await runTestFromJson("tests/test5.json");
+}
+
 // Run tests if in Node.js environment
 if (typeof module !== "undefined" && module.exports) {
   // Export test functions for use in test runners
@@ -406,6 +410,9 @@ if (typeof module !== "undefined" && module.exports) {
     testErrorHandling,
     testUserTestCase1,
     testUserTestCase2,
+    testUserTestCase3,
+    testUserTestCase4,
+    testUserTestCase5,
     runTestFromJson,
     mockGeoJsonData,
     mockSegmentsData,
@@ -416,10 +423,11 @@ if (typeof module !== "undefined" && module.exports) {
     testRouteManager()
       .then(() => testErrorHandling())
       .then(() => {
-        testUserTestCase1();
-        testUserTestCase2();
-        testUserTestCase3();
-        testUserTestCase4();
+        // testUserTestCase1();
+        // testUserTestCase2();
+        // testUserTestCase3();
+        // testUserTestCase4();
+        testUserTestCase5();
       });
   }
 }
