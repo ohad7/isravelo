@@ -405,7 +405,7 @@ class RouteManager {
       const pathToStart = this._findPathToSegmentEntryPoint(lastSegmentOfRoute, closestSegmentToPoint, segmentStartPoint);
       const pathToEnd = this._findPathToSegmentEntryPoint(lastSegmentOfRoute, closestSegmentToPoint, segmentEndPoint);
       
-      // Choose the shorter path
+      // Choose the path with shorter total distance
       let shortestExtension;
       if (pathToStart.length === 0 && pathToEnd.length === 0) {
         // If no path found to either end, fallback to direct connection
@@ -415,8 +415,10 @@ class RouteManager {
       } else if (pathToEnd.length === 0) {
         shortestExtension = pathToStart;
       } else {
-        // Compare path lengths and choose shorter one
-        shortestExtension = pathToStart.length <= pathToEnd.length ? pathToStart : pathToEnd;
+        // Calculate total distance for both paths and choose shorter one
+        const distanceToStart = this._calculatePathDistance(pathToStart);
+        const distanceToEnd = this._calculatePathDistance(pathToEnd);
+        shortestExtension = distanceToStart <= distanceToEnd ? pathToStart : pathToEnd;
       }
       
       // Remove the first segment if it's the same as the last segment in current route
@@ -492,23 +494,79 @@ class RouteManager {
 
     const startCoords = startSegmentData.coordinates;
     const routeEndPoint = startCoords[startCoords.length - 1];
+    const routeStartPoint = startCoords[0];
 
-    // Calculate which end of the start segment is closer to target entry point
-    const startSegmentStart = startCoords[0];
-    const startSegmentEnd = startCoords[startCoords.length - 1];
+    // Get target segment data
+    const targetSegmentData = this.segments.get(targetSegmentName);
+    if (!targetSegmentData) return [];
+
+    const targetCoords = targetSegmentData.coordinates;
+    const targetStart = targetCoords[0];
+    const targetEnd = targetCoords[targetCoords.length - 1];
+
+    // Calculate paths to both entry points of target segment
+    const pathToTargetStart = this._findShortestSegmentPath(startSegmentName, targetSegmentName);
+    const pathToTargetEnd = this._findShortestSegmentPath(startSegmentName, targetSegmentName);
+
+    // Calculate total distance for path to start of target segment
+    let distanceToStart = 0;
+    // First check if we need to reverse through current segment
+    const distanceFromRouteEndToTargetStart = this._getDistance(routeEndPoint, targetStart);
+    const distanceFromRouteStartToTargetStart = this._getDistance(routeStartPoint, targetStart);
     
-    const distanceFromRouteEnd = this._getDistance(routeEndPoint, targetEntryPoint);
-    const distanceFromRouteStart = this._getDistance(startSegmentStart, targetEntryPoint);
+    if (distanceFromRouteStartToTargetStart < distanceFromRouteEndToTargetStart) {
+      // Need to reverse through current segment
+      const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
+      if (startSegmentMetrics) {
+        distanceToStart += startSegmentMetrics.distance; // Add distance to traverse current segment in reverse
+      }
+    }
+    
+    // Add distances for intermediate segments in the path
+    for (let i = (pathToTargetStart[0] === startSegmentName ? 1 : 0); i < pathToTargetStart.length; i++) {
+      const segmentMetrics = this.segmentMetrics.get(pathToTargetStart[i]);
+      if (segmentMetrics) {
+        distanceToStart += segmentMetrics.distance;
+      }
+    }
 
-    // If we need to go back through the current segment (reverse it)
-    if (distanceFromRouteStart < distanceFromRouteEnd) {
-      // We need to traverse the start segment in reverse to reach the target
-      const pathFromStart = this._findShortestSegmentPath(startSegmentName, targetSegmentName);
-      // Add the reverse traversal by including the start segment again
-      return [startSegmentName, ...pathFromStart];
+    // Calculate total distance for path to end of target segment
+    let distanceToEnd = 0;
+    // First check if we need to reverse through current segment
+    const distanceFromRouteEndToTargetEnd = this._getDistance(routeEndPoint, targetEnd);
+    const distanceFromRouteStartToTargetEnd = this._getDistance(routeStartPoint, targetEnd);
+    
+    if (distanceFromRouteStartToTargetEnd < distanceFromRouteEndToTargetEnd) {
+      // Need to reverse through current segment
+      const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
+      if (startSegmentMetrics) {
+        distanceToEnd += startSegmentMetrics.distance; // Add distance to traverse current segment in reverse
+      }
+    }
+    
+    // Add distances for intermediate segments in the path
+    for (let i = (pathToTargetEnd[0] === startSegmentName ? 1 : 0); i < pathToTargetEnd.length; i++) {
+      const segmentMetrics = this.segmentMetrics.get(pathToTargetEnd[i]);
+      if (segmentMetrics) {
+        distanceToEnd += segmentMetrics.distance;
+      }
+    }
+
+    // Choose the path with shorter total distance
+    if (distanceToStart <= distanceToEnd) {
+      // Path to start of target segment is shorter
+      if (distanceFromRouteStartToTargetStart < distanceFromRouteEndToTargetStart) {
+        return [startSegmentName, ...pathToTargetStart];
+      } else {
+        return pathToTargetStart;
+      }
     } else {
-      // Normal forward path
-      return this._findShortestSegmentPath(startSegmentName, targetSegmentName);
+      // Path to end of target segment is shorter
+      if (distanceFromRouteStartToTargetEnd < distanceFromRouteEndToTargetEnd) {
+        return [startSegmentName, ...pathToTargetEnd];
+      } else {
+        return pathToTargetEnd;
+      }
     }
   }
 
@@ -822,6 +880,17 @@ class RouteManager {
     }
 
     return bestPosition;
+  }
+
+  _calculatePathDistance(segmentPath) {
+    let totalDistance = 0;
+    for (const segmentName of segmentPath) {
+      const metrics = this.segmentMetrics.get(segmentName);
+      if (metrics) {
+        totalDistance += metrics.distance;
+      }
+    }
+    return totalDistance;
   }
 
   _distanceWindowSmoothing(points, distanceWindow, accumulate, compute) {
