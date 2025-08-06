@@ -395,81 +395,124 @@ class RouteManager {
       return [closestSegmentToPoint];
     }
 
-    const lastSegmentOfRoute =
-      currentRouteSegments[currentRouteSegments.length - 1];
+    const lastSegmentOfRoute = currentRouteSegments[currentRouteSegments.length - 1];
+    
+    // Determine the actual endpoint of the current route by analyzing the route's directionality
+    const routeEndpoint = this._getCurrentRouteEndpoint(currentRouteSegments);
+    if (!routeEndpoint) return [closestSegmentToPoint];
 
-    // Check if the closest segment to the new point is directly connected to the end of the current route
-    const connectionsFromLastSegment =
-      this.adjacencyMap.get(lastSegmentOfRoute) || [];
+    // Get the last segment's data to understand its endpoints
+    const lastSegmentData = this.segments.get(lastSegmentOfRoute);
+    if (!lastSegmentData) return [closestSegmentToPoint];
 
-    console.log(
-      "adjacent to",
-      lastSegmentOfRoute,
-      ":",
-      connectionsFromLastSegment,
-    );
+    const lastSegmentCoords = lastSegmentData.coordinates;
+    const lastSegmentStart = lastSegmentCoords[0];
+    const lastSegmentEnd = lastSegmentCoords[lastSegmentCoords.length - 1];
+
+    // Determine which end of the last segment is the actual route endpoint
+    const distanceToStart = this._getDistance(routeEndpoint, lastSegmentStart);
+    const distanceToEnd = this._getDistance(routeEndpoint, lastSegmentEnd);
+    const isRouteEndAtSegmentEnd = distanceToEnd < distanceToStart;
+
+    console.log("Route endpoint:", routeEndpoint);
+    console.log("Last segment start:", lastSegmentStart);
+    console.log("Last segment end:", lastSegmentEnd);
+    console.log("Route end is at segment end:", isRouteEndAtSegmentEnd);
+
+    // Check direct connectivity from the actual route endpoint
+    const connectionsFromLastSegment = this.adjacencyMap.get(lastSegmentOfRoute) || [];
+    
+    console.log("Adjacent to", lastSegmentOfRoute, ":", connectionsFromLastSegment);
 
     if (connectionsFromLastSegment.includes(closestSegmentToPoint)) {
-      // If directly connected, the extension is just this segment
-      // We need to ensure we don't add a segment if it's already the last one
-      if (lastSegmentOfRoute !== closestSegmentToPoint) {
-        return [closestSegmentToPoint];
+      // Check if the target segment is reachable from the current route endpoint
+      const targetSegmentData = this.segments.get(closestSegmentToPoint);
+      if (!targetSegmentData) return [closestSegmentToPoint];
+
+      const targetCoords = targetSegmentData.coordinates;
+      const targetStart = targetCoords[0];
+      const targetEnd = targetCoords[targetCoords.length - 1];
+
+      // Check distances from route endpoint to both ends of target segment
+      const distanceToTargetStart = this._getDistance(routeEndpoint, targetStart);
+      const distanceToTargetEnd = this._getDistance(routeEndpoint, targetEnd);
+      const connectionThreshold = 100; // meters
+
+      if (Math.min(distanceToTargetStart, distanceToTargetEnd) <= connectionThreshold) {
+        // Direct connection possible
+        if (lastSegmentOfRoute !== closestSegmentToPoint) {
+          return [closestSegmentToPoint];
+        } else {
+          return []; // Segment is already part of the route
+        }
       } else {
-        return []; // Segment is already part of the route
+        // Need to reverse through the last segment first to reach the other end
+        console.log("Need to reverse through last segment to reach target");
+        return [lastSegmentOfRoute, closestSegmentToPoint];
       }
     } else {
-      // If not directly connected, find the shortest path from the route's end to the target segment's entry points
+      // Not directly connected - find the shortest path from the route's endpoint
       const segmentData = this.segments.get(closestSegmentToPoint);
-      if (!segmentData) return [];
+      if (!segmentData) return [closestSegmentToPoint];
 
       const coords = segmentData.coordinates;
       const segmentStartPoint = coords[0];
       const segmentEndPoint = coords[coords.length - 1];
 
-      // Find paths to both entry points of the target segment
-      const pathToStart = this._findPathToSegmentEntryPoint(
-        lastSegmentOfRoute,
-        closestSegmentToPoint,
-        segmentStartPoint,
-      );
-      const pathToEnd = this._findPathToSegmentEntryPoint(
-        lastSegmentOfRoute,
-        closestSegmentToPoint,
-        segmentEndPoint,
-      );
+      // If route endpoint is at the start of the last segment, we need to consider reversing first
+      let pathOptions = [];
 
-      console.log("pathToStart", pathToStart);
-      console.log("pathToEnd", pathToEnd);
-
-      // Choose the path with shorter total distance
-      let shortestExtension;
-      if (pathToStart.length === 0 && pathToEnd.length === 0) {
-        // If no path found to either end, fallback to direct connection
-        shortestExtension = [closestSegmentToPoint];
-      } else if (pathToStart.length === 0) {
-        shortestExtension = pathToEnd;
-      } else if (pathToEnd.length === 0) {
-        shortestExtension = pathToStart;
+      if (isRouteEndAtSegmentEnd) {
+        // Route ends at the end of last segment - search from there
+        const pathToStart = this._findPathFromPointToSegmentEntry(routeEndpoint, closestSegmentToPoint, segmentStartPoint);
+        const pathToEnd = this._findPathFromPointToSegmentEntry(routeEndpoint, closestSegmentToPoint, segmentEndPoint);
+        pathOptions = [pathToStart, pathToEnd];
       } else {
-        // Calculate total distance for both paths and choose shorter one
-        const distanceToStart = this._calculatePathDistance(pathToStart);
-        const distanceToEnd = this._calculatePathDistance(pathToEnd);
-        shortestExtension =
-          distanceToStart <= distanceToEnd ? pathToStart : pathToEnd;
+        // Route ends at the start of last segment - consider both direct paths and reversing first
+        const pathToStart = this._findPathFromPointToSegmentEntry(routeEndpoint, closestSegmentToPoint, segmentStartPoint);
+        const pathToEnd = this._findPathFromPointToSegmentEntry(routeEndpoint, closestSegmentToPoint, segmentEndPoint);
+        
+        // Also consider reversing through the last segment first
+        const reverseEndpoint = lastSegmentEnd;
+        const pathToStartFromReverse = this._findPathFromPointToSegmentEntry(reverseEndpoint, closestSegmentToPoint, segmentStartPoint);
+        const pathToEndFromReverse = this._findPathFromPointToSegmentEntry(reverseEndpoint, closestSegmentToPoint, segmentEndPoint);
+        
+        // Add the reverse segment to these paths
+        const pathToStartWithReverse = pathToStartFromReverse.length > 0 ? [lastSegmentOfRoute, ...pathToStartFromReverse] : [];
+        const pathToEndWithReverse = pathToEndFromReverse.length > 0 ? [lastSegmentOfRoute, ...pathToEndFromReverse] : [];
+        
+        pathOptions = [pathToStart, pathToEnd, pathToStartWithReverse, pathToEndWithReverse];
       }
 
-      console.log("distanceToStart", distanceToStart);
-      console.log("distanceToEnd", distanceToEnd);
+      // Filter out empty paths and choose the shortest one
+      const validPaths = pathOptions.filter(path => path.length > 0);
+      
+      if (validPaths.length === 0) {
+        return [closestSegmentToPoint];
+      }
+
+      let shortestPath = validPaths[0];
+      let shortestDistance = this._calculatePathDistance(shortestPath);
+
+      for (let i = 1; i < validPaths.length; i++) {
+        const distance = this._calculatePathDistance(validPaths[i]);
+        if (distance < shortestDistance) {
+          shortestDistance = distance;
+          shortestPath = validPaths[i];
+        }
+      }
+
+      console.log("Selected shortest path:", shortestPath, "distance:", shortestDistance);
 
       // Remove the first segment if it's the same as the last segment in current route
-      if (
-        shortestExtension.length > 0 &&
-        shortestExtension[0] === lastSegmentOfRoute
-      ) {
-        shortestExtension = shortestExtension.slice(1);
+      // (unless it's a reversal which we want to keep)
+      if (shortestPath.length > 0 && shortestPath[0] === lastSegmentOfRoute && 
+          shortestPath.length > 1 && shortestPath[1] !== lastSegmentOfRoute) {
+        // This is not a reversal, so remove the duplicate
+        return shortestPath.slice(1);
       }
 
-      return shortestExtension;
+      return shortestPath;
     }
   }
 
@@ -530,6 +573,20 @@ class RouteManager {
 
     // Fallback: if no path found, assume direct connection (though this might be an error state)
     return [startSegmentName, endSegmentName];
+  }
+
+  _findPathFromPointToSegmentEntry(startPoint, targetSegmentName, targetEntryPoint) {
+    // Find the closest segment to the start point
+    const startSegmentName = this._findClosestSegmentName(startPoint);
+    if (!startSegmentName) return [];
+    
+    // Use the existing path finding logic
+    return this._findPathToSegmentEntryPoint(startSegmentName, targetSegmentName, targetEntryPoint);
+  }
+
+  _findClosestSegmentName(point) {
+    const snapped = this._snapToNearestSegment(point);
+    return snapped ? snapped.segmentName : null;
   }
 
   _findPathToSegmentEntryPoint(
