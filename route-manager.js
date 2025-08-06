@@ -364,13 +364,28 @@ class RouteManager {
           // Segment already exists, check if we're going backwards
           const segmentData = this.segments.get(segmentName);
           if (segmentData) {
-            const currentPos = this._getPositionAlongSegment(currentPoint, segmentData.coordinates);
-            const nextPos = this._getPositionAlongSegment(nextPoint, segmentData.coordinates);
+            // Find all points on this segment in order they were added
+            const segmentPoints = [];
+            for (let j = 0; j <= i; j++) {
+              if (points[j].segmentName === segmentName) {
+                const pos = this._getPositionAlongSegment(points[j], segmentData.coordinates);
+                segmentPoints.push({ index: j, position: pos, point: points[j] });
+              }
+            }
             
-            // If next point is before current point, we're going backwards
-            if (nextPos < currentPos) {
-              // Add the segment again (in reverse direction)
-              allSegments.push(segmentName);
+            // Sort by the order they were added (chronological order)
+            segmentPoints.sort((a, b) => a.index - b.index);
+            
+            // Check if the current point (latest) goes backwards from previous point
+            if (segmentPoints.length >= 2) {
+              const prevPoint = segmentPoints[segmentPoints.length - 2];
+              const currentSegmentPoint = segmentPoints[segmentPoints.length - 1];
+              
+              // If current point position is before previous point position, we're going backwards
+              if (currentSegmentPoint.position < prevPoint.position) {
+                // Add the segment again (in reverse direction)
+                allSegments.push(segmentName);
+              }
             }
           }
         }
