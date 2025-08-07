@@ -382,7 +382,10 @@ function removeRoutePoint(index) {
   try {
     // Use RouteManager to remove point and get updated segments
     const updatedSegments = routeManager.removePoint(index);
-    selectedSegments = updatedSegments;
+    
+    // Update selectedSegments with the result from RouteManager
+    selectedSegments.length = 0;
+    selectedSegments.push(...updatedSegments);
 
     // Remove from local arrays
     routePoints.splice(index, 1);
@@ -414,6 +417,8 @@ function removeRoutePoint(index) {
     updateSegmentStyles();
     updateRouteListAndDescription();
     clearRouteFromUrl();
+    
+    console.log(`Point removed. Route now has ${selectedSegments.length} segments:`, selectedSegments);
   } catch (error) {
     console.error("Error removing route point:", error);
   }

@@ -125,6 +125,9 @@ class RouteManager {
     }
 
     this.routePoints.splice(index, 1);
+    
+    // Clear selected segments and fully recalculate from remaining points
+    this.selectedSegments = [];
     this._recalculateRoute();
     return [...this.selectedSegments];
   }
@@ -342,11 +345,14 @@ class RouteManager {
       const point = this.routePoints[0];
       if (point.segmentName) {
         this.selectedSegments = [point.segmentName];
+      } else {
+        this.selectedSegments = [];
       }
       return;
     }
 
-    // Find optimal route through all points
+    // Always rebuild route from scratch when recalculating
+    this.selectedSegments = [];
     this.selectedSegments = this._findOptimalRouteThroughPoints(
       this.routePoints,
     );
@@ -360,7 +366,7 @@ class RouteManager {
 
     let allSegments = [];
 
-    // Process each new point by extending the route
+    // Build route from scratch through all points
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
 
@@ -370,14 +376,16 @@ class RouteManager {
           allSegments.push(point.segmentName);
         }
       } else {
-        // Extend route to reach this new point
-        const extensionSegments = this._findRouteExtensionToPoint(
-          point,
-          allSegments,
-        );
-
-        console.log("Pushing extension segments:", extensionSegments);
-        allSegments.push(...extensionSegments);
+        // Find path from previous point to current point
+        const prevPoint = points[i - 1];
+        const pathSegments = this._findPathBetweenTwoPoints(prevPoint, point);
+        
+        // Add path segments, avoiding duplicates
+        for (const segmentName of pathSegments) {
+          if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
+            allSegments.push(segmentName);
+          }
+        }
       }
     }
 
@@ -626,6 +634,30 @@ class RouteManager {
 
 
   _findPathBetweenPoints(startPoint, endPoint, usedSegments = new Set()) {
+    const startSegment = this._findSegmentForPoint(startPoint);
+    const endSegment = this._findSegmentForPoint(endPoint);
+
+    if (!startSegment || !endSegment) return [];
+    if (startSegment === endSegment) {
+      return [startSegment];
+    }
+
+    // Check if segments are directly connected first
+    const startConnections = this.adjacencyMap.get(startSegment) || [];
+    if (startConnections.includes(endSegment)) {
+      return [startSegment, endSegment];
+    }
+
+    // Use shortest path algorithm
+    const shortestPath = this._findShortestSegmentPath(
+      startSegment,
+      endSegment,
+    );
+
+    return shortestPath;
+  }
+
+  _findPathBetweenTwoPoints(startPoint, endPoint) {
     const startSegment = this._findSegmentForPoint(startPoint);
     const endSegment = this._findSegmentForPoint(endPoint);
 
