@@ -2455,9 +2455,10 @@ function focusMapOnRouteEndpoint() {
   // Get the last point of the route (the endpoint)
   const endpoint = orderedCoords[orderedCoords.length - 1];
   
-  // Calculate a reasonable zoom level based on current zoom
+  // Calculate a reasonable zoom level based on current zoom, reduced by 50%
   const currentZoom = map.getZoom();
-  const targetZoom = Math.max(currentZoom, MIN_ZOOM_LEVEL);
+  const reducedZoom = Math.max(currentZoom * 0.5, MIN_ZOOM_LEVEL * 0.5);
+  const targetZoom = Math.max(reducedZoom, 10); // Ensure minimum readable zoom
 
   // Focus on the endpoint with smooth animation
   map.flyTo({
@@ -2467,38 +2468,78 @@ function focusMapOnRouteEndpoint() {
     essential: true // Ensures animation runs even if user prefers reduced motion
   });
 
-  // Show a brief highlight at the endpoint
+  // Set up user zoom tracking after the animation
   setTimeout(() => {
-    // Remove any existing endpoint marker
-    if (window.endpointMarker) {
-      window.endpointMarker.remove();
+    setupUserZoomTracking();
+  }, 1100); // After animation completes
+}
+
+// Function to track user zoom interactions and maintain their preference
+function setupUserZoomTracking() {
+  // Remove any existing zoom tracking listeners
+  if (window.userZoomHandler) {
+    map.off('zoom', window.userZoomHandler);
+    map.off('wheel', window.userWheelHandler);
+    map.off('touchstart', window.userTouchHandler);
+  }
+
+  let userHasZoomed = false;
+  let userPreferredZoom = map.getZoom();
+
+  // Track zoom events (includes programmatic and user zooms)
+  window.userZoomHandler = (e) => {
+    if (userHasZoomed) {
+      userPreferredZoom = map.getZoom();
+    }
+  };
+
+  // Track wheel events (user scroll zoom)
+  window.userWheelHandler = (e) => {
+    userHasZoomed = true;
+    setTimeout(() => {
+      userPreferredZoom = map.getZoom();
+    }, 100);
+  };
+
+  // Track touch events (user pinch zoom on mobile)
+  window.userTouchHandler = (e) => {
+    if (e.touches && e.touches.length > 1) {
+      userHasZoomed = true;
+      setTimeout(() => {
+        userPreferredZoom = map.getZoom();
+      }, 100);
+    }
+  };
+
+  // Add event listeners
+  map.on('zoom', window.userZoomHandler);
+  map.on('wheel', window.userWheelHandler);
+  map.on('touchstart', window.userTouchHandler);
+
+  // Override future focusMapOnRouteEndpoint calls to use user's preferred zoom
+  const originalFocus = window.focusMapOnRouteEndpoint;
+  window.focusMapOnRouteEndpoint = function() {
+    if (selectedSegments.length === 0) {
+      return;
     }
 
-    // Create a temporary marker at the endpoint
-    const el = document.createElement("div");
-    el.className = "endpoint-marker";
-    el.style.cssText = `
-      width: 20px;
-      height: 20px;
-      background: #ff4444;
-      border: 4px solid white;
-      border-radius: 50%;
-      box-shadow: 0 3px 12px rgba(255, 68, 68, 0.8);
-      animation: pulse-endpoint 2s ease-in-out;
-    `;
+    const orderedCoords = getOrderedCoordinates();
+    if (orderedCoords.length === 0) {
+      return;
+    }
 
-    window.endpointMarker = new mapboxgl.Marker(el)
-      .setLngLat([endpoint.lng, endpoint.lat])
-      .addTo(map);
+    const endpoint = orderedCoords[orderedCoords.length - 1];
+    
+    // Use user's preferred zoom if they've interacted, otherwise use reduced zoom
+    const targetZoom = userHasZoomed ? userPreferredZoom : Math.max(map.getZoom() * 0.5, 10);
 
-    // Remove the marker after animation
-    setTimeout(() => {
-      if (window.endpointMarker) {
-        window.endpointMarker.remove();
-        window.endpointMarker = null;
-      }
-    }, 2000);
-  }, 300);
+    map.flyTo({
+      center: [endpoint.lng, endpoint.lat],
+      zoom: targetZoom,
+      duration: 1000,
+      essential: true
+    });
+  };
 }
 
 // Function to load route from encoding and select segments (with undo stack management)
