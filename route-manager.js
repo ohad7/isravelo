@@ -412,12 +412,7 @@ class RouteManager {
       // with the previous click position on this segment, accounting for directionality
       let isMovingForward = true; // default assumption
 
-      // Special case: if this is only the second point total (first click established the segment,
-      // second click is on the same segment), this is establishing initial direction, not reversing
-      if (this.routePoints.length === 2) {
-        console.log("Only two points total on same segment - establishing initial direction, not reversing");
-        isMovingForward = true;
-      } else if (this.routePoints.length >= 2) {
+      if (this.routePoints.length >= 2) {
         // Get the previous point (second to last) 
         const previousPoint = this.routePoints[this.routePoints.length - 2];
         
