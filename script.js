@@ -117,6 +117,13 @@ function addRoutePoint(lngLat, fromClick = true) {
       
       updateSegmentStyles();
       updateRouteListAndDescription();
+      
+      // Focus map on the route endpoint after adding a point
+      if (fromClick && selectedSegments.length > 0) {
+        setTimeout(() => {
+          focusMapOnRouteEndpoint();
+        }, 200);
+      }
     } catch (error) {
       console.error("Error adding route point:", error);
       // Fallback to old method
@@ -2431,6 +2438,67 @@ function focusMapOnRoute() {
       maxZoom: 14, // Don't zoom in too much for long routes
     });
   }
+}
+
+// Function to focus map on the route endpoint based on directionality
+function focusMapOnRouteEndpoint() {
+  if (selectedSegments.length === 0) {
+    return;
+  }
+
+  // Get the ordered coordinates to find the actual endpoint
+  const orderedCoords = getOrderedCoordinates();
+  if (orderedCoords.length === 0) {
+    return;
+  }
+
+  // Get the last point of the route (the endpoint)
+  const endpoint = orderedCoords[orderedCoords.length - 1];
+  
+  // Calculate a reasonable zoom level based on current zoom
+  const currentZoom = map.getZoom();
+  const targetZoom = Math.max(currentZoom, MIN_ZOOM_LEVEL);
+
+  // Focus on the endpoint with smooth animation
+  map.flyTo({
+    center: [endpoint.lng, endpoint.lat],
+    zoom: targetZoom,
+    duration: 1000,
+    essential: true // Ensures animation runs even if user prefers reduced motion
+  });
+
+  // Show a brief highlight at the endpoint
+  setTimeout(() => {
+    // Remove any existing endpoint marker
+    if (window.endpointMarker) {
+      window.endpointMarker.remove();
+    }
+
+    // Create a temporary marker at the endpoint
+    const el = document.createElement("div");
+    el.className = "endpoint-marker";
+    el.style.cssText = `
+      width: 20px;
+      height: 20px;
+      background: #ff4444;
+      border: 4px solid white;
+      border-radius: 50%;
+      box-shadow: 0 3px 12px rgba(255, 68, 68, 0.8);
+      animation: pulse-endpoint 2s ease-in-out;
+    `;
+
+    window.endpointMarker = new mapboxgl.Marker(el)
+      .setLngLat([endpoint.lng, endpoint.lat])
+      .addTo(map);
+
+    // Remove the marker after animation
+    setTimeout(() => {
+      if (window.endpointMarker) {
+        window.endpointMarker.remove();
+        window.endpointMarker = null;
+      }
+    }, 2000);
+  }, 300);
 }
 
 // Function to load route from encoding and select segments (with undo stack management)
