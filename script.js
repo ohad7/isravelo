@@ -117,13 +117,6 @@ function addRoutePoint(lngLat, fromClick = true) {
       
       updateSegmentStyles();
       updateRouteListAndDescription();
-      
-      // Focus map on the route endpoint after adding a point
-      if (fromClick && selectedSegments.length > 0) {
-        setTimeout(() => {
-          focusMapOnRouteEndpoint();
-        }, 200);
-      }
     } catch (error) {
       console.error("Error adding route point:", error);
       // Fallback to old method
@@ -389,10 +382,7 @@ function removeRoutePoint(index) {
   try {
     // Use RouteManager to remove point and get updated segments
     const updatedSegments = routeManager.removePoint(index);
-    
-    // Update selectedSegments with the result from RouteManager
-    selectedSegments.length = 0;
-    selectedSegments.push(...updatedSegments);
+    selectedSegments = updatedSegments;
 
     // Remove from local arrays
     routePoints.splice(index, 1);
@@ -424,8 +414,6 @@ function removeRoutePoint(index) {
     updateSegmentStyles();
     updateRouteListAndDescription();
     clearRouteFromUrl();
-    
-    console.log(`Point removed. Route now has ${selectedSegments.length} segments:`, selectedSegments);
   } catch (error) {
     console.error("Error removing route point:", error);
   }
@@ -2438,36 +2426,6 @@ function focusMapOnRoute() {
       maxZoom: 14, // Don't zoom in too much for long routes
     });
   }
-}
-
-// Function to focus map on the route endpoint based on directionality
-function focusMapOnRouteEndpoint() {
-  if (selectedSegments.length === 0) {
-    return;
-  }
-
-  // Get the ordered coordinates to find the actual endpoint
-  const orderedCoords = getOrderedCoordinates();
-  if (orderedCoords.length === 0) {
-    return;
-  }
-
-  // Get the last point of the route (the endpoint)
-  const endpoint = orderedCoords[orderedCoords.length - 1];
-  
-  // Calculate a reasonable zoom level based on current zoom
-  const currentZoom = map.getZoom();
-  const targetZoom = Math.max(currentZoom, MIN_ZOOM_LEVEL);
-
-  // Focus on the endpoint with smooth animation
-  map.flyTo({
-    center: [endpoint.lng, endpoint.lat],
-    zoom: targetZoom,
-    duration: 1000,
-    essential: true // Ensures animation runs even if user prefers reduced motion
-  });
-
-  
 }
 
 // Function to load route from encoding and select segments (with undo stack management)

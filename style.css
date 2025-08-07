@@ -1,32 +1,4 @@
-@keyframes pulse-endpoint {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.5);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0.3;
-  }
-}
-
-.endpoint-marker {
-  animation: pulse-endpoint 2s ease-in-out;
-}
-
-/* Export modal specific styles */
-.export-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
+html {
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
+  width: 100%;
 }
