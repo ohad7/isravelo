@@ -231,6 +231,19 @@ function createPointMarker(point, index) {
 
       isDragging = false;
       isDraggingPoint = false;
+      
+      // Validate that the dragged point is still close enough to a segment
+      if (draggedPointIndex !== -1 && routePoints[draggedPointIndex]) {
+        const draggedPoint = routePoints[draggedPointIndex];
+        const snappedPoint = findClosestSegment(draggedPoint);
+        
+        if (!snappedPoint) {
+          // No segment close enough - remove this point
+          console.log("Dragged point too far from segments, removing point");
+          removeRoutePoint(draggedPointIndex);
+        }
+      }
+      
       draggedPointIndex = -1;
       draggedFeature = null;
 
@@ -293,6 +306,19 @@ function createPointMarker(point, index) {
 
       isDragging = false;
       isDraggingPoint = false;
+      
+      // Validate that the dragged point is still close enough to a segment
+      if (draggedPointIndex !== -1 && routePoints[draggedPointIndex]) {
+        const draggedPoint = routePoints[draggedPointIndex];
+        const snappedPoint = findClosestSegment(draggedPoint);
+        
+        if (!snappedPoint) {
+          // No segment close enough - remove this point
+          console.log("Dragged point too far from segments, removing point");
+          removeRoutePoint(draggedPointIndex);
+        }
+      }
+      
       draggedPointIndex = -1;
       draggedFeature = null;
 
