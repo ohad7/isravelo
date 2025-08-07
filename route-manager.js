@@ -337,6 +337,11 @@ class RouteManager {
   }
 
   _recalculateRoute() {
+    // Filter out any undefined or invalid points from routePoints
+    this.routePoints = this.routePoints.filter(point => 
+      point && point.lat !== undefined && point.lng !== undefined
+    );
+
     if (this.routePoints.length === 0) {
       this.selectedSegments = [];
       return;
@@ -344,7 +349,7 @@ class RouteManager {
 
     if (this.routePoints.length === 1) {
       const point = this.routePoints[0];
-      if (point.segmentName) {
+      if (point && point.segmentName) {
         this.selectedSegments = [point.segmentName];
       } else {
         this.selectedSegments = [];
@@ -365,15 +370,20 @@ class RouteManager {
 
   _findOptimalRouteThroughPoints(points) {
     if (points.length === 0) return [];
-    if (points.length === 1) {
-      return points[0].segmentName ? [points[0].segmentName] : [];
+    
+    // Filter out any undefined or invalid points
+    const validPoints = points.filter(point => point && point.lat !== undefined && point.lng !== undefined);
+    
+    if (validPoints.length === 0) return [];
+    if (validPoints.length === 1) {
+      return validPoints[0].segmentName ? [validPoints[0].segmentName] : [];
     }
 
     let allSegments = [];
 
     // Process each new point by extending the route
-    for (let i = 0; i < points.length; i++) {
-      const point = points[i];
+    for (let i = 0; i < validPoints.length; i++) {
+      const point = validPoints[i];
 
       if (i === 0) {
         // First point - just add its segment
@@ -1113,6 +1123,14 @@ class RouteManager {
   // Utility methods
 
   _getDistance(point1, point2) {
+    // Add null/undefined checks
+    if (!point1 || !point2 || 
+        point1.lat === undefined || point1.lng === undefined ||
+        point2.lat === undefined || point2.lng === undefined) {
+      console.warn("Invalid points passed to _getDistance:", point1, point2);
+      return Infinity; // Return a large distance for invalid points
+    }
+
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (point1.lat * Math.PI) / 180;
     const φ2 = (point2.lat * Math.PI) / 180;
