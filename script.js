@@ -2467,38 +2467,7 @@ function focusMapOnRouteEndpoint() {
     essential: true // Ensures animation runs even if user prefers reduced motion
   });
 
-  // Show a brief highlight at the endpoint
-  setTimeout(() => {
-    // Remove any existing endpoint marker
-    if (window.endpointMarker) {
-      window.endpointMarker.remove();
-    }
-
-    // Create a temporary marker at the endpoint
-    const el = document.createElement("div");
-    el.className = "endpoint-marker";
-    el.style.cssText = `
-      width: 20px;
-      height: 20px;
-      background: #ff4444;
-      border: 4px solid white;
-      border-radius: 50%;
-      box-shadow: 0 3px 12px rgba(255, 68, 68, 0.8);
-      animation: pulse-endpoint 2s ease-in-out;
-    `;
-
-    window.endpointMarker = new mapboxgl.Marker(el)
-      .setLngLat([endpoint.lng, endpoint.lat])
-      .addTo(map);
-
-    // Remove the marker after animation
-    setTimeout(() => {
-      if (window.endpointMarker) {
-        window.endpointMarker.remove();
-        window.endpointMarker = null;
-      }
-    }, 2000);
-  }, 300);
+  
 }
 
 // Function to load route from encoding and select segments (with undo stack management)
