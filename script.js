@@ -442,6 +442,36 @@ function removeRoutePoint(index) {
     clearRouteFromUrl();
   } catch (error) {
     console.error("Error removing route point:", error);
+    
+    // Fallback: remove point locally and recalculate route manually
+    routePoints.splice(index, 1);
+    pointMarkers.splice(index, 1);
+
+    // Update map-integrated points
+    if (map.getSource("route-points")) {
+      const features = routePoints.map((point, idx) => ({
+        type: "Feature",
+        id: `route-point-${point.id}`,
+        geometry: {
+          type: "Point",
+          coordinates: [point.lng, point.lat],
+        },
+        properties: {
+          index: idx,
+          pointId: point.id,
+          type: "route-point",
+        },
+      }));
+
+      map.getSource("route-points").setData({
+        type: "FeatureCollection",
+        features: features,
+      });
+    }
+
+    // Manually recalculate route using existing logic
+    recalculateRoute();
+    clearRouteFromUrl();
   }
 }
 

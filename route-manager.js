@@ -121,11 +121,15 @@ class RouteManager {
    */
   removePoint(index) {
     if (index < 0 || index >= this.routePoints.length) {
-      return this.selectedSegments;
+      return [...this.selectedSegments];
     }
 
+    // Remove the point from internal array
     this.routePoints.splice(index, 1);
+    
+    // Recalculate route based on remaining points
     this._recalculateRoute();
+    
     return [...this.selectedSegments];
   }
 
@@ -342,14 +346,21 @@ class RouteManager {
       const point = this.routePoints[0];
       if (point.segmentName) {
         this.selectedSegments = [point.segmentName];
+      } else {
+        this.selectedSegments = [];
       }
       return;
     }
 
     // Find optimal route through all points
-    this.selectedSegments = this._findOptimalRouteThroughPoints(
-      this.routePoints,
-    );
+    try {
+      this.selectedSegments = this._findOptimalRouteThroughPoints(
+        this.routePoints,
+      );
+    } catch (error) {
+      console.error("Error in _findOptimalRouteThroughPoints:", error);
+      this.selectedSegments = [];
+    }
   }
 
   _findOptimalRouteThroughPoints(points) {
