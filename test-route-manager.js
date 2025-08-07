@@ -435,13 +435,13 @@ async function runAllTestsWithSummary() {
 
   // Run JSON test cases
   const jsonTests = [
-    // { name: "test1.json", func: testUserTestCase1 },
-    // { name: "test2.json", func: testUserTestCase2 },
-    // { name: "test3.json", func: testUserTestCase3 },
-    // { name: "test4.json", func: testUserTestCase4 },
-    // { name: "test5.json", func: testUserTestCase5 },
+    { name: "test1.json", func: testUserTestCase1 },
+    { name: "test2.json", func: testUserTestCase2 },
+    { name: "test3.json", func: testUserTestCase3 },
+    { name: "test4.json", func: testUserTestCase4 },
+    { name: "test5.json", func: testUserTestCase5 },
     { name: "test6.json", func: testUserTestCase6 },
-    // { name: "test7.json", func: testUserTestCase7 },
+    { name: "test7.json", func: testUserTestCase7 },
   ];
 
   for (const test of jsonTests) {
