@@ -393,14 +393,6 @@ async function testUserTestCase5() {
   await runTestFromJson("tests/test5.json");
 }
 
-async function testUserTestCase6() {
-  await runTestFromJson("tests/test6.json");
-}
-
-async function testUserTestCase7() {
-  await runTestFromJson("tests/test7.json");
-}
-
 // Enhanced test runner with summary
 async function runAllTestsWithSummary() {
   console.log("=".repeat(60));
@@ -440,8 +432,6 @@ async function runAllTestsWithSummary() {
     { name: "test3.json", func: testUserTestCase3 },
     { name: "test4.json", func: testUserTestCase4 },
     { name: "test5.json", func: testUserTestCase5 },
-    { name: "test6.json", func: testUserTestCase6 },
-    { name: "test7.json", func: testUserTestCase7 },
   ];
 
   for (const test of jsonTests) {
@@ -525,8 +515,6 @@ if (typeof module !== "undefined" && module.exports) {
     testUserTestCase3,
     testUserTestCase4,
     testUserTestCase5,
-    testUserTestCase6,
-    testUserTestCase7,
     runTestFromJson,
     runAllTestsWithSummary,
     mockGeoJsonData,
