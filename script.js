@@ -106,6 +106,13 @@ function addRoutePoint(lngLat, fromClick = true) {
   // Add to local routePoints first
   routePoints.push(point);
 
+  // Ensure RouteManager's internal state is synchronized with global state
+  if (routeManager) {
+    // Sync RouteManager's internal routePoints with global routePoints
+    routeManager.routePoints = routePoints.map(p => ({ ...p }));
+    routeManager.selectedSegments = [...selectedSegments];
+  }
+
   // Use RouteManager to add the point and get updated segments
   if (routeManager) {
     try {
@@ -689,8 +696,18 @@ function undo() {
 
     // Update RouteManager's internal state to match the restored state
     if (routeManager) {
-      routeManager.routePoints = [...routePoints];
+      // Make deep copies to ensure complete sync
+      routeManager.routePoints = routePoints.map(p => ({ ...p }));
       routeManager.selectedSegments = [...selectedSegments];
+      
+      // Force recalculate to ensure internal state consistency
+      if (routePoints.length > 0) {
+        try {
+          routeManager._recalculateRoute();
+        } catch (error) {
+          console.error("Error recalculating route in undo:", error);
+        }
+      }
     }
 
     updateSegmentStyles();
@@ -721,8 +738,18 @@ function redo() {
 
     // Update RouteManager's internal state to match the restored state
     if (routeManager) {
-      routeManager.routePoints = [...routePoints];
+      // Make deep copies to ensure complete sync
+      routeManager.routePoints = routePoints.map(p => ({ ...p }));
       routeManager.selectedSegments = [...selectedSegments];
+      
+      // Force recalculate to ensure internal state consistency
+      if (routePoints.length > 0) {
+        try {
+          routeManager._recalculateRoute();
+        } catch (error) {
+          console.error("Error recalculating route in redo:", error);
+        }
+      }
     }
 
     updateSegmentStyles();
