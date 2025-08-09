@@ -1060,7 +1060,7 @@ function initMap() {
       // Highlight closest segment if found
       if (closestSegment) {
         const layerId = closestSegment.layerId;
-        map.getCanvas().style.cursor = "crosshair";
+        map.getCanvas().style.cursor = "pointer";
 
         if (!selectedSegments.includes(closestSegment.segmentName)) {
           // Highlight non-selected segment
@@ -1746,7 +1746,7 @@ async function parseGeoJSON(geoJsonData) {
 
       // Add hover effects with segment name display
       map.on("mouseenter", layerId, (e) => {
-        map.getCanvas().style.cursor = "crosshair";
+        map.getCanvas().style.cursor = "pointer";
         if (!selectedSegments.includes(name)) {
           map.setPaintProperty(layerId, "line-width", originalWeight + 2);
           map.setPaintProperty(layerId, "line-opacity", 1);
