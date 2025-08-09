@@ -153,28 +153,30 @@ class RouteManager {
    */
   recalculateRoute(points) {
     // Re-snap points to nearest segments to ensure they're valid
-    this.routePoints = points.map(point => {
-      if (!point || point.lat === undefined || point.lng === undefined) {
-        return null;
-      }
-      
-      // Re-snap the point to the nearest segment
-      const snappedPoint = this._snapToNearestSegment({
-        lat: point.lat,
-        lng: point.lng
-      });
-      
-      if (snappedPoint) {
-        return {
-          ...point,
-          lat: snappedPoint.lat,
-          lng: snappedPoint.lng,
-          segmentName: snappedPoint.segmentName
-        };
-      }
-      
-      return point; // Keep original if snapping fails
-    }).filter(point => point !== null);
+    this.routePoints = points
+      .map((point) => {
+        if (!point || point.lat === undefined || point.lng === undefined) {
+          return null;
+        }
+
+        // Re-snap the point to the nearest segment
+        const snappedPoint = this._snapToNearestSegment({
+          lat: point.lat,
+          lng: point.lng,
+        });
+
+        if (snappedPoint) {
+          return {
+            ...point,
+            lat: snappedPoint.lat,
+            lng: snappedPoint.lng,
+            segmentName: snappedPoint.segmentName,
+          };
+        }
+
+        return point; // Keep original if snapping fails
+      })
+      .filter((point) => point !== null);
 
     this._recalculateRoute();
     return [...this.selectedSegments];
@@ -233,6 +235,136 @@ class RouteManager {
       ...segment,
       metrics: metrics || null,
     };
+  }
+
+  /**
+   * Restore route state from an array of points
+   * @param {Array} points - Array of route points with {lat, lng, id}
+   * @returns {Array} Updated list of selected segments
+   */
+  restoreFromPoints(points) {
+    // Filter and validate points
+    const validPoints = points.filter(
+      (point) => point && point.lat !== undefined && point.lng !== undefined,
+    );
+
+    if (validPoints.length === 0) {
+      this.clearRoute();
+      return [];
+    }
+
+    // Store the current segments before clearing
+    const previousSegments = [...this.selectedSegments];
+
+    // Clear current state
+    this.clearRoute();
+
+    // Add each point and snap them to segments to ensure they have segmentName
+    for (const point of validPoints) {
+      const snappedPoint = this._snapToNearestSegment(point);
+      if (snappedPoint) {
+        this.routePoints.push({
+          lat: snappedPoint.lat,
+          lng: snappedPoint.lng,
+          id: point.id || Date.now() + Math.random(),
+          segmentName: snappedPoint.segmentName,
+        });
+      } else {
+        // If snapping fails, keep original point but try to find closest segment
+        const closestSegment = this.findClosestSegment(point);
+        this.routePoints.push({
+          lat: point.lat,
+          lng: point.lng,
+          id: point.id || Date.now() + Math.random(),
+          segmentName: closestSegment,
+        });
+      }
+    }
+
+    // Recalculate route based on the restored points
+    this._recalculateRoute();
+
+    // If recalculation failed and we have no segments, try to restore the previous segments
+    if (this.selectedSegments.length === 0 && previousSegments.length > 0) {
+      console.warn(
+        "Route recalculation failed, attempting to restore previous segments",
+      );
+      this.selectedSegments = [...previousSegments];
+    }
+
+    return [...this.selectedSegments];
+  }
+
+  /**
+   * Update internal state without recalculation (for undo/redo operations)
+   * @param {Array} points - Array of route points
+   * @param {Array} segments - Array of segment names
+   */
+  updateInternalState(points, segments) {
+    this.routePoints = points.map((p) => ({ ...p }));
+    this.selectedSegments = [...segments];
+  }
+
+  /**
+   * Check if a list of segments forms a continuous route
+   * @param {Array} segments - Array of segment names
+   * @returns {Object} {isContinuous: boolean, brokenSegmentIndex: number}
+   */
+  checkSegmentsContinuity(segments) {
+    if (segments.length <= 1) {
+      return { isContinuous: true, brokenSegmentIndex: -1 };
+    }
+
+    const tolerance = 100; // 100 meters tolerance
+    const orderedCoords = this._getOrderedCoordinatesForSegments(segments);
+
+    if (orderedCoords.length === 0) {
+      return { isContinuous: true, brokenSegmentIndex: -1 };
+    }
+
+    // Check gaps in the ordered coordinates by looking at distances between consecutive segments
+    let coordIndex = 0;
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      const currentSegmentName = segments[i];
+      const nextSegmentName = segments[i + 1];
+
+      const currentSegment = this.segments.get(currentSegmentName);
+      const nextSegment = this.segments.get(nextSegmentName);
+
+      if (!currentSegment || !nextSegment) {
+        continue;
+      }
+
+      // Find where current segment ends in ordered coordinates
+      const currentSegmentLength = currentSegment.coordinates.length;
+      const currentSegmentEndIndex = coordIndex + currentSegmentLength - 1;
+
+      // Check if we have enough coordinates
+      if (currentSegmentEndIndex >= orderedCoords.length - 1) {
+        return { isContinuous: false, brokenSegmentIndex: i };
+      }
+
+      const currentEnd = orderedCoords[currentSegmentEndIndex];
+      const nextStart = orderedCoords[currentSegmentEndIndex + 1];
+
+      const distance = this._getDistance(currentEnd, nextStart);
+
+      // If distance is greater than tolerance, route is broken
+      if (distance > tolerance) {
+        return { isContinuous: false, brokenSegmentIndex: i };
+      }
+
+      // Move to next segment in ordered coordinates
+      // Skip first coordinate of next segment if segments are well connected to avoid duplication
+      coordIndex += currentSegmentLength;
+      if (distance <= 50) {
+        // Well connected segments
+        coordIndex -= 1; // Account for coordinate that was skipped in getOrderedCoordinates
+      }
+    }
+
+    return { isContinuous: true, brokenSegmentIndex: -1 };
   }
 
   // Private methods
@@ -529,6 +661,11 @@ class RouteManager {
         "Directly connected to target segment :",
         closestSegmentToPoint,
       );
+      console.log("currentRouteSegments:", currentRouteSegments);
+      // If it's only the second segment being added and it's adjacent, return it directly
+      if (currentRouteSegments.length == 1) {
+        return [closestSegmentToPoint];
+      }
       // Check if the target segment is reachable from the current route endpoint
       const targetSegmentData = this.segments.get(closestSegmentToPoint);
       if (!targetSegmentData) return [closestSegmentToPoint];
@@ -543,7 +680,7 @@ class RouteManager {
         targetStart,
       );
       const distanceToTargetEnd = this._getDistance(routeEndpoint, targetEnd);
-      const connectionThreshold = 100; // meters
+      const connectionThreshold = 50; // meters
 
       if (
         Math.min(distanceToTargetStart, distanceToTargetEnd) <=
@@ -581,6 +718,16 @@ class RouteManager {
       if (!path || path.length === 0) {
         return [closestSegmentToPoint];
       }
+
+      // When it's the second segment being added, don't assume directinality and thus don't reverse
+      if (
+        currentRouteSegments.length == 1 &&
+        path[0] == currentRouteSegments[0]
+      ) {
+        path.shift();
+        return path;
+      }
+
       return path;
     }
   }
@@ -764,6 +911,7 @@ class RouteManager {
         }
       }
     }
+    console.log("segments", segments);
     return segments;
   }
 
@@ -889,7 +1037,10 @@ class RouteManager {
       },
     );
 
-    path.push(targetSegmentName);
+    // Avoid adding the end segment if it's already the last one in the path
+    if (path.length > 0 && path[path.length - 1] !== targetSegmentName) {
+      path.push(targetSegmentName);
+    }
     console.log("path:", path);
 
     return path || [];

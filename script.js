@@ -690,7 +690,6 @@ function undo() {
 
     // Restore previous state
     const previousState = undoStack.pop();
-    selectedSegments = [...previousState.segments];
 
     // Clear and restore points
     clearRoutePoints();
@@ -699,14 +698,29 @@ function undo() {
       createPointMarker(point, index);
     });
 
-    // Update RouteManager's internal state to match the restored state
+    // Use RouteManager's public method to restore state
     if (routeManager) {
-      routeManager.routePoints = [...routePoints];
-      routeManager.selectedSegments = [...selectedSegments];
-      // Force a recalculation to ensure internal state is synchronized
-      if (routePoints.length > 0) {
-        routeManager._recalculateRoute();
+      try {
+        const restoredSegments = routeManager.restoreFromPoints(routePoints);
+        selectedSegments = restoredSegments;
+        
+        // If restoration failed, fallback to the saved segments
+        if (selectedSegments.length === 0 && previousState.segments.length > 0) {
+          console.warn("RouteManager restoration failed, using saved segments");
+          selectedSegments = [...previousState.segments];
+          // Update RouteManager's internal state to match
+          routeManager.updateInternalState(routePoints, selectedSegments);
+        }
+      } catch (error) {
+        console.error("Error during undo restoration:", error);
+        // Fallback to saved segments
+        selectedSegments = [...previousState.segments];
+        if (routeManager) {
+          routeManager.updateInternalState(routePoints, selectedSegments);
+        }
       }
+    } else {
+      selectedSegments = [...previousState.segments];
     }
 
     updateSegmentStyles();
@@ -726,7 +740,6 @@ function redo() {
 
     // Restore next state
     const nextState = redoStack.pop();
-    selectedSegments = [...nextState.segments];
 
     // Clear and restore points
     clearRoutePoints();
@@ -735,14 +748,16 @@ function redo() {
       createPointMarker(point, index);
     });
 
-    // Update RouteManager's internal state to match the restored state
+    // Use RouteManager's public method to restore state
     if (routeManager) {
-      routeManager.routePoints = [...routePoints];
-      routeManager.selectedSegments = [...selectedSegments];
-      // Force a recalculation to ensure internal state is synchronized
-      if (routePoints.length > 0) {
-        routeManager._recalculateRoute();
-      }
+      selectedSegments = routeManager.restoreFromPoints(routePoints);
+    } else {
+      selectedSegments = [...nextState.segments];
+    }
+
+    // Update RouteManager's internal state to match
+    if (routeManager) {
+      routeManager.updateInternalState(routePoints, selectedSegments);
     }
 
     updateSegmentStyles();

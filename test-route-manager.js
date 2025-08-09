@@ -397,6 +397,18 @@ async function testUserTestCase6() {
   await runTestFromJson("tests/test6.json");
 }
 
+async function testUserTestCase7() {
+  await runTestFromJson("tests/test7.json");
+}
+
+async function testUserTestCase8() {
+  await runTestFromJson("tests/test8.json");
+}
+
+async function testUserTestCase9() {
+  await runTestFromJson("tests/test9.json");
+}
+
 // Enhanced test runner with summary
 async function runAllTestsWithSummary() {
   console.log("=".repeat(60));
@@ -404,30 +416,6 @@ async function runAllTestsWithSummary() {
   console.log("=".repeat(60));
 
   const testResults = [];
-
-  // // Run basic tests
-  // console.log("\n--- Running Basic Tests ---");
-  // try {
-  //   await testRouteManager();
-  //   testResults.push({ name: "RouteManager Basic Tests", status: "PASS" });
-  // } catch (error) {
-  //   testResults.push({
-  //     name: "RouteManager Basic Tests",
-  //     status: "FAIL",
-  //     error: error.message,
-  //   });
-  // }
-
-  // try {
-  //   await testErrorHandling();
-  //   testResults.push({ name: "Error Handling Tests", status: "PASS" });
-  // } catch (error) {
-  //   testResults.push({
-  //     name: "Error Handling Tests",
-  //     status: "FAIL",
-  //     error: error.message,
-  //   });
-  // }
 
   // Run JSON test cases
   const jsonTests = [
@@ -437,6 +425,9 @@ async function runAllTestsWithSummary() {
     { name: "test4.json", func: testUserTestCase4 },
     { name: "test5.json", func: testUserTestCase5 },
     { name: "test6.json", func: testUserTestCase6 },
+    { name: "test7.json", func: testUserTestCase7 },
+    { name: "test8.json", func: testUserTestCase8 },
+    { name: "test9.json", func: testUserTestCase9 },
   ];
 
   for (const test of jsonTests) {
