@@ -703,7 +703,7 @@ function undo() {
       try {
         const restoredSegments = routeManager.restoreFromPoints(routePoints);
         selectedSegments = restoredSegments;
-        
+
         // If restoration failed, fallback to the saved segments
         if (selectedSegments.length === 0 && previousState.segments.length > 0) {
           console.warn("RouteManager restoration failed, using saved segments");
@@ -3572,7 +3572,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Focus on current segment
         const segmentName =
           winterResult.winterSegments[window.winterWarningIndex];
-        focusOnSegmentByName(segmentName);
+        focusOnSegment(segmentName);
 
         // Move to next segment for next click
         window.winterWarningIndex =
@@ -3596,7 +3596,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Focus on current segment
         const segmentName =
           warningsResult.warningSegments[window.segmentWarningIndex];
-        focusOnSegmentByName(segmentName);
+        focusOnSegment(segmentName);
 
         // Move to next segment for next click
         window.segmentWarningIndex =
