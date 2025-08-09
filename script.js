@@ -691,6 +691,10 @@ function undo() {
     if (routeManager) {
       routeManager.routePoints = [...routePoints];
       routeManager.selectedSegments = [...selectedSegments];
+      // Force a recalculation to ensure internal state is synchronized
+      if (routePoints.length > 0) {
+        routeManager._recalculateRoute();
+      }
     }
 
     updateSegmentStyles();
@@ -723,6 +727,10 @@ function redo() {
     if (routeManager) {
       routeManager.routePoints = [...routePoints];
       routeManager.selectedSegments = [...selectedSegments];
+      // Force a recalculation to ensure internal state is synchronized
+      if (routePoints.length > 0) {
+        routeManager._recalculateRoute();
+      }
     }
 
     updateSegmentStyles();
