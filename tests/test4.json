@@ -1,0 +1,50 @@
+{
+  "name": "User Test Case - 2025-08-06 18-00-14",
+  "description": "Testing of simple reverse of a route",
+  "geoJsonFile": "bike_roads_v12.geojson",
+  "segmentsFile": "segments.json",
+  "operations": [
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.128051854432194,
+          "lng": 35.583601947688756
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [],
+      "expectedSegmentsCount": 0
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.11076673723811,
+          "lng": 35.57875100376203
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [15],
+      "expectedSegmentsCount": 1
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.110140144352336,
+          "lng": 35.59054934237174
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [15, 65],
+      "expectedSegmentsCount": 2
+    }
+  ],
+  "summary": {
+    "totalOperations": 3,
+    "operationTypes": ["addPoint"],
+    "finalSegmentIds": [15, 65, 65, 2],
+    "finalSegmentsCount": 4
+  }
+}
