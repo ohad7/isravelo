@@ -417,9 +417,13 @@ function removeRoutePoint(index) {
   if (!routeManager) {
     console.warn("RouteManager not initialized");
     // Fallback to old logic if RouteManager is not available
-    // Remove the marker
-    if (pointMarkers[index]) {
-      pointMarkers[index].remove();
+    // Remove the marker safely
+    try {
+      if (pointMarkers[index] && pointMarkers[index].remove) {
+        pointMarkers[index].remove();
+      }
+    } catch (error) {
+      console.warn("Error removing marker:", error);
     }
 
     // Remove from arrays
@@ -442,26 +446,30 @@ function removeRoutePoint(index) {
     routePoints.splice(index, 1);
     pointMarkers.splice(index, 1);
 
-    // Update map-integrated points
-    if (map.getSource("route-points")) {
-      const features = routePoints.map((point, idx) => ({
-        type: "Feature",
-        id: `route-point-${point.id}`,
-        geometry: {
-          type: "Point",
-          coordinates: [point.lng, point.lat],
-        },
-        properties: {
-          index: idx,
-          pointId: point.id,
-          type: "route-point",
-        },
-      }));
+    // Update map-integrated points safely
+    try {
+      if (map.getSource("route-points")) {
+        const features = routePoints.map((point, idx) => ({
+          type: "Feature",
+          id: `route-point-${point.id}`,
+          geometry: {
+            type: "Point",
+            coordinates: [point.lng, point.lat],
+          },
+          properties: {
+            index: idx,
+            pointId: point.id,
+            type: "route-point",
+          },
+        }));
 
-      map.getSource("route-points").setData({
-        type: "FeatureCollection",
-        features: features,
-      });
+        map.getSource("route-points").setData({
+          type: "FeatureCollection",
+          features: features,
+        });
+      }
+    } catch (domError) {
+      console.warn("Error updating map points:", domError);
     }
 
     // Update UI
@@ -475,26 +483,30 @@ function removeRoutePoint(index) {
     routePoints.splice(index, 1);
     pointMarkers.splice(index, 1);
 
-    // Update map-integrated points
-    if (map.getSource("route-points")) {
-      const features = routePoints.map((point, idx) => ({
-        type: "Feature",
-        id: `route-point-${point.id}`,
-        geometry: {
-          type: "Point",
-          coordinates: [point.lng, point.lat],
-        },
-        properties: {
-          index: idx,
-          pointId: point.id,
-          type: "route-point",
-        },
-      }));
+    // Update map-integrated points safely
+    try {
+      if (map.getSource("route-points")) {
+        const features = routePoints.map((point, idx) => ({
+          type: "Feature",
+          id: `route-point-${point.id}`,
+          geometry: {
+            type: "Point",
+            coordinates: [point.lng, point.lat],
+          },
+          properties: {
+            index: idx,
+            pointId: point.id,
+            type: "route-point",
+          },
+        }));
 
-      map.getSource("route-points").setData({
-        type: "FeatureCollection",
-        features: features,
-      });
+        map.getSource("route-points").setData({
+          type: "FeatureCollection",
+          features: features,
+        });
+      }
+    } catch (domError) {
+      console.warn("Error updating map points in fallback:", domError);
     }
 
     // Manually recalculate route using existing logic
