@@ -57,8 +57,8 @@ class RouteManager {
     this._preCalculateMetrics();
 
     // Build connectivity graphs
-    this._buildAdjacencyMap();      // legacy segment-level (still used elsewhere)
-    this._buildEndpointGraph();     // new endpoint-level weighted graph
+    this._buildAdjacencyMap(); // legacy segment-level (still used elsewhere)
+    this._buildEndpointGraph(); // new endpoint-level weighted graph
 
     console.log(`Loaded ${this.segments.size} segments with connectivity data`);
   }
@@ -307,8 +307,12 @@ class RouteManager {
       const w = metrics ? metrics.distance : 0;
 
       // Bidirectional edge representing traversing the segment
-      this.endpointGraph.get(nodeS).push({ to: nodeE, weight: w, segment: name });
-      this.endpointGraph.get(nodeE).push({ to: nodeS, weight: w, segment: name });
+      this.endpointGraph
+        .get(nodeS)
+        .push({ to: nodeE, weight: w, segment: name });
+      this.endpointGraph
+        .get(nodeE)
+        .push({ to: nodeS, weight: w, segment: name });
     }
 
     // Zero-weight connections between touching endpoints of different segments
@@ -625,12 +629,24 @@ class RouteManager {
     }
 
     // Determine which endpoint of the start segment to start from (closer to the actual startPoint)
-    const startEndpointKey = this._nearestEndpointKeyToPoint(startSegment, startPoint);
-    const routeEndpointPoint = this._getEndpointCoords(startSegment, startEndpointKey);
+    const startEndpointKey = this._nearestEndpointKeyToPoint(
+      startSegment,
+      startPoint,
+    );
+    const routeEndpointPoint = this._getEndpointCoords(
+      startSegment,
+      startEndpointKey,
+    );
 
     // Determine target entry endpoint of the end segment (closer to the actual endPoint)
-    const targetEndpointKey = this._nearestEndpointKeyToPoint(endSegment, endPoint);
-    const targetEntryPoint = this._getEndpointCoords(endSegment, targetEndpointKey);
+    const targetEndpointKey = this._nearestEndpointKeyToPoint(
+      endSegment,
+      endPoint,
+    );
+    const targetEntryPoint = this._getEndpointCoords(
+      endSegment,
+      targetEndpointKey,
+    );
 
     // Use shortest path algorithm over endpoint graph
     const shortestPath = this._findShortestSegmentPath(
@@ -849,6 +865,9 @@ class RouteManager {
         targetEntryPoint,
       },
     );
+
+    path.push(targetSegmentName);
+    console.log("path:", path);
 
     return path || [];
   }
@@ -1269,4 +1288,3 @@ class RouteManager {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = RouteManager;
 }
-
