@@ -483,7 +483,12 @@ class RouteManager {
         );
 
         console.log("Pushing extension segments:", extensionSegments);
-        allSegments.push(...extensionSegments);
+        
+        // Only add extension segments if they're not empty
+        // Empty array means we're clicking on the same segment, so no extension needed
+        if (extensionSegments.length > 0) {
+          allSegments.push(...extensionSegments);
+        }
       }
     }
 
@@ -506,6 +511,7 @@ class RouteManager {
 
     // Check if we're clicking on the same segment as the last one
     if (lastSegmentOfRoute === closestSegmentToPoint) {
+      // Don't extend - just return empty array, but this won't affect the existing route
       return [];
     }
 
