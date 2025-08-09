@@ -700,7 +700,25 @@ function undo() {
 
     // Use RouteManager's public method to restore state
     if (routeManager) {
-      selectedSegments = routeManager.restoreFromPoints(routePoints);
+      try {
+        const restoredSegments = routeManager.restoreFromPoints(routePoints);
+        selectedSegments = restoredSegments;
+        
+        // If restoration failed, fallback to the saved segments
+        if (selectedSegments.length === 0 && previousState.segments.length > 0) {
+          console.warn("RouteManager restoration failed, using saved segments");
+          selectedSegments = [...previousState.segments];
+          // Update RouteManager's internal state to match
+          routeManager.updateInternalState(routePoints, selectedSegments);
+        }
+      } catch (error) {
+        console.error("Error during undo restoration:", error);
+        // Fallback to saved segments
+        selectedSegments = [...previousState.segments];
+        if (routeManager) {
+          routeManager.updateInternalState(routePoints, selectedSegments);
+        }
+      }
     } else {
       selectedSegments = [...previousState.segments];
     }

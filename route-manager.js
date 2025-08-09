@@ -241,29 +241,52 @@ class RouteManager {
    * @returns {Array} Updated list of selected segments
    */
   restoreFromPoints(points) {
-    // Clear current state
-    this.clearRoute();
-    
     // Filter and validate points
     const validPoints = points.filter(
       (point) => point && point.lat !== undefined && point.lng !== undefined
     );
 
     if (validPoints.length === 0) {
+      this.clearRoute();
       return [];
     }
 
-    // Add each point, but don't snap them - preserve original coordinates
+    // Store the current segments before clearing
+    const previousSegments = [...this.selectedSegments];
+
+    // Clear current state
+    this.clearRoute();
+
+    // Add each point and snap them to segments to ensure they have segmentName
     for (const point of validPoints) {
-      this.routePoints.push({
-        lat: point.lat,
-        lng: point.lng,
-        id: point.id || Date.now() + Math.random(),
-      });
+      const snappedPoint = this._snapToNearestSegment(point);
+      if (snappedPoint) {
+        this.routePoints.push({
+          lat: snappedPoint.lat,
+          lng: snappedPoint.lng,
+          id: point.id || Date.now() + Math.random(),
+          segmentName: snappedPoint.segmentName
+        });
+      } else {
+        // If snapping fails, keep original point but try to find closest segment
+        const closestSegment = this.findClosestSegment(point);
+        this.routePoints.push({
+          lat: point.lat,
+          lng: point.lng,
+          id: point.id || Date.now() + Math.random(),
+          segmentName: closestSegment
+        });
+      }
     }
 
     // Recalculate route based on the restored points
     this._recalculateRoute();
+    
+    // If recalculation failed and we have no segments, try to restore the previous segments
+    if (this.selectedSegments.length === 0 && previousSegments.length > 0) {
+      console.warn("Route recalculation failed, attempting to restore previous segments");
+      this.selectedSegments = [...previousSegments];
+    }
     
     return [...this.selectedSegments];
   }
