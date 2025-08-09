@@ -182,10 +182,6 @@ function createPointMarker(point, index) {
       if (e.features.length === 0) return;
 
       e.preventDefault();
-      
-      // Save state before starting drag operation
-      saveState();
-      
       isDragging = true;
       isDraggingPoint = true;
       draggedFeature = { ...e.features[0] }; // Create a copy
@@ -259,11 +255,6 @@ function createPointMarker(point, index) {
           // No segment close enough - remove this point
           console.log("Dragged point too far from segments, removing point");
           removeRoutePoint(draggedPointIndex);
-        } else {
-          // Update RouteManager's internal state to match the current state
-          if (routeManager) {
-            routeManager.updateInternalState(routePoints, selectedSegments);
-          }
         }
       }
 
@@ -274,7 +265,6 @@ function createPointMarker(point, index) {
       map.dragPan.enable();
       document.body.style.userSelect = "";
 
-      // Save state after drag is complete to capture the final position
       saveState();
       clearRouteFromUrl();
     });
@@ -284,10 +274,6 @@ function createPointMarker(point, index) {
       if (e.points.length !== 1 || e.features.length === 0) return;
 
       e.preventDefault();
-      
-      // Save state before starting drag operation
-      saveState();
-      
       isDragging = true;
       isDraggingPoint = true;
       draggedFeature = { ...e.features[0] }; // Create a copy
@@ -358,11 +344,6 @@ function createPointMarker(point, index) {
           // No segment close enough - remove this point
           console.log("Dragged point too far from segments, removing point");
           removeRoutePoint(draggedPointIndex);
-        } else {
-          // Update RouteManager's internal state to match the current state
-          if (routeManager) {
-            routeManager.updateInternalState(routePoints, selectedSegments);
-          }
         }
       }
 
@@ -371,7 +352,6 @@ function createPointMarker(point, index) {
 
       map.dragPan.enable();
 
-      // Save state after drag is complete to capture the final position
       saveState();
       clearRouteFromUrl();
     });
@@ -702,17 +682,6 @@ function clearRouteFromUrl() {
 
 function undo() {
   if (undoStack.length > 0) {
-    // Cancel any ongoing drag operations
-    if (isDragging || isDraggingPoint) {
-      isDragging = false;
-      isDraggingPoint = false;
-      draggedPointIndex = -1;
-      draggedFeature = null;
-      map.getCanvas().style.cursor = "";
-      map.dragPan.enable();
-      document.body.style.userSelect = "";
-    }
-
     // Save current state to redo stack
     redoStack.push({
       segments: [...selectedSegments],
