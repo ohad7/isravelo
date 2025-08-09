@@ -12,6 +12,7 @@ let isDraggingPoint = false;
 let draggedPointIndex = -1;
 let routeManager = null; // Instance of RouteManager
 let operationsLog = []; // Log of user operations for export
+let spatialIndex = null; // Spatial index for efficient segment lookup
 
 const COLORS = {
   WARNING_ORANGE: "#ff9800",
@@ -23,6 +24,8 @@ const COLORS = {
   ELEVATION_MARKER: "#ff4444", // Red for the elevation marker
   HIGHLIGHT_WHITE: "#ffffff", // White for highlighting all segments
 };
+
+
 
 const MIN_ZOOM_LEVEL = 13; // Minimum zoom level when focusing on segments
 
@@ -1056,27 +1059,42 @@ function initMap() {
       const mousePixel = map.project(mousePoint);
       const threshold = 15; // pixels
       let closestSegment = null;
-      let minDistance = Infinity;
 
-      // Find closest segment within threshold
-      routePolylines.forEach((polylineData) => {
-        const coords = polylineData.coordinates;
-        for (let i = 0; i < coords.length - 1; i++) {
-          const startPixel = map.project([coords[i].lng, coords[i].lat]);
-          const endPixel = map.project([coords[i + 1].lng, coords[i + 1].lat]);
+      // Use spatial index for efficient segment lookup
+      if (spatialIndex) {
+        // Convert pixel threshold to approximate degree threshold
+        const degreeThreshold = threshold * 0.00005; // Rough conversion
+        const candidateSegment = spatialIndex.findNearestSegment(
+          mousePoint.lat, 
+          mousePoint.lng, 
+          degreeThreshold
+        );
 
-          const distance = distanceToLineSegmentPixels(
-            mousePixel,
-            startPixel,
-            endPixel,
-          );
+        // Verify the candidate with precise pixel distance if found
+        if (candidateSegment) {
+          const coords = candidateSegment.coordinates;
+          let minPixelDistance = Infinity;
+          
+          for (let i = 0; i < coords.length - 1; i++) {
+            const startPixel = map.project([coords[i].lng, coords[i].lat]);
+            const endPixel = map.project([coords[i + 1].lng, coords[i + 1].lat]);
 
-          if (distance < threshold && distance < minDistance) {
-            minDistance = distance;
-            closestSegment = polylineData;
+            const distance = distanceToLineSegmentPixels(
+              mousePixel,
+              startPixel,
+              endPixel,
+            );
+
+            if (distance < minPixelDistance) {
+              minPixelDistance = distance;
+            }
+          }
+
+          if (minPixelDistance < threshold) {
+            closestSegment = candidateSegment;
           }
         }
-      });
+      }
 
       // Reset all segments to normal style first
       routePolylines.forEach((polylineData) => {
@@ -1176,38 +1194,53 @@ function initMap() {
       const clickPixel = map.project(clickPoint);
       const threshold = 15; // Use same threshold as hover logic
 
-      // Use same logic as hover to find closest segment
+      // Use spatial index for efficient segment lookup
       let closestSegment = null;
       let closestPointOnSegment = null;
-      let minDistance = Infinity;
 
-      routePolylines.forEach((polylineData) => {
-        const coords = polylineData.coordinates;
-        for (let i = 0; i < coords.length - 1; i++) {
-          const startPixel = map.project([coords[i].lng, coords[i].lat]);
-          const endPixel = map.project([coords[i + 1].lng, coords[i + 1].lat]);
+      if (spatialIndex) {
+        // Convert pixel threshold to approximate degree threshold
+        const degreeThreshold = threshold * 0.00005; // Rough conversion
+        const candidateSegment = spatialIndex.findNearestSegment(
+          clickPoint.lat, 
+          clickPoint.lng, 
+          degreeThreshold
+        );
 
-          const distance = distanceToLineSegmentPixels(
-            clickPixel,
-            startPixel,
-            endPixel,
-          );
+        // Verify the candidate with precise pixel distance if found
+        if (candidateSegment) {
+          const coords = candidateSegment.coordinates;
+          let minPixelDistance = Infinity;
+          let bestSegmentStart = null;
+          let bestSegmentEnd = null;
+          
+          for (let i = 0; i < coords.length - 1; i++) {
+            const startPixel = map.project([coords[i].lng, coords[i].lat]);
+            const endPixel = map.project([coords[i + 1].lng, coords[i + 1].lat]);
 
-          if (distance < threshold && distance < minDistance) {
-            minDistance = distance;
-            closestSegment = polylineData;
+            const distance = distanceToLineSegmentPixels(
+              clickPixel,
+              startPixel,
+              endPixel,
+            );
 
-            // Calculate the closest point on this segment
-            const segmentStart = coords[i];
-            const segmentEnd = coords[i + 1];
+            if (distance < minPixelDistance) {
+              minPixelDistance = distance;
+              bestSegmentStart = coords[i];
+              bestSegmentEnd = coords[i + 1];
+            }
+          }
+
+          if (minPixelDistance < threshold && bestSegmentStart && bestSegmentEnd) {
+            closestSegment = candidateSegment;
             closestPointOnSegment = getClosestPointOnLineSegment(
               { lat: clickPoint.lat, lng: clickPoint.lng },
-              segmentStart,
-              segmentEnd,
+              bestSegmentStart,
+              bestSegmentEnd,
             );
           }
         }
-      });
+      }
 
       // Only add point if close enough to a segment and snap it to the segment
       if (closestSegment && closestPointOnSegment) {
@@ -1969,6 +2002,13 @@ async function parseGeoJSON(geoJsonData) {
 
     // Pre-calculate all segment metrics for fast access
     preCalculateSegmentMetrics();
+
+    // Initialize spatial index and populate it with all segments
+    spatialIndex = new SpatialIndex();
+    routePolylines.forEach(polylineData => {
+      spatialIndex.addSegment(polylineData);
+    });
+    console.log(`Spatial index initialized with ${routePolylines.length} segments`);
 
     // Initialize RouteManager and load data
     routeManager = new RouteManager();
