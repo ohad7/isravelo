@@ -690,7 +690,6 @@ function undo() {
 
     // Restore previous state
     const previousState = undoStack.pop();
-    selectedSegments = [...previousState.segments];
 
     // Clear and restore points
     clearRoutePoints();
@@ -699,14 +698,11 @@ function undo() {
       createPointMarker(point, index);
     });
 
-    // Update RouteManager's internal state to match the restored state
+    // Use RouteManager's public method to restore state
     if (routeManager) {
-      routeManager.routePoints = [...routePoints];
-      routeManager.selectedSegments = [...selectedSegments];
-      // Force a recalculation to ensure internal state is synchronized
-      if (routePoints.length > 0) {
-        routeManager._recalculateRoute();
-      }
+      selectedSegments = routeManager.restoreFromPoints(routePoints);
+    } else {
+      selectedSegments = [...previousState.segments];
     }
 
     updateSegmentStyles();
@@ -726,7 +722,6 @@ function redo() {
 
     // Restore next state
     const nextState = redoStack.pop();
-    selectedSegments = [...nextState.segments];
 
     // Clear and restore points
     clearRoutePoints();
@@ -735,14 +730,11 @@ function redo() {
       createPointMarker(point, index);
     });
 
-    // Update RouteManager's internal state to match the restored state
+    // Use RouteManager's public method to restore state
     if (routeManager) {
-      routeManager.routePoints = [...routePoints];
-      routeManager.selectedSegments = [...selectedSegments];
-      // Force a recalculation to ensure internal state is synchronized
-      if (routePoints.length > 0) {
-        routeManager._recalculateRoute();
-      }
+      selectedSegments = routeManager.restoreFromPoints(routePoints);
+    } else {
+      selectedSegments = [...nextState.segments];
     }
 
     updateSegmentStyles();

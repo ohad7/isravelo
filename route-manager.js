@@ -235,6 +235,101 @@ class RouteManager {
     };
   }
 
+  /**
+   * Restore route state from an array of points
+   * @param {Array} points - Array of route points with {lat, lng, id}
+   * @returns {Array} Updated list of selected segments
+   */
+  restoreFromPoints(points) {
+    // Clear current state
+    this.clearRoute();
+    
+    // Filter and validate points
+    const validPoints = points.filter(
+      (point) => point && point.lat !== undefined && point.lng !== undefined
+    );
+
+    if (validPoints.length === 0) {
+      return [];
+    }
+
+    // Add each point, but don't snap them - preserve original coordinates
+    for (const point of validPoints) {
+      this.routePoints.push({
+        lat: point.lat,
+        lng: point.lng,
+        id: point.id || Date.now() + Math.random(),
+      });
+    }
+
+    // Recalculate route based on the restored points
+    this._recalculateRoute();
+    
+    return [...this.selectedSegments];
+  }
+
+  /**
+   * Check if a list of segments forms a continuous route
+   * @param {Array} segments - Array of segment names
+   * @returns {Object} {isContinuous: boolean, brokenSegmentIndex: number}
+   */
+  checkSegmentsContinuity(segments) {
+    if (segments.length <= 1) {
+      return { isContinuous: true, brokenSegmentIndex: -1 };
+    }
+
+    const tolerance = 100; // 100 meters tolerance
+    const orderedCoords = this._getOrderedCoordinatesForSegments(segments);
+
+    if (orderedCoords.length === 0) {
+      return { isContinuous: true, brokenSegmentIndex: -1 };
+    }
+
+    // Check gaps in the ordered coordinates by looking at distances between consecutive segments
+    let coordIndex = 0;
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      const currentSegmentName = segments[i];
+      const nextSegmentName = segments[i + 1];
+
+      const currentSegment = this.segments.get(currentSegmentName);
+      const nextSegment = this.segments.get(nextSegmentName);
+
+      if (!currentSegment || !nextSegment) {
+        continue;
+      }
+
+      // Find where current segment ends in ordered coordinates
+      const currentSegmentLength = currentSegment.coordinates.length;
+      const currentSegmentEndIndex = coordIndex + currentSegmentLength - 1;
+
+      // Check if we have enough coordinates
+      if (currentSegmentEndIndex >= orderedCoords.length - 1) {
+        return { isContinuous: false, brokenSegmentIndex: i };
+      }
+
+      const currentEnd = orderedCoords[currentSegmentEndIndex];
+      const nextStart = orderedCoords[currentSegmentEndIndex + 1];
+
+      const distance = this._getDistance(currentEnd, nextStart);
+
+      // If distance is greater than tolerance, route is broken
+      if (distance > tolerance) {
+        return { isContinuous: false, brokenSegmentIndex: i };
+      }
+
+      // Move to next segment in ordered coordinates
+      // Skip first coordinate of next segment if segments are well connected to avoid duplication
+      coordIndex += currentSegmentLength;
+      if (distance <= 50) {
+        // Well connected segments
+        coordIndex -= 1; // Account for coordinate that was skipped in getOrderedCoordinates
+      }
+    }
+
+    return { isContinuous: true, brokenSegmentIndex: -1 };
+  }
+
   // Private methods
 
   _preCalculateMetrics() {
