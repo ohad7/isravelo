@@ -8,7 +8,8 @@ class RouteManager {
     this.segmentMetrics = new Map(); // segmentName -> pre-calculated metrics
     this.routePoints = [];
     this.selectedSegments = [];
-    this.adjacencyMap = new Map(); // segment connectivity graph
+    this.adjacencyMap = new Map(); // segment connectivity graph (segment-level)
+    this.endpointGraph = new Map(); // node-level graph: "<segment>|S" or "<segment>|E" -> [{to, weight}]
   }
 
   /**
@@ -20,6 +21,7 @@ class RouteManager {
     this.segments.clear();
     this.segmentMetrics.clear();
     this.adjacencyMap.clear();
+    this.endpointGraph.clear();
     this.segmentsMetadata = segmentsData || {};
 
     if (!geoJsonData?.features) {
@@ -54,8 +56,9 @@ class RouteManager {
     // Pre-calculate metrics for all segments
     this._preCalculateMetrics();
 
-    // Build connectivity graph
-    this._buildAdjacencyMap();
+    // Build connectivity graphs
+    this._buildAdjacencyMap();      // legacy segment-level (still used elsewhere)
+    this._buildEndpointGraph();     // new endpoint-level weighted graph
 
     console.log(`Loaded ${this.segments.size} segments with connectivity data`);
   }
@@ -284,6 +287,59 @@ class RouteManager {
     }
   }
 
+  _buildEndpointGraph() {
+    // Nodes: "<segment>|S" and "<segment>|E"
+    // Edges:
+    //  - Within a segment: S <-> E with weight = segment length
+    //  - Between segments: touching endpoints get 0-weight transitions
+    const connectionThreshold = 50; // meters
+
+    const segEntries = Array.from(this.segments.entries());
+
+    // Initialize nodes + internal edges
+    for (const [name, _seg] of segEntries) {
+      const nodeS = `${name}|S`;
+      const nodeE = `${name}|E`;
+      if (!this.endpointGraph.has(nodeS)) this.endpointGraph.set(nodeS, []);
+      if (!this.endpointGraph.has(nodeE)) this.endpointGraph.set(nodeE, []);
+
+      const metrics = this.segmentMetrics.get(name);
+      const w = metrics ? metrics.distance : 0;
+
+      // Bidirectional edge representing traversing the segment
+      this.endpointGraph.get(nodeS).push({ to: nodeE, weight: w, segment: name });
+      this.endpointGraph.get(nodeE).push({ to: nodeS, weight: w, segment: name });
+    }
+
+    // Zero-weight connections between touching endpoints of different segments
+    for (let i = 0; i < segEntries.length; i++) {
+      for (let j = i + 1; j < segEntries.length; j++) {
+        const [name1, seg1] = segEntries[i];
+        const [name2, seg2] = segEntries[j];
+
+        const s1 = seg1.coordinates[0];
+        const e1 = seg1.coordinates[seg1.coordinates.length - 1];
+        const s2 = seg2.coordinates[0];
+        const e2 = seg2.coordinates[seg2.coordinates.length - 1];
+
+        const pairs = [
+          [`${name1}|S`, s1, `${name2}|S`, s2],
+          [`${name1}|S`, s1, `${name2}|E`, e2],
+          [`${name1}|E`, e1, `${name2}|S`, s2],
+          [`${name1}|E`, e1, `${name2}|E`, e2],
+        ];
+
+        for (const [nA, pA, nB, pB] of pairs) {
+          if (this._getDistance(pA, pB) <= connectionThreshold) {
+            // Bidirectional zero-weight transition (junction)
+            this.endpointGraph.get(nA).push({ to: nB, weight: 0 });
+            this.endpointGraph.get(nB).push({ to: nA, weight: 0 });
+          }
+        }
+      }
+    }
+  }
+
   _areSegmentsConnected(segment1, segment2, threshold) {
     const coords1 = segment1.coordinates;
     const coords2 = segment2.coordinates;
@@ -478,172 +534,27 @@ class RouteManager {
         "Finding shortest path to target segment ",
         closestSegmentToPoint,
       );
-      // Not directly connected - find the shortest path from the route's endpoint
-      const segmentData = this.segments.get(closestSegmentToPoint);
-      if (!segmentData) return [closestSegmentToPoint];
+      // Not directly connected - find the shortest path using endpoint graph
+      const targetSegmentData = this.segments.get(closestSegmentToPoint);
+      if (!targetSegmentData) return [closestSegmentToPoint];
 
-      const coords = segmentData.coordinates;
-      const segmentStartPoint = coords[0];
-      const segmentEndPoint = coords[coords.length - 1];
+      // Use the *actual* clicked point on the target segment to pick its entry endpoint
+      const targetEntryPoint = {
+        lat: targetPoint.lat,
+        lng: targetPoint.lng,
+      };
 
-      // If route endpoint is at the end of the last segment, we need to consider reversing first
-      const lastSegmentData = this.segments.get(lastSegmentOfRoute);
-      const lastSegmentEnd = lastSegmentData
-        ? lastSegmentData.coordinates[lastSegmentData.coordinates.length - 1]
-        : null;
-      const isRouteEndAtSegmentEnd =
-        routeEndpoint &&
-        lastSegmentEnd &&
-        this._getDistance(routeEndpoint, lastSegmentEnd) < 50; // Use a small threshold
-
-      // Check if route endpoint is at the start of the last segment
-      const lastSegmentStart = lastSegmentData
-        ? lastSegmentData.coordinates[0]
-        : null;
-
-      // Determine the most logical entry point from the current route's endpoint to the target segment
-      let pathOptions = [];
-
-      // Path from current route endpoint to start of target segment
-      console.log(
-        "Finding path to target start:",
+      const path = this._findPathToSegmentEntryPoint(
         lastSegmentOfRoute,
         closestSegmentToPoint,
-        segmentStartPoint,
+        targetEntryPoint,
         routeEndpoint,
       );
-      const pathToTargetStart = this._findPathToSegmentEntryPoint(
-        lastSegmentOfRoute,
-        closestSegmentToPoint,
-        segmentStartPoint,
-        routeEndpoint,
-      );
-      pathOptions.push(pathToTargetStart);
 
-      console.log(
-        "Finding path to target end:",
-        lastSegmentOfRoute,
-        closestSegmentToPoint,
-        segmentEndPoint,
-        routeEndpoint,
-      );
-      // Path from current route endpoint to end of target segment
-      const pathToTargetEnd = this._findPathToSegmentEntryPoint(
-        lastSegmentOfRoute,
-        closestSegmentToPoint,
-        segmentEndPoint,
-        routeEndpoint,
-      );
-      pathOptions.push(pathToTargetEnd);
-
-      console.log("Path options:", pathOptions);
-
-      // If the route ends at the end of the last segment, consider reversing through it
-      if (isRouteEndAtSegmentEnd) {
-        // Path from the start of the last segment (after reversing) to the start of the target segment
-        const reverseEndpoint = lastSegmentStart; // The other end of the last segment
-        if (reverseEndpoint) {
-          const pathToTargetStartFromReverse =
-            this._findPathToSegmentEntryPoint(
-              lastSegmentOfRoute,
-              closestSegmentToPoint,
-              segmentStartPoint,
-              reverseEndpoint,
-            );
-          if (
-            pathToTargetStartFromReverse.length > 0 &&
-            pathToTargetStartFromReverse[0] === lastSegmentOfRoute
-          ) {
-            pathOptions.push(pathToTargetStartFromReverse);
-          } else if (pathToTargetStartFromReverse.length > 0) {
-            pathOptions.push([
-              lastSegmentOfRoute,
-              ...pathToTargetStartFromReverse,
-            ]);
-          }
-
-          // Path from the start of the last segment (after reversing) to the end of the target segment
-          const pathToTargetEndFromReverse = this._findPathToSegmentEntryPoint(
-            lastSegmentOfRoute,
-            closestSegmentToPoint,
-            segmentEndPoint,
-            reverseEndpoint,
-          );
-          if (
-            pathToTargetEndFromReverse.length > 0 &&
-            pathToTargetEndFromReverse[0] === lastSegmentOfRoute
-          ) {
-            pathOptions.push(pathToTargetEndFromReverse);
-          } else if (pathToTargetEndFromReverse.length > 0) {
-            pathOptions.push([
-              lastSegmentOfRoute,
-              ...pathToTargetEndFromReverse,
-            ]);
-          }
-        }
-      }
-
-      // Filter out empty paths and choose the shortest one
-      const validPaths = pathOptions.filter((path) => path && path.length > 0);
-
-      if (validPaths.length === 0) {
-        // If no valid path found, just return the target segment as a fallback
+      if (!path || path.length === 0) {
         return [closestSegmentToPoint];
       }
-
-      let shortestPath = validPaths[0];
-      let shortestDistance = this._calculatePathDistance(shortestPath);
-
-      for (let i = 1; i < validPaths.length; i++) {
-        const distance = this._calculatePathDistance(validPaths[i]);
-        if (distance < shortestDistance) {
-          shortestDistance = distance;
-          shortestPath = validPaths[i];
-        }
-      }
-
-      console.log(
-        "Selected shortest path:",
-        shortestPath,
-        "distance:",
-        shortestDistance,
-      );
-
-      // If the shortest path starts with the last segment of the current route,
-      // and it's not a reversal path, we should remove the duplicate segment.
-      if (shortestPath.length > 0 && shortestPath[0] === lastSegmentOfRoute) {
-        // Check if the path is actually a reversal. A reversal implies the path starts with the same segment.
-        // If the path is just a continuation, we might have a duplicate.
-        // For simplicity, if the path starts with the same segment, and it's not the only segment,
-        // we consider it a potential duplicate and remove it if it's not a reversal.
-        // A more robust check would involve comparing endpoints and directionality.
-        // For now, we'll keep it simple: if it starts with the same segment, and the path is longer than 1,
-        // and the next segment in the path is different, we might be duplicating.
-        if (shortestPath.length > 1 && shortestPath[1] !== lastSegmentOfRoute) {
-          // This looks like a path that starts with the current segment and then moves to another.
-          // We need to ensure we don't add the last segment twice if it wasn't a reversal.
-          // Let's re-evaluate how the path is constructed in _findPathToSegmentEntryPoint.
-          // If the connection logic within _findPathToSegmentEntryPoint correctly handles the starting segment,
-          // then we might not need to slice here.
-          // A simpler heuristic: if the current route endpoint is close to the start of the last segment,
-          // and the path to the target segment involves that same segment, it's likely a reversal.
-          // If the current route endpoint is close to the end of the last segment,
-          // and the path involves that segment, it's a continuation.
-          // Let's assume for now that _findPathToSegmentEntryPoint correctly manages the start segment.
-          // If we encounter issues, we can refine this logic.
-        }
-      }
-
-      // Ensure the returned path doesn't duplicate the last segment of the current route if it's not a reversal
-      if (
-        shortestPath.length > 0 &&
-        shortestPath[0] === lastSegmentOfRoute &&
-        !this._isReversalPath(currentRouteSegments, shortestPath)
-      ) {
-        return shortestPath.slice(1);
-      }
-
-      return shortestPath;
+      return path;
     }
   }
 
@@ -652,10 +563,6 @@ class RouteManager {
       return false;
     const lastSegmentOfRoute =
       currentRouteSegments[currentRouteSegments.length - 1];
-    // A reversal path typically means the first segment in the potential path is the same as the last segment of the current route.
-    // We need to ensure this is a genuine reversal, not just a continuation.
-    // This is a complex check and might require more context about how `potentialPath` is generated.
-    // For now, a simple check: if the path starts with the same segment, it's potentially a reversal.
     return potentialPath[0] === lastSegmentOfRoute;
   }
 
@@ -717,16 +624,22 @@ class RouteManager {
       return [startSegment];
     }
 
-    // Check if segments are directly connected first
-    const startConnections = this.adjacencyMap.get(startSegment) || [];
-    if (startConnections.includes(endSegment)) {
-      return [startSegment, endSegment];
-    }
+    // Determine which endpoint of the start segment to start from (closer to the actual startPoint)
+    const startEndpointKey = this._nearestEndpointKeyToPoint(startSegment, startPoint);
+    const routeEndpointPoint = this._getEndpointCoords(startSegment, startEndpointKey);
 
-    // Use shortest path algorithm
+    // Determine target entry endpoint of the end segment (closer to the actual endPoint)
+    const targetEndpointKey = this._nearestEndpointKeyToPoint(endSegment, endPoint);
+    const targetEntryPoint = this._getEndpointCoords(endSegment, targetEndpointKey);
+
+    // Use shortest path algorithm over endpoint graph
     const shortestPath = this._findShortestSegmentPath(
       startSegment,
       endSegment,
+      {
+        routeEndpointPoint,
+        targetEntryPoint,
+      },
     );
 
     return shortestPath;
@@ -739,32 +652,144 @@ class RouteManager {
     return snapped ? snapped.segmentName : null;
   }
 
-  _findShortestSegmentPath(startSegmentName, endSegmentName) {
+  /**
+   * NEW: Dijkstra on endpoint graph (segments as edges, endpoints as nodes).
+   * @param {string} startSegmentName
+   * @param {string} endSegmentName
+   * @param {Object} options - {routeEndpointPoint?: {lat,lng}, targetEntryPoint?: {lat,lng}}
+   * @returns {string[]} ordered list of segment names to traverse
+   */
+  _findShortestSegmentPath(startSegmentName, endSegmentName, options = {}) {
     if (startSegmentName === endSegmentName) return [startSegmentName];
 
-    const queue = [[startSegmentName]];
-    const visited = new Set([startSegmentName]);
+    // Decide start node
+    let startNode;
+    const startS = `${startSegmentName}|S`;
+    const startE = `${startSegmentName}|E`;
+    if (options.routeEndpointPoint) {
+      const sCoord = this._getEndpointCoords(startSegmentName, "S");
+      const eCoord = this._getEndpointCoords(startSegmentName, "E");
+      const dS = this._getDistance(options.routeEndpointPoint, sCoord);
+      const dE = this._getDistance(options.routeEndpointPoint, eCoord);
+      startNode = dS <= dE ? startS : startE;
+    } else {
+      // default: continue from the geometric end of the segment
+      startNode = startE;
+    }
 
-    while (queue.length > 0) {
-      const currentPath = queue.shift();
-      const currentSegment = currentPath[currentPath.length - 1];
+    // Decide target node
+    let targetNode;
+    const endS = `${endSegmentName}|S`;
+    const endE = `${endSegmentName}|E`;
+    if (options.targetEntryPoint) {
+      const sCoord = this._getEndpointCoords(endSegmentName, "S");
+      const eCoord = this._getEndpointCoords(endSegmentName, "E");
+      const dS = this._getDistance(options.targetEntryPoint, sCoord);
+      const dE = this._getDistance(options.targetEntryPoint, eCoord);
+      targetNode = dS <= dE ? endS : endE;
+    } else {
+      // If not specified, we will run once to each end and pick shorter
+      const pathToS = this._dijkstraPath(startNode, endS);
+      const pathToE = this._dijkstraPath(startNode, endE);
+      const wS = this._pathWeight(pathToS);
+      const wE = this._pathWeight(pathToE);
+      const better = wS <= wE ? pathToS : pathToE;
+      return this._nodesPathToSegments(better);
+    }
 
-      const connectedSegments = this.adjacencyMap.get(currentSegment) || [];
+    // Single Dijkstra to chosen endpoint
+    const nodePath = this._dijkstraPath(startNode, targetNode);
+    if (!nodePath || nodePath.length === 0) {
+      // Fallback if disconnected
+      return [startSegmentName, endSegmentName];
+    }
+    return this._nodesPathToSegments(nodePath);
+  }
 
-      for (const neighborSegment of connectedSegments) {
-        if (neighborSegment === endSegmentName) {
-          return [...currentPath, neighborSegment];
+  /**
+   * Convert a node path ["A|S","A|E","B|E","B|S"...] into the list of segments traversed.
+   * We push a segment when the path crosses within a segment (S<->E for that same segment).
+   */
+  _nodesPathToSegments(nodePath) {
+    if (!nodePath || nodePath.length < 2) return [];
+
+    const segments = [];
+    for (let i = 0; i < nodePath.length - 1; i++) {
+      const [segA, endA] = nodePath[i].split("|");
+      const [segB, endB] = nodePath[i + 1].split("|");
+      if (segA === segB && endA !== endB) {
+        // traversed this segment
+        // avoid duplicates if same segment appears consecutively
+        if (segments.length === 0 || segments[segments.length - 1] !== segA) {
+          segments.push(segA);
         }
+      }
+    }
+    return segments;
+  }
 
-        if (!visited.has(neighborSegment)) {
-          visited.add(neighborSegment);
-          queue.push([...currentPath, neighborSegment]);
+  _dijkstraPath(srcNode, dstNode) {
+    // Classic Dijkstra without a heap (graph is modest)
+    const nodes = Array.from(this.endpointGraph.keys());
+    if (!nodes.includes(srcNode) || !nodes.includes(dstNode)) return [];
+
+    const dist = new Map();
+    const prev = new Map();
+    const visited = new Set();
+
+    for (const n of nodes) dist.set(n, Infinity);
+    dist.set(srcNode, 0);
+
+    while (visited.size < nodes.length) {
+      // pick unvisited node with smallest dist
+      let u = null;
+      let best = Infinity;
+      for (const n of nodes) {
+        if (!visited.has(n) && dist.get(n) < best) {
+          best = dist.get(n);
+          u = n;
+        }
+      }
+      if (u === null) break; // disconnected
+      if (u === dstNode) break;
+
+      visited.add(u);
+      const edges = this.endpointGraph.get(u) || [];
+      for (const { to, weight } of edges) {
+        if (visited.has(to)) continue;
+        const alt = dist.get(u) + (Number.isFinite(weight) ? weight : 0);
+        if (alt < dist.get(to)) {
+          dist.set(to, alt);
+          prev.set(to, u);
         }
       }
     }
 
-    // Fallback: if no path found, assume direct connection (though this might be an error state)
-    return [startSegmentName, endSegmentName];
+    if (!prev.has(dstNode) && srcNode !== dstNode) {
+      // Might still be reachable if src==dst; otherwise, disconnected
+      if (srcNode !== dstNode) return [];
+    }
+
+    // Reconstruct path
+    const path = [];
+    let curr = dstNode;
+    path.unshift(curr);
+    while (prev.has(curr)) {
+      curr = prev.get(curr);
+      path.unshift(curr);
+    }
+    return path;
+  }
+
+  _pathWeight(nodePath) {
+    if (!nodePath || nodePath.length < 2) return Infinity;
+    let total = 0;
+    for (let i = 0; i < nodePath.length - 1; i++) {
+      const edges = this.endpointGraph.get(nodePath[i]) || [];
+      const e = edges.find((x) => x.to === nodePath[i + 1]);
+      total += e ? e.weight : Infinity;
+    }
+    return total;
   }
 
   _findPathFromPointToSegmentEntry(
@@ -781,7 +806,7 @@ class RouteManager {
         startSegmentData.coordinates[startSegmentData.coordinates.length - 1];
     }
 
-    // Use the existing path finding logic from the route's endpoint to the target segment entry
+    // Use the endpoint-aware shortest path
     return this._findPathToSegmentEntryPoint(
       startSegmentName,
       targetSegmentName,
@@ -795,140 +820,37 @@ class RouteManager {
     return snapped ? snapped.segmentName : null;
   }
 
+  /**
+   * FIXED: respects targetEntryPoint (third param) + routeEndpoint.
+   * Picks start endpoint (on startSegmentName) nearest to routeEndpoint,
+   * and target endpoint (on targetSegmentName) nearest to targetEntryPoint,
+   * then runs endpoint-graph Dijkstra to produce segment sequence.
+   */
   _findPathToSegmentEntryPoint(
     startSegmentName,
     targetSegmentName,
     targetEntryPoint,
     routeEndpoint, // The actual end point of the current route
   ) {
-    // Get the end point of the current route (last segment)
     const startSegmentData = this.segments.get(startSegmentName);
-    if (!startSegmentData) return [];
-
-    const startCoords = startSegmentData.coordinates;
-    const routeStartPoint = startCoords[0]; // Start of the current segment
-
-    // Get target segment data
     const targetSegmentData = this.segments.get(targetSegmentName);
-    if (!targetSegmentData) return [];
+    if (!startSegmentData || !targetSegmentData) return [];
 
-    const targetCoords = targetSegmentData.coordinates;
-    const targetStart = targetCoords[0];
-    const targetEnd = targetCoords[targetCoords.length - 1];
+    // Choose concrete endpoints
+    const routeEndpointPoint =
+      routeEndpoint ||
+      startSegmentData.coordinates[startSegmentData.coordinates.length - 1];
 
-    // Calculate paths to both entry points of target segment
-    const pathToTargetStart = this._findShortestSegmentPath(
+    const path = this._findShortestSegmentPath(
       startSegmentName,
       targetSegmentName,
-    );
-    const pathToTargetEnd = this._findShortestSegmentPath(
-      startSegmentName,
-      targetSegmentName,
-    );
-
-    // Calculate total distance for path to start of target segment
-    let distanceToStart = 0;
-
-    // Check if we need to traverse the starting segment in reverse
-    const distanceFromRouteEndToTargetStart = this._getDistance(
-      routeEndpoint,
-      targetStart,
-    );
-    const distanceFromRouteStartToTargetStart = this._getDistance(
-      routeStartPoint,
-      targetStart,
+      {
+        routeEndpointPoint,
+        targetEntryPoint,
+      },
     );
 
-    let segmentToAddForStart = [];
-    if (
-      distanceFromRouteStartToTargetStart < distanceFromRouteEndToTargetStart
-    ) {
-      // It's shorter to start from the beginning of the current segment, implies reversing the current segment
-      const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
-      if (startSegmentMetrics) {
-        distanceToStart += startSegmentMetrics.distance; // Add distance to traverse current segment in reverse
-        segmentToAddForStart = [startSegmentName]; // Indicate we need to add the current segment
-      }
-    } else {
-      // It's shorter to start from the end of the current segment, implies direct continuation
-      const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
-      if (startSegmentMetrics) {
-        distanceToStart += startSegmentMetrics.distance;
-        segmentToAddForStart = [startSegmentName];
-      }
-    }
-
-    // Add distances for intermediate segments in the path
-    for (
-      let i = pathToTargetStart[0] === startSegmentName ? 1 : 0;
-      i < pathToTargetStart.length;
-      i++
-    ) {
-      const segmentMetrics = this.segmentMetrics.get(pathToTargetStart[i]);
-      if (segmentMetrics) {
-        distanceToStart += segmentMetrics.distance;
-      }
-    }
-
-    // Calculate total distance for path to end of target segment
-    let distanceToEnd = 0;
-
-    // Check if we need to traverse the starting segment in reverse
-    const distanceFromRouteEndToTargetEnd = this._getDistance(
-      routeEndpoint,
-      targetEnd,
-    );
-    const distanceFromRouteStartToTargetEnd = this._getDistance(
-      routeStartPoint,
-      targetEnd,
-    );
-
-    let segmentToAddForEnd = [];
-    if (distanceFromRouteStartToTargetEnd < distanceFromRouteEndToTargetEnd) {
-      // It's shorter to start from the beginning of the current segment, implies reversing the current segment
-      const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
-      if (startSegmentMetrics) {
-        distanceToEnd += startSegmentMetrics.distance; // Add distance to traverse current segment in reverse
-        segmentToAddForEnd = [startSegmentName];
-      }
-    } else {
-      // It's shorter to start from the end of the current segment, implies direct continuation
-      const startSegmentMetrics = this.segmentMetrics.get(startSegmentName);
-      if (startSegmentMetrics) {
-        distanceToEnd += startSegmentMetrics.distance;
-        segmentToAddForEnd = [startSegmentName];
-      }
-    }
-
-    // Add distances for intermediate segments in the path
-    for (
-      let i = pathToTargetEnd[0] === startSegmentName ? 1 : 0;
-      i < pathToTargetEnd.length;
-      i++
-    ) {
-      const segmentMetrics = this.segmentMetrics.get(pathToTargetEnd[i]);
-      if (segmentMetrics) {
-        distanceToEnd += segmentMetrics.distance;
-      }
-    }
-
-    // Choose the path with shorter total distance
-    if (distanceToStart <= distanceToEnd) {
-      // Path to start of target segment is shorter
-      // We need to correctly include the starting segment if it's part of the path
-      const finalPath = [
-        ...segmentToAddForStart,
-        ...pathToTargetStart.filter((seg) => seg !== startSegmentName),
-      ];
-      return finalPath;
-    } else {
-      // Path to end of target segment is shorter
-      const finalPath = [
-        ...segmentToAddForEnd,
-        ...pathToTargetEnd.filter((seg) => seg !== startSegmentName),
-      ];
-      return finalPath;
-    }
+    return path || [];
   }
 
   _getCurrentRouteEndpoint(segments) {
@@ -1105,6 +1027,21 @@ class RouteManager {
   }
 
   // Utility methods
+
+  _getEndpointCoords(segmentName, key /* "S" | "E" */) {
+    const seg = this.segments.get(segmentName);
+    if (!seg) return null;
+    if (key === "S") return seg.coordinates[0];
+    return seg.coordinates[seg.coordinates.length - 1];
+  }
+
+  _nearestEndpointKeyToPoint(segmentName, point) {
+    const s = this._getEndpointCoords(segmentName, "S");
+    const e = this._getEndpointCoords(segmentName, "E");
+    const dS = this._getDistance(point, s);
+    const dE = this._getDistance(point, e);
+    return dS <= dE ? "S" : "E";
+  }
 
   _getDistance(point1, point2) {
     // Add null/undefined checks
@@ -1332,3 +1269,4 @@ class RouteManager {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = RouteManager;
 }
+
