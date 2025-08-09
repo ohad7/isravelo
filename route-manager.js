@@ -152,7 +152,30 @@ class RouteManager {
    * @returns {Array} Updated list of selected segments
    */
   recalculateRoute(points) {
-    this.routePoints = [...points];
+    // Re-snap points to nearest segments to ensure they're valid
+    this.routePoints = points.map(point => {
+      if (!point || point.lat === undefined || point.lng === undefined) {
+        return null;
+      }
+      
+      // Re-snap the point to the nearest segment
+      const snappedPoint = this._snapToNearestSegment({
+        lat: point.lat,
+        lng: point.lng
+      });
+      
+      if (snappedPoint) {
+        return {
+          ...point,
+          lat: snappedPoint.lat,
+          lng: snappedPoint.lng,
+          segmentName: snappedPoint.segmentName
+        };
+      }
+      
+      return point; // Keep original if snapping fails
+    }).filter(point => point !== null);
+
     this._recalculateRoute();
     return [...this.selectedSegments];
   }

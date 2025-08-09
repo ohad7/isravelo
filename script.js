@@ -105,16 +105,16 @@ function addRoutePoint(lngLat, fromClick = true) {
 
   // Add to local routePoints first
   routePoints.push(point);
-  
+
   // Use RouteManager to add the point and get updated segments
   if (routeManager) {
     try {
       const updatedSegments = routeManager.addPoint({ lat: lngLat.lat, lng: lngLat.lng });
       selectedSegments = updatedSegments;
-      
+
       // Create marker for the new point
       createPointMarker(point, routePoints.length - 1);
-      
+
       updateSegmentStyles();
       updateRouteListAndDescription();
     } catch (error) {
@@ -128,7 +128,7 @@ function addRoutePoint(lngLat, fromClick = true) {
     createPointMarker(point, routePoints.length - 1);
     recalculateRoute();
   }
-  
+
   clearRouteFromUrl();
 }
 
@@ -180,7 +180,7 @@ function createPointMarker(point, index) {
 
     map.on("mousedown", "route-points-circle", (e) => {
       if (e.features.length === 0) return;
-      
+
       e.preventDefault();
       isDragging = true;
       isDraggingPoint = true;
@@ -223,7 +223,21 @@ function createPointMarker(point, index) {
         features: features,
       });
 
-      recalculateRoute();
+      // Update dragging logic to use RouteManager's recalculateRoute method
+      if (routeManager) {
+        try {
+          const updatedSegments = routeManager.recalculateRoute(routePoints);
+          selectedSegments = updatedSegments;
+          updateSegmentStyles();
+          updateRouteListAndDescription();
+        } catch (error) {
+          console.error("Error updating route during drag:", error);
+          // Fallback to old method if RouteManager fails
+          recalculateRoute();
+        }
+      } else {
+        recalculateRoute();
+      }
     });
 
     map.on("mouseup", () => {
@@ -231,19 +245,19 @@ function createPointMarker(point, index) {
 
       isDragging = false;
       isDraggingPoint = false;
-      
+
       // Validate that the dragged point is still close enough to a segment
       if (draggedPointIndex !== -1 && routePoints[draggedPointIndex]) {
         const draggedPoint = routePoints[draggedPointIndex];
         const snappedPoint = findClosestSegment(draggedPoint);
-        
+
         if (!snappedPoint) {
           // No segment close enough - remove this point
           console.log("Dragged point too far from segments, removing point");
           removeRoutePoint(draggedPointIndex);
         }
       }
-      
+
       draggedPointIndex = -1;
       draggedFeature = null;
 
@@ -298,7 +312,21 @@ function createPointMarker(point, index) {
         features: features,
       });
 
-      recalculateRoute();
+      // Update touch dragging logic to use RouteManager's recalculateRoute method
+      if (routeManager) {
+        try {
+          const updatedSegments = routeManager.recalculateRoute(routePoints);
+          selectedSegments = updatedSegments;
+          updateSegmentStyles();
+          updateRouteListAndDescription();
+        } catch (error) {
+          console.error("Error updating route during drag:", error);
+          // Fallback to old method if RouteManager fails
+          recalculateRoute();
+        }
+      } else {
+        recalculateRoute();
+      }
     });
 
     map.on("touchend", () => {
@@ -306,19 +334,19 @@ function createPointMarker(point, index) {
 
       isDragging = false;
       isDraggingPoint = false;
-      
+
       // Validate that the dragged point is still close enough to a segment
       if (draggedPointIndex !== -1 && routePoints[draggedPointIndex]) {
         const draggedPoint = routePoints[draggedPointIndex];
         const snappedPoint = findClosestSegment(draggedPoint);
-        
+
         if (!snappedPoint) {
           // No segment close enough - remove this point
           console.log("Dragged point too far from segments, removing point");
           removeRoutePoint(draggedPointIndex);
         }
       }
-      
+
       draggedPointIndex = -1;
       draggedFeature = null;
 
@@ -442,7 +470,7 @@ function removeRoutePoint(index) {
     clearRouteFromUrl();
   } catch (error) {
     console.error("Error removing route point:", error);
-    
+
     // Fallback: remove point locally and recalculate route manually
     routePoints.splice(index, 1);
     pointMarkers.splice(index, 1);
