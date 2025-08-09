@@ -687,6 +687,12 @@ function undo() {
       createPointMarker(point, index);
     });
 
+    // Update RouteManager's internal state to match the restored state
+    if (routeManager) {
+      routeManager.routePoints = [...routePoints];
+      routeManager.selectedSegments = [...selectedSegments];
+    }
+
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
@@ -712,6 +718,12 @@ function redo() {
     routePoints.forEach((point, index) => {
       createPointMarker(point, index);
     });
+
+    // Update RouteManager's internal state to match the restored state
+    if (routeManager) {
+      routeManager.routePoints = [...routePoints];
+      routeManager.selectedSegments = [...selectedSegments];
+    }
 
     updateSegmentStyles();
     updateRouteListAndDescription();
