@@ -152,30 +152,7 @@ class RouteManager {
    * @returns {Array} Updated list of selected segments
    */
   recalculateRoute(points) {
-    // Re-snap points to nearest segments to ensure they're valid
-    this.routePoints = points.map(point => {
-      if (!point || point.lat === undefined || point.lng === undefined) {
-        return null;
-      }
-      
-      // Re-snap the point to the nearest segment
-      const snappedPoint = this._snapToNearestSegment({
-        lat: point.lat,
-        lng: point.lng
-      });
-      
-      if (snappedPoint) {
-        return {
-          ...point,
-          lat: snappedPoint.lat,
-          lng: snappedPoint.lng,
-          segmentName: snappedPoint.segmentName
-        };
-      }
-      
-      return point; // Keep original if snapping fails
-    }).filter(point => point !== null);
-
+    this.routePoints = [...points];
     this._recalculateRoute();
     return [...this.selectedSegments];
   }
@@ -464,26 +441,26 @@ class RouteManager {
       return validPoints[0].segmentName ? [validPoints[0].segmentName] : [];
     }
 
-    // For better performance during dragging, use direct pathfinding between consecutive points
     let allSegments = [];
 
-    for (let i = 0; i < validPoints.length - 1; i++) {
-      const startPoint = validPoints[i];
-      const endPoint = validPoints[i + 1];
+    // Process each new point by extending the route
+    for (let i = 0; i < validPoints.length; i++) {
+      const point = validPoints[i];
 
-      if (i === 0 && startPoint.segmentName) {
-        // Add the first segment
-        allSegments.push(startPoint.segmentName);
-      }
-
-      // Find path from current point to next point
-      const pathSegments = this._findPathBetweenPoints(startPoint, endPoint);
-      
-      // Add path segments, avoiding duplicates
-      for (const segmentName of pathSegments) {
-        if (allSegments.length === 0 || allSegments[allSegments.length - 1] !== segmentName) {
-          allSegments.push(segmentName);
+      if (i === 0) {
+        // First point - just add its segment
+        if (point.segmentName) {
+          allSegments.push(point.segmentName);
         }
+      } else {
+        // Extend route to reach this new point
+        const extensionSegments = this._findRouteExtensionToPoint(
+          point,
+          allSegments,
+        );
+
+        console.log("Pushing extension segments:", extensionSegments);
+        allSegments.push(...extensionSegments);
       }
     }
 

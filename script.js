@@ -223,21 +223,7 @@ function createPointMarker(point, index) {
         features: features,
       });
 
-      // Use RouteManager to recalculate route based on updated points
-      if (routeManager) {
-        try {
-          const updatedSegments = routeManager.recalculateRoute(routePoints);
-          selectedSegments = updatedSegments;
-          updateSegmentStyles();
-          updateRouteListAndDescription();
-        } catch (error) {
-          console.error("Error updating route during drag:", error);
-          // Fallback to old method if RouteManager fails
-          recalculateRoute();
-        }
-      } else {
-        recalculateRoute();
-      }
+      recalculateRoute();
     });
 
     map.on("mouseup", () => {
@@ -312,21 +298,7 @@ function createPointMarker(point, index) {
         features: features,
       });
 
-      // Use RouteManager to recalculate route based on updated points
-      if (routeManager) {
-        try {
-          const updatedSegments = routeManager.recalculateRoute(routePoints);
-          selectedSegments = updatedSegments;
-          updateSegmentStyles();
-          updateRouteListAndDescription();
-        } catch (error) {
-          console.error("Error updating route during drag:", error);
-          // Fallback to old method if RouteManager fails
-          recalculateRoute();
-        }
-      } else {
-        recalculateRoute();
-      }
+      recalculateRoute();
     });
 
     map.on("touchend", () => {
