@@ -269,6 +269,16 @@ class RouteManager {
   }
 
   /**
+   * Update internal state without recalculation (for undo/redo operations)
+   * @param {Array} points - Array of route points
+   * @param {Array} segments - Array of segment names
+   */
+  updateInternalState(points, segments) {
+    this.routePoints = points.map((p) => ({ ...p }));
+    this.selectedSegments = [...segments];
+  }
+
+  /**
    * Check if a list of segments forms a continuous route
    * @param {Array} segments - Array of segment names
    * @returns {Object} {isContinuous: boolean, brokenSegmentIndex: number}

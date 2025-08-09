@@ -737,6 +737,11 @@ function redo() {
       selectedSegments = [...nextState.segments];
     }
 
+    // Update RouteManager's internal state to match
+    if (routeManager) {
+      routeManager.updateInternalState(routePoints, selectedSegments);
+    }
+
     updateSegmentStyles();
     updateRouteListAndDescription();
     updateUndoRedoButtons();
