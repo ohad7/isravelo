@@ -153,28 +153,30 @@ class RouteManager {
    */
   recalculateRoute(points) {
     // Re-snap points to nearest segments to ensure they're valid
-    this.routePoints = points.map(point => {
-      if (!point || point.lat === undefined || point.lng === undefined) {
-        return null;
-      }
-      
-      // Re-snap the point to the nearest segment
-      const snappedPoint = this._snapToNearestSegment({
-        lat: point.lat,
-        lng: point.lng
-      });
-      
-      if (snappedPoint) {
-        return {
-          ...point,
-          lat: snappedPoint.lat,
-          lng: snappedPoint.lng,
-          segmentName: snappedPoint.segmentName
-        };
-      }
-      
-      return point; // Keep original if snapping fails
-    }).filter(point => point !== null);
+    this.routePoints = points
+      .map((point) => {
+        if (!point || point.lat === undefined || point.lng === undefined) {
+          return null;
+        }
+
+        // Re-snap the point to the nearest segment
+        const snappedPoint = this._snapToNearestSegment({
+          lat: point.lat,
+          lng: point.lng,
+        });
+
+        if (snappedPoint) {
+          return {
+            ...point,
+            lat: snappedPoint.lat,
+            lng: snappedPoint.lng,
+            segmentName: snappedPoint.segmentName,
+          };
+        }
+
+        return point; // Keep original if snapping fails
+      })
+      .filter((point) => point !== null);
 
     this._recalculateRoute();
     return [...this.selectedSegments];
@@ -243,7 +245,7 @@ class RouteManager {
   restoreFromPoints(points) {
     // Filter and validate points
     const validPoints = points.filter(
-      (point) => point && point.lat !== undefined && point.lng !== undefined
+      (point) => point && point.lat !== undefined && point.lng !== undefined,
     );
 
     if (validPoints.length === 0) {
@@ -265,7 +267,7 @@ class RouteManager {
           lat: snappedPoint.lat,
           lng: snappedPoint.lng,
           id: point.id || Date.now() + Math.random(),
-          segmentName: snappedPoint.segmentName
+          segmentName: snappedPoint.segmentName,
         });
       } else {
         // If snapping fails, keep original point but try to find closest segment
@@ -274,20 +276,22 @@ class RouteManager {
           lat: point.lat,
           lng: point.lng,
           id: point.id || Date.now() + Math.random(),
-          segmentName: closestSegment
+          segmentName: closestSegment,
         });
       }
     }
 
     // Recalculate route based on the restored points
     this._recalculateRoute();
-    
+
     // If recalculation failed and we have no segments, try to restore the previous segments
     if (this.selectedSegments.length === 0 && previousSegments.length > 0) {
-      console.warn("Route recalculation failed, attempting to restore previous segments");
+      console.warn(
+        "Route recalculation failed, attempting to restore previous segments",
+      );
       this.selectedSegments = [...previousSegments];
     }
-    
+
     return [...this.selectedSegments];
   }
 
@@ -657,6 +661,11 @@ class RouteManager {
         "Directly connected to target segment :",
         closestSegmentToPoint,
       );
+      console.log("currentRouteSegments:", currentRouteSegments);
+      // If it's only the second segment being added and it's adjacent, return it directly
+      if (currentRouteSegments.length == 1) {
+        return [closestSegmentToPoint];
+      }
       // Check if the target segment is reachable from the current route endpoint
       const targetSegmentData = this.segments.get(closestSegmentToPoint);
       if (!targetSegmentData) return [closestSegmentToPoint];
@@ -671,7 +680,7 @@ class RouteManager {
         targetStart,
       );
       const distanceToTargetEnd = this._getDistance(routeEndpoint, targetEnd);
-      const connectionThreshold = 100; // meters
+      const connectionThreshold = 50; // meters
 
       if (
         Math.min(distanceToTargetStart, distanceToTargetEnd) <=
@@ -709,6 +718,16 @@ class RouteManager {
       if (!path || path.length === 0) {
         return [closestSegmentToPoint];
       }
+
+      // When it's the second segment being added, don't assume directinality and thus don't reverse
+      if (
+        currentRouteSegments.length == 1 &&
+        path[0] == currentRouteSegments[0]
+      ) {
+        path.shift();
+        return path;
+      }
+
       return path;
     }
   }
@@ -892,6 +911,7 @@ class RouteManager {
         }
       }
     }
+    console.log("segments", segments);
     return segments;
   }
 
@@ -1017,7 +1037,10 @@ class RouteManager {
       },
     );
 
-    path.push(targetSegmentName);
+    // Avoid adding the end segment if it's already the last one in the path
+    if (path.length > 0 && path[path.length - 1] !== targetSegmentName) {
+      path.push(targetSegmentName);
+    }
     console.log("path:", path);
 
     return path || [];

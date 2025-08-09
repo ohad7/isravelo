@@ -1,0 +1,38 @@
+{
+  "name": "User Test Case - 2025-08-09 16-38-25",
+  "description": "Simple Test that fails for some reason, adding just two segments",
+  "geoJsonFile": "bike_roads_v12.geojson",
+  "segmentsFile": "segments.json",
+  "operations": [
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.19649526921796,
+          "lng": 35.590424998631946
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [],
+      "expectedSegmentsCount": 0
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.185645524242204,
+          "lng": 35.59280550208397
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [91],
+      "expectedSegmentsCount": 1
+    }
+  ],
+  "summary": {
+    "totalOperations": 2,
+    "operationTypes": ["addPoint"],
+    "finalSegmentIds": [91, 105],
+    "finalSegmentsCount": 2
+  }
+}
