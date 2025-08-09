@@ -126,10 +126,10 @@ class RouteManager {
 
     // Remove the point from internal array
     this.routePoints.splice(index, 1);
-    
+
     // Recalculate route based on remaining points
     this._recalculateRoute();
-    
+
     return [...this.selectedSegments];
   }
 
@@ -261,7 +261,7 @@ class RouteManager {
   }
 
   _buildAdjacencyMap() {
-    const connectionThreshold = 100; // meters
+    const connectionThreshold = 50; // meters
 
     for (const segmentName of this.segments.keys()) {
       this.adjacencyMap.set(segmentName, []);
@@ -338,8 +338,8 @@ class RouteManager {
 
   _recalculateRoute() {
     // Filter out any undefined or invalid points from routePoints
-    this.routePoints = this.routePoints.filter(point => 
-      point && point.lat !== undefined && point.lng !== undefined
+    this.routePoints = this.routePoints.filter(
+      (point) => point && point.lat !== undefined && point.lng !== undefined,
     );
 
     if (this.routePoints.length === 0) {
@@ -370,10 +370,12 @@ class RouteManager {
 
   _findOptimalRouteThroughPoints(points) {
     if (points.length === 0) return [];
-    
+
     // Filter out any undefined or invalid points
-    const validPoints = points.filter(point => point && point.lat !== undefined && point.lng !== undefined);
-    
+    const validPoints = points.filter(
+      (point) => point && point.lat !== undefined && point.lng !== undefined,
+    );
+
     if (validPoints.length === 0) return [];
     if (validPoints.length === 1) {
       return validPoints[0].segmentName ? [validPoints[0].segmentName] : [];
@@ -1124,9 +1126,14 @@ class RouteManager {
 
   _getDistance(point1, point2) {
     // Add null/undefined checks
-    if (!point1 || !point2 || 
-        point1.lat === undefined || point1.lng === undefined ||
-        point2.lat === undefined || point2.lng === undefined) {
+    if (
+      !point1 ||
+      !point2 ||
+      point1.lat === undefined ||
+      point1.lng === undefined ||
+      point2.lat === undefined ||
+      point2.lng === undefined
+    ) {
       console.warn("Invalid points passed to _getDistance:", point1, point2);
       return Infinity; // Return a large distance for invalid points
     }

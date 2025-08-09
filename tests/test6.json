@@ -1,0 +1,50 @@
+{
+  "name": "User Test Case - 2025-08-09 08-45-10",
+  "description": "Test for making sure that the shortest path is selected",
+  "geoJsonFile": "bike_roads_v12.geojson",
+  "segmentsFile": "segments.json",
+  "operations": [
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.156752574219595,
+          "lng": 35.57557017406352
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [],
+      "expectedSegmentsCount": 0
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.139254694681355,
+          "lng": 35.57073282370532
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [122],
+      "expectedSegmentsCount": 1
+    },
+    {
+      "type": "addPoint",
+      "data": {
+        "point": {
+          "lat": 33.11094624846451,
+          "lng": 35.57690670362566
+        },
+        "fromClick": true
+      },
+      "expectedSegmentIds": [122, 84],
+      "expectedSegmentsCount": 2
+    }
+  ],
+  "summary": {
+    "totalOperations": 3,
+    "operationTypes": ["addPoint"],
+    "finalSegmentIds": [122, 84, 48, 65],
+    "finalSegmentsCount": 5
+  }
+}
